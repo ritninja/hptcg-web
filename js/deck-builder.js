@@ -205,7 +205,7 @@ export class DeckBuilder {
       statsCount: document.getElementById('deck-stats-count'),
       statsValidity: document.getElementById('deck-stats-validity'),
       validationErrors: document.getElementById('deck-validation-errors'),
-      cardsList: document.getElementById('deck-builder-cards-list'),
+      cardsList: document.getElementById('deck-builder-cards-grid'),
       btnSave: document.getElementById('btn-save-deck'),
       btnBack: document.getElementById('btn-deck-builder-back'),
       inputSearch: document.getElementById('card-catalog-search'),
@@ -530,49 +530,97 @@ export class DeckBuilder {
     });
 
     if (sorted.length === 0) {
-      this.el.cardsList.innerHTML = `<li style="text-align: center; color: var(--text-muted); font-style: italic; padding: 20px;">No cards in deck yet. Click cards on the right to add them!</li>`;
+      this.el.cardsList.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); font-style: italic; padding: 40px;">No cards in deck yet. Click "Add to Deck" on the left to add them!</div>`;
       return;
     }
 
     sorted.forEach(group => {
-      const li = document.createElement('li');
-      li.className = 'deck-card-item';
+      const cardEl = document.createElement('div');
+      cardEl.className = 'catalog-card-item';
       
-      const textSpan = document.createElement('span');
-      textSpan.className = 'deck-card-name';
-      textSpan.innerText = `${group.card.name} (${group.card.type})`;
-      if (group.card.type === 'Lesson') {
-        textSpan.style.color = `var(--color-${(group.card.provides?.type || group.card.lessonType || 'charms').toLowerCase().replace(/\s+/g, '-')})`;
+      const thumb = document.createElement('div');
+      thumb.className = 'catalog-card-thumbnail';
+      if (group.card.image) {
+        thumb.style.backgroundImage = `url('${group.card.image}')`;
+        thumb.style.backgroundSize = 'cover';
+        thumb.style.backgroundPosition = 'center';
       }
 
-      const countControls = document.createElement('div');
-      countControls.className = 'deck-card-controls';
+      // Badge displays the count of this card in the deck
+      const badge = document.createElement('span');
+      badge.className = 'catalog-card-badge';
+      badge.innerText = `x${group.count}`;
+      badge.style.display = 'block';
+      thumb.appendChild(badge);
+
+      const info = document.createElement('div');
+      info.className = 'catalog-card-info';
       
-      const countLabel = document.createElement('span');
-      countLabel.className = 'deck-card-count';
-      countLabel.innerText = `x${group.count}`;
+      const name = document.createElement('div');
+      name.className = 'catalog-card-name';
+      name.innerText = group.card.name;
+      if (group.card.type === 'Lesson') {
+        name.style.color = `var(--color-${(group.card.provides?.type || group.card.lessonType || 'charms').toLowerCase().replace(/\s+/g, '-')})`;
+      }
+
+      const typeCost = document.createElement('div');
+      typeCost.className = 'catalog-card-meta';
+      const costText = group.card.lessonCost ? ` (${group.card.lessonCost.total} ${group.card.lessonCost.type})` : '';
+      typeCost.innerText = `${group.card.type}${costText}`;
+
+      const desc = document.createElement('div');
+      desc.className = 'catalog-card-desc';
+      desc.innerText = group.card.text || '';
+
+      // Controls row: - and + buttons to adjust copies
+      const btnRow = document.createElement('div');
+      btnRow.className = 'deck-card-controls';
+      btnRow.style.marginTop = '6px';
+      btnRow.style.display = 'flex';
+      btnRow.style.gap = '8px';
+      btnRow.style.alignSelf = 'flex-start';
 
       const btnMinus = document.createElement('button');
-      btnMinus.className = 'btn btn-icon';
+      btnMinus.className = 'btn btn-icon btn-small';
       btnMinus.innerText = '-';
+      btnMinus.style.width = '28px';
+      btnMinus.style.height = '28px';
+      btnMinus.style.display = 'flex';
+      btnMinus.style.alignItems = 'center';
+      btnMinus.style.justifyContent = 'center';
       btnMinus.addEventListener('click', () => {
         this.removeCardFromDeck(group.card.id);
       });
 
       const btnPlus = document.createElement('button');
-      btnPlus.className = 'btn btn-icon';
+      btnPlus.className = 'btn btn-icon btn-small';
       btnPlus.innerText = '+';
+      btnPlus.style.width = '28px';
+      btnPlus.style.height = '28px';
+      btnPlus.style.display = 'flex';
+      btnPlus.style.alignItems = 'center';
+      btnPlus.style.justifyContent = 'center';
+      
+      if (group.card.type !== 'Lesson' && group.count >= 4) {
+        btnPlus.classList.add('disabled');
+        btnPlus.disabled = true;
+      }
+      
       btnPlus.addEventListener('click', () => {
         this.addCardToDeck(group.card.id);
       });
 
-      countControls.appendChild(btnMinus);
-      countControls.appendChild(countLabel);
-      countControls.appendChild(btnPlus);
+      btnRow.appendChild(btnMinus);
+      btnRow.appendChild(btnPlus);
 
-      li.appendChild(textSpan);
-      li.appendChild(countControls);
-      this.el.cardsList.appendChild(li);
+      info.appendChild(name);
+      info.appendChild(typeCost);
+      info.appendChild(desc);
+      info.appendChild(btnRow);
+
+      cardEl.appendChild(thumb);
+      cardEl.appendChild(info);
+      this.el.cardsList.appendChild(cardEl);
     });
   }
 
