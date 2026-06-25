@@ -467,7 +467,7 @@ export class UIManager {
 
     // Determine orientation based on card type or field state
     let isHorizontal = false;
-    if (card.type === 'Lesson' || card.type === 'Adventure' || card.type === 'Character') {
+    if (card.type === 'Lesson' || card.type === 'Adventure' || card.type === 'Character' || card.type === 'Creature') {
       isHorizontal = true;
     }
     if (cardEl) {
