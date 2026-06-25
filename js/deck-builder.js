@@ -540,11 +540,17 @@ export class DeckBuilder {
       
       const thumb = document.createElement('div');
       thumb.className = 'catalog-card-thumbnail';
+      thumb.style.cursor = 'pointer';
+      thumb.title = 'Click to zoom card';
       if (group.card.image) {
         thumb.style.backgroundImage = `url('${group.card.image}')`;
         thumb.style.backgroundSize = 'cover';
         thumb.style.backgroundPosition = 'center';
       }
+      thumb.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.showCardZoom(group.card);
+      });
 
       // Badge displays the count of this card in the deck
       const badge = document.createElement('span');
@@ -693,11 +699,17 @@ export class DeckBuilder {
       
       const thumb = document.createElement('div');
       thumb.className = 'catalog-card-thumbnail';
+      thumb.style.cursor = 'pointer';
+      thumb.title = 'Click to zoom card';
       if (card.image) {
         thumb.style.backgroundImage = `url('${card.image}')`;
         thumb.style.backgroundSize = 'cover';
         thumb.style.backgroundPosition = 'center';
       }
+      thumb.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.showCardZoom(card);
+      });
 
       const countInDeck = this.currentDeck.cardIds.filter(id => id === card.id).length;
       
@@ -753,6 +765,29 @@ export class DeckBuilder {
       cardEl.appendChild(info);
       this.el.catalogGrid.appendChild(cardEl);
     });
+  }
+
+  showCardZoom(card) {
+    const modal = document.getElementById('card-preview-modal');
+    const img = document.getElementById('modal-card-image');
+    const actions = document.getElementById('modal-actions');
+
+    if (!modal || !img) return;
+
+    img.src = card.image || '';
+    img.alt = card.name || 'Card Preview';
+
+    let isHorizontal = card.type === 'Lesson' || card.type === 'Adventure' || card.type === 'Character';
+    let rotation = isHorizontal ? 90 : 0;
+
+    img.style.transform = rotation ? `rotate(${rotation}deg)` : 'none';
+    img.style.margin = rotation ? '40px 0' : '0';
+
+    if (actions) {
+      actions.innerHTML = ''; // No in-game actions in Deck Builder
+    }
+
+    modal.showModal();
   }
 
   show() {
