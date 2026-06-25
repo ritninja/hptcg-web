@@ -130,8 +130,8 @@ export function getPresetDecks(cardsDb) {
       ]
     },
     creatures: {
-      name: "Hagrid's / Creatures Deck",
-      characterId: "18", // Rubeus Hagrid
+      name: "Ron's / Creatures Deck",
+      characterId: "17", // Ron Weasley
       lessons: [
         { type: 'Care of Magical Creatures', count: 15 },
         { type: 'Transfiguration', count: 5 }
@@ -221,18 +221,24 @@ export class DeckBuilder {
   // Load custom decks from LocalStorage
   initDecks() {
     const raw = localStorage.getItem('hptcg_custom_decks');
+    let loadedDecks = [];
     if (raw) {
       try {
-        this.decks = JSON.parse(raw);
+        loadedDecks = JSON.parse(raw);
       } catch (e) {
         console.error("Error reading custom decks from localStorage", e);
-        this.decks = getPresetDecks(this.cardsDb);
-        this.saveDecksToStorage();
       }
-    } else {
-      this.decks = getPresetDecks(this.cardsDb);
-      this.saveDecksToStorage();
     }
+
+    // Filter out old preset decks, keeping only user-created custom decks
+    const customDecks = loadedDecks.filter(d => !d.isPreset);
+    // Get fresh preset decks
+    const presets = getPresetDecks(this.cardsDb);
+    // Combine custom decks and presets
+    this.decks = [...presets, ...customDecks];
+    
+    // Save to storage to ensure changes to presets are persisted
+    this.saveDecksToStorage();
 
     if (this.decks.length > 0) {
       this.currentDeck = this.decks[0];
@@ -249,9 +255,24 @@ export class DeckBuilder {
     if (!this.el.selectChar) return;
     this.el.selectChar.innerHTML = '';
     
-    const characters = this.cardsDb.filter(c => c.type === 'Character');
+    // Only characters who are Witch or Wizard can be starting characters
+    const characters = this.cardsDb.filter(c => 
+      c.type === 'Character' && 
+      (c.subTypes.includes('Witch') || c.subTypes.includes('Wizard'))
+    );
+    
+    // Deduplicate options by character name to avoid duplicates (e.g., 3 Hermiones/Dracos)
+    const seenNames = new Set();
+    const uniqueCharacters = [];
     
     characters.forEach(char => {
+      if (!seenNames.has(char.name)) {
+        seenNames.add(char.name);
+        uniqueCharacters.push(char);
+      }
+    });
+    
+    uniqueCharacters.forEach(char => {
       const opt = document.createElement('option');
       opt.value = char.id;
       opt.innerText = char.name;
