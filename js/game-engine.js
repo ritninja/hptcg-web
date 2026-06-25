@@ -450,7 +450,7 @@ export class GameEngine {
           setTimeout(() => {
             this.resolveSpell(playerId, card);
             this.notifyStateChange();
-          }, 1000);
+          }, 2000);
         } else {
           this.resolveSpell(playerId, card);
         }

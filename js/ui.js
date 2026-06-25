@@ -238,7 +238,7 @@ export class UIManager {
       if (playable) {
         const isSpell = playable.type === 'Spell';
         this.engine.playCard('opponent', playable.instanceId);
-        setTimeout(tryPlayAI, isSpell ? 2000 : 800);
+        setTimeout(tryPlayAI, isSpell ? 3000 : 800);
         return;
       }
 
@@ -583,7 +583,7 @@ export class UIManager {
 
     setTimeout(() => {
       modal.close();
-    }, 1000);
+    }, 2000);
   }
 
   showDiscardViewer(playerId) {
