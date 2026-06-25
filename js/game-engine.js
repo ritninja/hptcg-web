@@ -95,6 +95,7 @@ export class GameEngine {
     this.turnNumber = 1;
     this.logs = [];
     this.onStateChangeCallback = null;
+    this.onSpellPlayedCallback = null;
     this.gameOver = false;
     this.winnerMessage = null;
     this.pendingSpell = null;
@@ -103,6 +104,11 @@ export class GameEngine {
   // Subscribe UI to state changes
   onStateChange(callback) {
     this.onStateChangeCallback = callback;
+  }
+
+  // Subscribe UI to spell play events
+  onSpellPlayed(callback) {
+    this.onSpellPlayedCallback = callback;
   }
 
   notifyStateChange() {
@@ -439,7 +445,15 @@ export class GameEngine {
       case 'Spell':
         player.discardPile.push(card);
         this.log(`${player.name} cast Spell: ${card.name}!`);
-        this.resolveSpell(playerId, card);
+        if (this.onSpellPlayedCallback) {
+          this.onSpellPlayedCallback(card, playerId);
+          setTimeout(() => {
+            this.resolveSpell(playerId, card);
+            this.notifyStateChange();
+          }, 1000);
+        } else {
+          this.resolveSpell(playerId, card);
+        }
         break;
     }
 

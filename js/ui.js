@@ -59,8 +59,18 @@ export class UIManager {
       spellTargetingOptions: document.getElementById('spell-targeting-options'),
       spellTargetingActions: document.getElementById('spell-targeting-actions'),
       btnSpellConfirm: document.getElementById('btn-spell-confirm'),
-      btnSpellCancel: document.getElementById('btn-spell-cancel')
+      btnSpellCancel: document.getElementById('btn-spell-cancel'),
+
+      // Spell cast announcement modal elements
+      spellCastModal: document.getElementById('spell-cast-modal'),
+      spellCastImage: document.getElementById('spell-cast-image'),
+      spellCastName: document.getElementById('spell-cast-name')
     };
+
+    // Listen for spell play events
+    this.engine.onSpellPlayed((card, playerId) => {
+      this.showSpellCastZoom(card, playerId);
+    });
 
     this.bindGlobalEvents();
   }
@@ -226,8 +236,9 @@ export class UIManager {
       });
 
       if (playable) {
+        const isSpell = playable.type === 'Spell';
         this.engine.playCard('opponent', playable.instanceId);
-        setTimeout(tryPlayAI, 800);
+        setTimeout(tryPlayAI, isSpell ? 2000 : 800);
         return;
       }
 
@@ -544,6 +555,35 @@ export class UIManager {
     if (this.el.cardPreviewModal) {
       this.el.cardPreviewModal.close();
     }
+  }
+
+  showSpellCastZoom(card, playerId) {
+    const modal = this.el.spellCastModal;
+    const img = this.el.spellCastImage;
+    const nameText = this.el.spellCastName;
+
+    if (!modal || !img || !nameText) return;
+
+    img.src = card.image || '';
+    img.alt = card.name;
+    nameText.innerText = card.name;
+
+    const banner = modal.querySelector('.spell-cast-banner');
+    if (banner) {
+      if (playerId === 'player') {
+        banner.innerText = 'You Cast a Spell!';
+        banner.style.textShadow = '0 0 10px rgba(79, 172, 254, 0.8), 0 0 20px rgba(79, 172, 254, 0.5)';
+      } else {
+        banner.innerText = 'Rival Casts a Spell!';
+        banner.style.textShadow = '0 0 10px rgba(255, 8, 68, 0.8), 0 0 20px rgba(255, 8, 68, 0.5)';
+      }
+    }
+
+    modal.showModal();
+
+    setTimeout(() => {
+      modal.close();
+    }, 1000);
   }
 
   showDiscardViewer(playerId) {

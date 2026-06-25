@@ -1027,5 +1027,94 @@ dialog#intro-rules-modal::backdrop {
   backdrop-filter: blur(12px);
 }
 
+/* Spell Cast Modal Styling */
+dialog#spell-cast-modal {
+  border: none;
+  background: transparent;
+  padding: 0;
+  max-width: 90vw;
+  max-height: 90vh;
+  outline: none;
+  overflow: visible;
+  margin: auto;
+}
+
+dialog#spell-cast-modal[open] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+dialog#spell-cast-modal::backdrop {
+  background-color: rgba(10, 12, 16, 0.7);
+  backdrop-filter: blur(5px);
+  animation: backdrop-fade-in 0.2s forwards;
+}
+
+.spell-cast-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  background: rgba(18, 22, 32, 0.85);
+  border: 2px solid rgba(138, 43, 226, 0.6); /* Violet border */
+  border-radius: 20px;
+  padding: 24px 32px 32px 32px;
+  box-shadow: 
+    0 0 50px rgba(138, 43, 226, 0.4), /* Outer purple glow */
+    0 20px 40px rgba(0, 0, 0, 0.9),
+    inset 0 0 20px rgba(138, 43, 226, 0.2);
+  animation: spell-cast-in 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.spell-cast-banner {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 0 10px rgba(138, 43, 226, 0.8), 0 0 20px rgba(138, 43, 226, 0.5);
+  margin-bottom: 16px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+#spell-cast-image {
+  width: 250px;
+  height: 350px;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+#spell-cast-name {
+  margin-top: 16px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #d4af37; /* Gold */
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+@keyframes spell-cast-in {
+  from {
+    transform: scale(0.7) rotate(-3deg);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+@keyframes backdrop-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 
 
