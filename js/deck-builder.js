@@ -777,7 +777,7 @@ export class DeckBuilder {
     img.src = card.image || '';
     img.alt = card.name || 'Card Preview';
 
-    let isHorizontal = card.type === 'Lesson' || card.type === 'Adventure' || card.type === 'Character';
+    let isHorizontal = card.type !== 'Spell';
     let rotation = isHorizontal ? 90 : 0;
 
     img.style.transform = rotation ? `rotate(${rotation}deg)` : 'none';
