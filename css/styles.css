@@ -1,0 +1,1031 @@
+/* 
+  Harry Potter TCG - Core Design System & Stylesheet
+  Features a premium dark/magical theme, HSL-based color tokens,
+  glassmorphism panels, and smooth micro-animations.
+*/
+
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;800&family=Inter:wght@300;400;500;600&display=swap');
+
+:root {
+  /* Color Palettes */
+  --bg-primary: hsl(220, 25%, 8%);
+  --bg-secondary: hsl(220, 25%, 12%);
+  --bg-panel: hsla(220, 25%, 15%, 0.7);
+  --border-color: hsla(220, 25%, 25%, 0.4);
+  --border-glow: hsla(220, 80%, 60%, 0.3);
+  
+  --text-primary: hsl(0, 0%, 95%);
+  --text-secondary: hsl(220, 10%, 75%);
+  --text-muted: hsl(220, 10%, 55%);
+  --accent-gold: hsl(45, 85%, 60%);
+  --accent-gold-glow: hsla(45, 85%, 60%, 0.4);
+
+  /* Lesson Type Colors (HSL) */
+  --color-charms: hsl(200, 85%, 55%);
+  --color-transfiguration: hsl(0, 80%, 55%);
+  --color-potions: hsl(50, 90%, 50%);
+  --color-herbology: hsl(125, 60%, 45%);
+  --color-care-magical-creatures: hsl(28, 45%, 45%);
+  
+  /* Layout Dimensions */
+  --card-width: 120px;
+  --card-height: 168px;
+  --card-border-radius: 12px;
+  --hand-height: 160px;
+  
+  /* Fonts */
+  --font-display: 'Cinzel', Georgia, serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  
+  /* Transitions */
+  --transition-smooth: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  --transition-fast: all 0.15s ease-out;
+}
+
+/* Global Reset */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg-primary);
+  background-image: 
+    radial-gradient(circle at 10% 20%, hsla(260, 40%, 15%, 0.4) 0%, transparent 50%),
+    radial-gradient(circle at 90% 80%, hsla(200, 40%, 15%, 0.3) 0%, transparent 50%);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  min-height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  letter-spacing: 0.05em;
+  color: var(--text-primary);
+}
+
+/* Main Container - Responsive Grid Dashboard */
+#game-container {
+  display: grid;
+  grid-template-rows: 60px var(--hand-height) 1fr var(--hand-height);
+  grid-template-columns: 280px 1fr;
+  grid-template-areas:
+    "header header"
+    "sidebar opponent-hand"
+    "sidebar play-area"
+    "sidebar hand-area";
+  height: 100vh;
+  width: 100vw;
+}
+
+/* Header */
+header {
+  grid-area: header;
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 24px;
+  z-index: 10;
+}
+
+.game-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--accent-gold) 30%, #fff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 10px var(--accent-gold-glow);
+}
+
+.turn-indicator {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  color: var(--accent-gold);
+}
+
+/* Sidebar Panel (Logs, Decks, Phase Trackers) */
+#sidebar {
+  grid-area: sidebar;
+  background-color: var(--bg-secondary);
+  border-right: 1px solid var(--border-color);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  overflow-y: auto;
+}
+
+.panel-section {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 16px;
+  backdrop-filter: blur(12px);
+}
+
+.panel-title {
+  font-size: 0.9rem;
+  color: var(--accent-gold);
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 6px;
+}
+
+/* Player Info / Deck Status */
+.player-status {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 0.85rem;
+}
+
+/* Play Area Grid */
+#play-area {
+  grid-area: play-area;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+  padding: 16px;
+  gap: 16px;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.playmat {
+  display: grid;
+  grid-template-columns: 220px 1.2fr 1fr;
+  grid-template-rows: 100%;
+  gap: 12px;
+  padding: 10px;
+  background: rgba(18, 22, 28, 0.4);
+  border: 1px solid var(--border-color);
+  border-radius: var(--card-border-radius);
+  box-shadow: inset 0 0 25px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(12px);
+  min-height: 0; /* critical for grid flex content */
+}
+
+/* Playmat Columns */
+.playmat-left {
+  display: grid;
+  grid-template-rows: 90px 1fr;
+  gap: 10px;
+  min-height: 0;
+}
+
+.deck-discard-row {
+  display: flex;
+  gap: 10px;
+}
+
+.mat-deck-slot, .mat-discard-slot {
+  flex: 1;
+  height: 90px;
+  position: relative;
+}
+
+.mat-deck-placeholder, .mat-discard-placeholder {
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  border: 1.5px dashed var(--border-color);
+  background: rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: var(--transition-smooth);
+}
+
+.mat-deck-placeholder:hover, .mat-discard-placeholder:hover {
+  border-color: var(--accent-gold);
+  background: rgba(212, 175, 55, 0.05);
+}
+
+.character-slot {
+  border: 2px dashed var(--accent-gold-glow);
+  background: rgba(212, 175, 55, 0.03);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+}
+
+.character-slot .card {
+  --card-width: 100px;
+  --card-height: 140px;
+  margin: 0 20px;
+}
+
+.playmat-middle {
+  height: 100%;
+  min-height: 0;
+}
+
+.playmat-right {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  gap: 10px;
+  min-height: 0;
+}
+
+.creatures-zone, .permanents-zone {
+  height: 100%;
+  min-height: 0;
+}
+
+/* Playmat Cards Scaling */
+.playmat .card {
+  --card-width: 80px;
+  --card-height: 112px;
+  --card-border-radius: 8px;
+  margin: 0;
+}
+
+.playmat .card:hover {
+  box-shadow: 
+    0 8px 16px rgba(0, 0, 0, 0.6),
+    0 0 10px var(--border-glow);
+  z-index: 5;
+}
+
+/* Opponent Field Rotations (Counter-Clockwise) */
+#opponent-playmat .card,
+#opponent-character-zone .card {
+  transform: rotate(-90deg);
+}
+#opponent-playmat .card:hover {
+  transform: translateY(-4px) scale(1.15) rotate(-90deg) !important;
+}
+#opponent-character-zone .card:hover {
+  transform: scale(1.05) rotate(-90deg) !important;
+}
+
+/* Player Field Rotations (Clockwise) */
+#player-playmat .card,
+#player-character-zone .card {
+  transform: rotate(90deg);
+}
+#player-playmat .card:hover {
+  transform: translateY(-4px) scale(1.15) rotate(90deg) !important;
+}
+#player-character-zone .card:hover {
+  transform: scale(1.05) rotate(90deg) !important;
+}
+
+.playmat .card .card-name {
+  font-size: 0.6rem;
+}
+
+.playmat .card .card-cost {
+  font-size: 0.55rem;
+  padding: 1px 3px;
+  border-radius: 2px;
+}
+
+.playmat .card .card-art {
+  height: 40px;
+  margin: 3px 0;
+}
+
+.playmat .card .card-body {
+  font-size: 0.5rem;
+  line-height: 1.15;
+  margin-bottom: 3px;
+}
+
+.playmat .card .card-footer {
+  font-size: 0.45rem;
+  padding-top: 2px;
+}
+
+/* Zone Container & Label Defaults */
+.zone-container {
+  background: var(--bg-panel);
+  border: 1.5px dashed var(--border-color);
+  border-radius: var(--card-border-radius);
+  display: grid;
+  grid-template-columns: repeat(5, minmax(75px, 1fr));
+  justify-items: center;
+  align-items: center;
+  padding: 32px 12px 12px 12px;
+  gap: 16px 8px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+  transition: var(--transition-smooth);
+}
+
+.character-slot.zone-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.zone-container.active-drop {
+  border-color: var(--accent-gold);
+  background: rgba(212, 175, 55, 0.05);
+  box-shadow: inset 0 0 15px rgba(212, 175, 55, 0.1);
+}
+
+.zone-label {
+  position: absolute;
+  top: 6px;
+  left: 10px;
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Hand Area */
+#hand-area {
+  grid-area: hand-area;
+  background-color: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 24px;
+  overflow-x: auto;
+  gap: 12px;
+  box-sizing: border-box;
+  height: var(--hand-height);
+}
+
+/* Base Card Styles */
+.card {
+  width: var(--card-width);
+  height: var(--card-height);
+  border-radius: var(--card-border-radius);
+  background-color: var(--bg-secondary);
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+  cursor: grab;
+  position: relative;
+  user-select: none;
+  transition: var(--transition-smooth);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+}
+
+.card:hover {
+  transform: translateY(-8px) scale(1.05);
+  box-shadow: 
+    0 12px 24px rgba(0, 0, 0, 0.6),
+    0 0 15px var(--border-glow);
+  z-index: 5;
+}
+
+.card:active {
+  cursor: grabbing;
+}
+
+/* Horizontal Cards (Adventures) */
+.card-horizontal {
+  transform: rotate(-90deg);
+  margin: 0 24px; /* offset rotation overlap in flex rows */
+}
+
+.card-horizontal:hover {
+  transform: translateY(-8px) scale(1.05) rotate(-90deg) !important;
+  z-index: 5;
+}
+
+
+
+/* Card Header */
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.card-name {
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.1;
+  word-break: break-word;
+}
+
+.card-cost {
+  font-size: 0.7rem;
+  font-weight: 600;
+  background: rgba(0,0,0,0.4);
+  padding: 2px 5px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+/* Card Art Area */
+.card-art {
+  height: 80px;
+  width: 100%;
+  background: hsl(220, 25%, 5%);
+  border-radius: 6px;
+  margin: 6px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  border: 1px solid rgba(255,255,255,0.05);
+  position: relative;
+  overflow: hidden;
+  transition: var(--transition-smooth);
+}
+
+.card:hover .card-art {
+  transform: scale(1.04);
+  border-color: var(--accent-gold);
+}
+
+.card-art::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(to bottom, transparent 65%, rgba(0,0,0,0.85));
+}
+
+/* Card Text / Body */
+.card-body {
+  font-size: 0.625rem;
+  line-height: 1.3;
+  color: var(--text-secondary);
+  flex-grow: 1;
+  display: flex;
+  align-items: center;
+  text-align: center;
+  justify-content: center;
+  margin-bottom: 6px;
+}
+
+/* Card Footer / Type Tag */
+.card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  border-top: 1px solid rgba(255,255,255,0.05);
+  padding-top: 4px;
+}
+
+/* Lesson-Type Theme Enhancements */
+.card[data-lesson-type="Charms"] {
+  border-color: var(--color-charms);
+  --border-glow: hsla(200, 85%, 55%, 0.4);
+}
+.card[data-lesson-type="Charms"] .card-cost {
+  color: var(--color-charms);
+}
+
+.card[data-lesson-type="Transfiguration"] {
+  border-color: var(--color-transfiguration);
+  --border-glow: hsla(0, 80%, 55%, 0.4);
+}
+.card[data-lesson-type="Transfiguration"] .card-cost {
+  color: var(--color-transfiguration);
+}
+
+.card[data-lesson-type="Potions"] {
+  border-color: var(--color-potions);
+  --border-glow: hsla(50, 90%, 50%, 0.4);
+}
+.card[data-lesson-type="Potions"] .card-cost {
+  color: var(--color-potions);
+}
+
+.card[data-lesson-type="Herbology"] {
+  border-color: var(--color-herbology);
+  --border-glow: hsla(125, 60%, 45%, 0.4);
+}
+.card[data-lesson-type="Herbology"] .card-cost {
+  color: var(--color-herbology);
+}
+
+.card[data-lesson-type="Care of Magical Creatures"] {
+  border-color: var(--color-care-magical-creatures);
+  --border-glow: hsla(28, 45%, 45%, 0.4);
+}
+.card[data-lesson-type="Care of Magical Creatures"] .card-cost {
+  color: var(--color-care-magical-creatures);
+}
+
+/* Card Types */
+.card-type-character { border-color: var(--accent-gold); --border-glow: var(--accent-gold-glow); }
+.card-type-lesson { border-style: double; border-width: 3px; }
+
+/* Deck, Discard piles visually */
+.pile-placeholder {
+  width: var(--card-width);
+  height: var(--card-height);
+  border-radius: var(--card-border-radius);
+  background: var(--bg-panel);
+  border: 2px dashed var(--border-color);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.pile-placeholder:hover {
+  border-color: var(--accent-gold);
+  box-shadow: 0 0 10px rgba(212, 175, 55, 0.2);
+}
+
+.pile-title {
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.pile-count {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--accent-gold);
+  margin-top: 8px;
+}
+
+/* Interactive Buttons */
+.btn {
+  background: linear-gradient(135deg, var(--accent-gold) 0%, hsl(45, 80%, 45%) 100%);
+  border: none;
+  border-radius: 6px;
+  color: #111;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.85rem;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+  box-shadow: 0 4px 10px rgba(212, 175, 55, 0.2);
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(212, 175, 55, 0.4);
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+.btn-secondary {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  box-shadow: none;
+}
+
+.btn-secondary:hover {
+  background: var(--border-color);
+  border-color: var(--accent-gold);
+  box-shadow: 0 0 10px rgba(255,255,255,0.05);
+}
+
+/* Log Panel List styling */
+#log-list {
+  list-style: none;
+  font-size: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 250px;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+#log-list li {
+  color: var(--text-secondary);
+  border-left: 2px solid var(--border-color);
+  padding-left: 8px;
+  line-height: 1.4;
+}
+
+#log-list li.log-action {
+  border-left-color: var(--accent-gold);
+}
+
+#log-list li.log-damage {
+  border-left-color: var(--color-transfiguration);
+  color: hsl(0, 80%, 80%);
+}
+
+#log-list li.log-turn {
+  font-family: var(--font-display);
+  color: var(--accent-gold);
+  border-left-color: var(--accent-gold);
+  font-weight: 600;
+  margin-top: 8px;
+}
+
+/* Scrollbar Customization */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* Rulings List Item Styling */
+.ruling-item {
+  border-bottom: 1px dashed hsla(0, 0%, 100%, 0.08);
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+}
+.ruling-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+  margin-bottom: 0;
+}
+.ruling-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.625rem;
+  color: var(--accent-gold);
+  margin-bottom: 4px;
+}
+.ruling-source {
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.ruling-date {
+  color: var(--text-muted);
+}
+.ruling-text {
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+/* Card Preview Modal Styling */
+dialog#card-preview-modal {
+  border: none;
+  background: transparent;
+  padding: 0;
+  max-width: 90vw;
+  max-height: 90vh;
+  outline: none;
+  overflow: visible;
+  margin: auto;
+}
+
+dialog#card-preview-modal[open] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+dialog#card-preview-modal::backdrop {
+  background-color: rgba(10, 12, 16, 0.85);
+  backdrop-filter: blur(8px);
+}
+
+.modal-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 
+    0 20px 40px rgba(0, 0, 0, 0.8),
+    0 0 30px rgba(212, 175, 55, 0.15);
+  animation: modal-fadeIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes modal-fadeIn {
+  from {
+    transform: scale(0.85);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.modal-close-btn {
+  position: absolute;
+  top: -15px;
+  right: -15px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-size: 1.5rem;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition-smooth);
+  z-index: 100;
+}
+
+.modal-close-btn:hover {
+  background: var(--accent-gold);
+  color: #111;
+  border-color: var(--accent-gold);
+  transform: scale(1.1);
+}
+
+#modal-card-image {
+  max-height: 70vh;
+  height: 520px;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+  object-fit: contain;
+}
+
+#modal-actions {
+  margin-top: 18px;
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  width: 100%;
+}
+
+/* Discard Viewer Modal */
+dialog#discard-viewer-modal {
+  border: none;
+  background: transparent;
+  padding: 0;
+  max-width: 90vw;
+  max-height: 90vh;
+  outline: none;
+  overflow: visible;
+  margin: auto;
+}
+
+dialog#discard-viewer-modal[open] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.discard-viewer-content {
+  min-width: 600px;
+  max-width: 80vw;
+  max-height: 80vh;
+}
+
+#discard-viewer-title {
+  font-size: 1.4rem;
+  color: var(--accent-gold);
+  margin-bottom: 20px;
+  font-family: var(--font-display);
+}
+
+#discard-viewer-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 16px;
+  width: 100%;
+  padding: 8px;
+  max-height: 55vh;
+  overflow-y: auto;
+}
+
+#discard-viewer-grid .card {
+  --card-width: 100px;
+  --card-height: 140px;
+  cursor: pointer;
+  margin: 0;
+  transform: none !important;
+}
+
+#discard-viewer-grid .card:hover {
+  transform: translateY(-6px) scale(1.05) !important;
+  box-shadow: 0 8px 16px rgba(0,0,0,0.6), 0 0 10px var(--border-glow);
+}
+
+/* Game Over Modal Styling */
+dialog#game-over-modal {
+  border: none;
+  background: transparent;
+  padding: 0;
+  max-width: 90vw;
+  max-height: 90vh;
+  outline: none;
+  overflow: visible;
+  margin: auto;
+}
+
+dialog#game-over-modal[open] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+dialog#game-over-modal::backdrop {
+  background-color: rgba(10, 12, 16, 0.9);
+  backdrop-filter: blur(10px);
+}
+
+/* Spell Targeting Modal Styling */
+dialog#spell-targeting-modal {
+  border: none;
+  background: transparent;
+  padding: 0;
+  max-width: 90vw;
+  max-height: 90vh;
+  outline: none;
+  overflow: visible;
+  margin: auto;
+}
+
+dialog#spell-targeting-modal[open] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+dialog#spell-targeting-modal::backdrop {
+  background-color: rgba(10, 12, 16, 0.92);
+  backdrop-filter: blur(12px);
+}
+
+#spell-targeting-options .card {
+  width: 90px;
+  height: 126px;
+  border-radius: 6px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  border: 2px solid transparent;
+}
+
+#spell-targeting-options .card:hover {
+  transform: translateY(-4px) scale(1.05);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.6);
+}
+
+#spell-targeting-options .card.selected {
+  border-color: var(--accent-gold);
+  box-shadow: 0 0 15px var(--accent-gold-glow);
+  transform: translateY(-4px) scale(1.05);
+}
+
+.spell-target-btn {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  padding: 12px 18px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  transition: all 0.2s ease;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.spell-target-btn:hover {
+  background: rgba(255, 215, 0, 0.08);
+  border-color: var(--accent-gold);
+  color: var(--accent-gold);
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.15);
+}
+
+.spell-target-btn.selected {
+  background: rgba(255, 215, 0, 0.12);
+  border-color: var(--accent-gold);
+  color: var(--accent-gold);
+  box-shadow: 0 0 12px rgba(255, 215, 0, 0.25);
+}
+
+/* Card Back Design */
+.card-back {
+  background: linear-gradient(135deg, #1f1405 0%, #0d0902 100%) !important;
+  border: 2px solid var(--accent-gold) !important;
+  box-shadow: inset 0 0 15px rgba(212, 175, 55, 0.2), 0 4px 10px rgba(0,0,0,0.4) !important;
+  background-image: none !important;
+  position: relative;
+}
+
+.card-back::after {
+  content: "⚡";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 2rem;
+  color: var(--accent-gold);
+  text-shadow: 0 0 10px var(--accent-gold-glow);
+  opacity: 0.65;
+}
+
+/* Opponent Hand Area styling */
+#opponent-hand-area {
+  grid-area: opponent-hand;
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 24px;
+  overflow-x: auto;
+  gap: 12px;
+  box-sizing: border-box;
+  height: var(--hand-height);
+}
+
+#opponent-hand-area .card {
+  --card-width: 100px;
+  --card-height: 140px;
+}
+
+#hand-area .card {
+  --card-width: 100px;
+  --card-height: 140px;
+}
+
+/* Deck & Character Selection Dialog styling */
+dialog#deck-selection-modal {
+  border: none;
+  background: transparent;
+  padding: 0;
+  max-width: 90vw;
+  max-height: 90vh;
+  outline: none;
+  overflow: visible;
+  margin: auto;
+}
+
+dialog#deck-selection-modal[open] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+dialog#deck-selection-modal::backdrop {
+  background-color: rgba(10, 12, 16, 0.94);
+  backdrop-filter: blur(12px);
+}
+
+.deck-select-dropdown:hover, .deck-select-dropdown:focus {
+  border-color: var(--accent-gold) !important;
+  box-shadow: 0 0 10px var(--accent-gold-glow);
+}
+
+/* Intro & Rules Dialog styling */
+dialog#intro-rules-modal {
+  border: none;
+  background: transparent;
+  padding: 0;
+  max-width: 90vw;
+  max-height: 90vh;
+  outline: none;
+  overflow: visible;
+  margin: auto;
+}
+
+dialog#intro-rules-modal[open] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+dialog#intro-rules-modal::backdrop {
+  background-color: rgba(10, 12, 16, 0.94);
+  backdrop-filter: blur(12px);
+}
+
+
+

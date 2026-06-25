@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Harry Potter Trading Card Game - Local Play</title>
+  <meta name="description" content="A local web-based Harry Potter Trading Card Game. Play offline or locally on any desktop. Features interactive gameplay, rules-enforced engine, and AI соперник.">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <div id="game-container">
+    
+    <!-- Top Dashboard Header -->
+    <header>
+      <h1 class="game-title">Harry Potter TCG</h1>
+      <div class="turn-indicator">
+        <span id="active-player-name">Your Turn</span>
+      </div>
+      <div>
+        <button id="btn-reset" class="btn btn-secondary">Reset Game</button>
+      </div>
+    </header>
+
+    <!-- Sidebar Info Panel -->
+    <aside id="sidebar">
+      <!-- Player Action Controls -->
+      <section class="panel-section">
+        <h2 class="panel-title">Actions</h2>
+        <div class="player-status">
+          <span>Remaining:</span>
+          <strong id="action-counter">2</strong>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 12px;">
+          <button id="btn-draw" class="btn" style="width: 100%;">Draw Card (1 Action)</button>
+          <button id="btn-end-turn" class="btn btn-secondary" style="width: 100%;">End Turn</button>
+        </div>
+      </section>
+
+
+
+      <!-- Card Rulings Errata -->
+      <section class="panel-section" id="rulings-panel" style="display: flex; flex-direction: column; max-height: 180px;">
+        <h2 class="panel-title">Card Rulings</h2>
+        <div id="rulings-content" style="font-size: 0.72rem; color: var(--text-muted); line-height: 1.45; overflow-y: auto; flex-grow: 1;">
+          Hover over a card to view official rulings.
+        </div>
+      </section>
+
+      <!-- Activity Log -->
+      <section class="panel-section" style="flex-grow: 1; display: flex; flex-direction: column;">
+        <h2 class="panel-title">Activity Log</h2>
+        <ul id="log-list" style="flex-grow: 1;">
+          <!-- Appended via JavaScript -->
+        </ul>
+      </section>
+    </aside>
+
+    <!-- Opponent Hand Area -->
+    <div id="opponent-hand-area" aria-label="Opponent's Hand"></div>
+
+    <!-- Center Play Area (Board) -->
+    <main id="play-area">
+      <!-- Opponent Playmat -->
+      <section class="playmat" id="opponent-playmat" aria-label="Opponent Playmat">
+        <!-- Column 1: Piles and Wizard/Witch -->
+        <div class="playmat-left">
+          <div class="deck-discard-row">
+            <div class="mat-deck-slot">
+              <div class="mat-deck-placeholder">
+                <span class="pile-title">Deck</span>
+                <span class="pile-count" id="opponent-deck-count">33</span>
+              </div>
+            </div>
+            <div class="mat-discard-slot">
+              <div class="mat-discard-placeholder" id="opponent-discard-pile">
+                <span class="pile-title">Discard</span>
+                <span class="pile-count" id="opponent-discard-count">0</span>
+              </div>
+            </div>
+          </div>
+          <div class="character-slot zone-container" id="opponent-character-zone">
+            <div class="zone-label">Wizard / Witch</div>
+          </div>
+        </div>
+
+        <!-- Column 2: Lessons -->
+        <div class="playmat-middle zone-container" id="opponent-lessons-zone">
+          <div class="zone-label">Lessons</div>
+        </div>
+
+        <!-- Column 3: Creatures and Items -->
+        <div class="playmat-right">
+          <div class="creatures-zone zone-container" id="opponent-creatures-zone">
+            <div class="zone-label">Creatures</div>
+          </div>
+          <div class="permanents-zone zone-container" id="opponent-permanents-zone">
+            <div class="zone-label">Items & Adventures</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Player Playmat -->
+      <section class="playmat" id="player-playmat" aria-label="Your Playmat">
+        <!-- Column 1: Piles and Wizard/Witch -->
+        <div class="playmat-left">
+          <div class="deck-discard-row">
+            <div class="mat-deck-slot">
+              <div class="mat-deck-placeholder">
+                <span class="pile-title">Deck</span>
+                <span class="pile-count" id="player-deck-count">33</span>
+              </div>
+            </div>
+            <div class="mat-discard-slot">
+              <div class="mat-discard-placeholder" id="player-discard-pile">
+                <span class="pile-title">Discard</span>
+                <span class="pile-count" id="player-discard-count">0</span>
+              </div>
+            </div>
+          </div>
+          <div class="character-slot zone-container" id="player-character-zone">
+            <div class="zone-label">Wizard / Witch</div>
+          </div>
+        </div>
+
+        <!-- Column 2: Lessons -->
+        <div class="playmat-middle zone-container" id="player-lessons-zone">
+          <div class="zone-label">Lessons</div>
+        </div>
+
+        <!-- Column 3: Creatures and Items -->
+        <div class="playmat-right">
+          <div class="creatures-zone zone-container" id="player-creatures-zone">
+            <div class="zone-label">Creatures</div>
+          </div>
+          <div class="permanents-zone zone-container" id="player-permanents-zone">
+            <div class="zone-label">Items & Adventures</div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Bottom Player Hand Tray -->
+    <footer id="hand-area" aria-label="Your Hand">
+      <!-- Cards rendered here dynamically -->
+    </footer>
+
+  </div>
+
+  <!-- Modal Dialog for Card Preview -->
+  <dialog id="card-preview-modal" closedby="any" aria-label="Card Preview">
+    <div class="modal-content">
+      <button class="modal-close-btn" id="modal-close-btn" aria-label="Close modal">&times;</button>
+      <img id="modal-card-image" src="" alt="Card Preview" />
+      <div id="modal-actions">
+        <!-- Play button will be dynamically injected here if the card is in player hand -->
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Modal Dialog for Discard Pile Viewer -->
+  <dialog id="discard-viewer-modal" closedby="any" aria-label="Discard Pile Viewer">
+    <div class="modal-content discard-viewer-content">
+      <button class="modal-close-btn" id="discard-viewer-close-btn" aria-label="Close modal">&times;</button>
+      <h2 id="discard-viewer-title">Discard Pile</h2>
+      <div id="discard-viewer-grid">
+        <!-- Cards rendered dynamically as a grid -->
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Modal Dialog for Game Over -->
+  <dialog id="game-over-modal" aria-labelledby="game-over-title">
+    <div class="modal-content" style="align-items: center; padding: 32px; min-width: 400px;">
+      <h2 id="game-over-title" class="game-title" style="font-size: 2rem; margin-bottom: 12px; text-shadow: 0 0 15px var(--accent-gold-glow);">Game Over</h2>
+      <p id="game-over-message" style="margin-bottom: 28px; font-size: 1.1rem; color: var(--text-secondary); text-align: center; line-height: 1.5;">
+        You ran out of cards! Hogwarts Rival wins!
+      </p>
+      <div style="display: flex; gap: 16px; width: 100%; justify-content: center;">
+        <button id="btn-modal-reset" class="btn" style="flex: 1; max-width: 150px;">Play Again</button>
+        <button id="btn-modal-close" class="btn btn-secondary" style="flex: 1; max-width: 150px;">Close</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Modal Dialog for Spell Targeting -->
+  <dialog id="spell-targeting-modal" aria-labelledby="spell-targeting-title">
+    <div class="modal-content" style="max-width: 500px; padding: 24px; display: flex; flex-direction: column; align-items: center;">
+      <h2 id="spell-targeting-title" class="game-title" style="font-size: 1.5rem; margin-bottom: 8px;">Cast Spell</h2>
+      <p id="spell-targeting-desc" style="color: var(--text-secondary); margin-bottom: 20px; text-align: center; font-size: 0.9rem; line-height: 1.4;"></p>
+      <div id="spell-targeting-options" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; width: 100%; max-height: 300px; overflow-y: auto; padding: 8px;">
+        <!-- Dynamic list of choice items (buttons or cards) -->
+      </div>
+      <div id="spell-targeting-actions" style="margin-top: 20px; display: none; gap: 12px; width: 100%; justify-content: center;">
+        <button id="btn-spell-confirm" class="btn" style="width: 120px;">Confirm</button>
+        <button id="btn-spell-cancel" class="btn btn-secondary" style="width: 120px;">Cancel</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Modal Dialog for Intro & Rules -->
+  <dialog id="intro-rules-modal" aria-labelledby="intro-rules-title">
+    <div class="modal-content intro-rules-content" style="max-width: 650px; padding: 28px 36px; display: flex; flex-direction: column; align-items: center;">
+      <h2 id="intro-rules-title" class="game-title" style="font-size: 2.2rem; margin-bottom: 20px; text-shadow: 0 0 15px var(--accent-gold-glow); text-align: center;">Harry Potter TCG</h2>
+      
+      <div style="width: 100%; color: var(--text-secondary); font-size: 0.9rem; line-height: 1.5; margin-bottom: 24px; display: flex; flex-direction: column; gap: 16px;">
+        <p style="text-align: center; font-style: italic; color: var(--accent-gold); font-size: 1.05rem;">
+          Welcome to the Wizarding World! Here is a quick guide to playing the Harry Potter Trading Card Game.
+        </p>
+        
+        <div class="rules-block" style="background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); padding: 14px; border-radius: 8px;">
+          <strong style="color: var(--text-primary); font-family: var(--font-display); font-size: 0.95rem; display: block; margin-bottom: 4px;">❤️ Your Deck is Your Health</strong>
+          When you or your opponent take damage, you discard cards from the top of your deck. If a player's deck runs out of cards, that player loses immediately!
+        </div>
+
+        <div class="rules-block" style="background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); padding: 14px; border-radius: 8px;">
+          <strong style="color: var(--text-primary); font-family: var(--font-display); font-size: 0.95rem; display: block; margin-bottom: 4px;">⚡ Actions & Turns</strong>
+          At the start of your turn, you draw 1 card. You then have <strong>2 Actions</strong> to spend:
+          <ul style="margin-left: 20px; margin-top: 6px; display: flex; flex-direction: column; gap: 4px;">
+            <li><strong>Draw a card</strong> (costs 1 Action)</li>
+            <li><strong>Play a card</strong> from your hand (1 Action, Adventures cost 2)</li>
+            <li><strong>Use an ability</strong> of a card in play (costs 1 Action or is free, as specified)</li>
+          </ul>
+        </div>
+
+        <div class="rules-block" style="background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); padding: 14px; border-radius: 8px;">
+          <strong style="color: var(--text-primary); font-family: var(--font-display); font-size: 0.95rem; display: block; margin-bottom: 4px;">🪄 Card Types</strong>
+          <ul style="margin-left: 20px; display: flex; flex-direction: column; gap: 4px;">
+            <li><strong>Lessons</strong>: Provide magical power (Charms, Transfiguration, Potions, Care of Magical Creatures) needed to play other cards.</li>
+            <li><strong>Creatures</strong>: Stay on the board and attack your opponent at the end of each of your turns.</li>
+            <li><strong>Spells</strong>: Instant one-time effects that resolve and go to the discard pile.</li>
+            <li><strong>Items & Adventures</strong>: Offer persistent bonuses or set challenges for the opponent.</li>
+          </ul>
+        </div>
+      </div>
+
+      <button id="btn-goto-deck-select" class="btn" style="width: 240px; height: 48px; font-size: 1.1rem;">Choose Your Deck</button>
+    </div>
+  </dialog>
+
+  <!-- Modal Dialog for Deck & Character Selection -->
+  <dialog id="deck-selection-modal" aria-labelledby="deck-selection-title">
+    <div class="modal-content deck-selection-content" style="max-width: 800px; padding: 28px 32px; min-width: 600px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+      <h2 id="deck-selection-title" class="game-title" style="font-size: 2.2rem; margin-bottom: 24px; text-shadow: 0 0 15px var(--accent-gold-glow); text-align: center;">Choose Your Deck</h2>
+      
+      <div style="display: flex; gap: 40px; width: 100%; justify-content: space-around; margin-bottom: 28px;">
+        
+        <!-- Player Setup -->
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 16px; flex: 1;">
+          <h3 style="color: var(--accent-gold); font-family: var(--font-display); font-size: 1.3rem; border-bottom: 1px solid var(--border-color); width: 100%; text-align: center; padding-bottom: 8px;">Your Setup</h3>
+          
+          <div style="display: flex; flex-direction: column; width: 100%; gap: 6px;">
+            <label for="player-char-select" style="font-size: 0.85rem; color: var(--text-secondary);">Select Character:</label>
+            <select id="player-char-select" class="deck-select-dropdown" style="width: 100%; padding: 10px; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; font-family: inherit; font-size: 0.95rem; cursor: pointer; outline: none; transition: var(--transition-smooth);"></select>
+          </div>
+
+          <div style="display: flex; flex-direction: column; width: 100%; gap: 6px;">
+            <label for="player-deck-select" style="font-size: 0.85rem; color: var(--text-secondary);">Select Deck:</label>
+            <select id="player-deck-select" class="deck-select-dropdown" style="width: 100%; padding: 10px; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; font-family: inherit; font-size: 0.95rem; cursor: pointer; outline: none; transition: var(--transition-smooth);"></select>
+          </div>
+
+          <div style="margin-top: 12px; height: 120px; display: flex; align-items: center; justify-content: center; width: 168px; border-radius: 8px; overflow: hidden; border: 2px solid var(--accent-gold-glow); box-shadow: 0 4px 12px rgba(0,0,0,0.5); position: relative;">
+            <img id="player-char-preview" src="" alt="Player Character" style="width: 120px; height: 168px; transform: rotate(90deg); object-fit: contain; position: absolute;" />
+          </div>
+        </div>
+
+        <!-- Opponent Setup -->
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 16px; flex: 1;">
+          <h3 style="color: var(--accent-gold); font-family: var(--font-display); font-size: 1.3rem; border-bottom: 1px solid var(--border-color); width: 100%; text-align: center; padding-bottom: 8px;">Opponent Setup</h3>
+          
+          <div style="display: flex; flex-direction: column; width: 100%; gap: 6px;">
+            <label for="opponent-char-select" style="font-size: 0.85rem; color: var(--text-secondary);">Select Character:</label>
+            <select id="opponent-char-select" class="deck-select-dropdown" style="width: 100%; padding: 10px; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; font-family: inherit; font-size: 0.95rem; cursor: pointer; outline: none; transition: var(--transition-smooth);"></select>
+          </div>
+
+          <div style="display: flex; flex-direction: column; width: 100%; gap: 6px;">
+            <label for="opponent-deck-select" style="font-size: 0.85rem; color: var(--text-secondary);">Select Deck:</label>
+            <select id="opponent-deck-select" class="deck-select-dropdown" style="width: 100%; padding: 10px; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; font-family: inherit; font-size: 0.95rem; cursor: pointer; outline: none; transition: var(--transition-smooth);"></select>
+          </div>
+
+          <div style="margin-top: 12px; height: 120px; display: flex; align-items: center; justify-content: center; width: 168px; border-radius: 8px; overflow: hidden; border: 2px solid var(--accent-gold-glow); box-shadow: 0 4px 12px rgba(0,0,0,0.5); position: relative;">
+            <img id="opponent-char-preview" src="" alt="Opponent Character" style="width: 120px; height: 168px; transform: rotate(90deg); object-fit: contain; position: absolute;" />
+          </div>
+        </div>
+
+      </div>
+
+      <button id="btn-start-match" class="btn" style="width: 260px; height: 50px; font-size: 1.15rem; margin-top: 16px;">Start Match</button>
+    </div>
+  </dialog>
+
+  <!-- Main Game Entry -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

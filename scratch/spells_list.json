@@ -1,0 +1,368 @@
+[
+  {
+    "name": "Elixir of Life",
+    "lesson": "Potions",
+    "cost": 10,
+    "effect": "To play this card, discard 2 of your Potions Lessons from play. Shuffle up to 16 non-Healing cards from your discard pile into your deck."
+  },
+  {
+    "name": "Obliviate",
+    "lesson": "Charms",
+    "cost": 12,
+    "effect": "Your opponent discards his or her hand."
+  },
+  {
+    "name": "Draught of Living Death",
+    "lesson": "Potions",
+    "cost": 8,
+    "effect": "To play this card, discard 2 of your Potions Lessons from play. Do 12 damage to your opponent or to a creature of your choice."
+  },
+  {
+    "name": "History of Magic",
+    "lesson": "Charms",
+    "cost": 2,
+    "effect": "Look at your opponent's hand. Discard all Adventure cards from it."
+  },
+  {
+    "name": "Incendio",
+    "lesson": "Charms",
+    "cost": 3,
+    "effect": "Count the number of Charms Lessons you have in play. Do that much damage to a Creature of your choice."
+  },
+  {
+    "name": "Malevolent Mixture",
+    "lesson": "Potions",
+    "cost": 5,
+    "effect": "To play this card, discard 2 of your Potions Lessons from play. Do 10 damage to your opponent or to a Creature of your choice."
+  },
+  {
+    "name": "Platform 9 3/4",
+    "lesson": "Transfiguration",
+    "cost": 5,
+    "effect": "To play this card, discard 1 of your Lessons from play. You get 2 more Actions this turn."
+  },
+  {
+    "name": "Raven to Writing Desk",
+    "lesson": "Transfiguration",
+    "cost": 1,
+    "effect": "If your opponent has 2 or more Creatures in play, choose 1 of them and discard it."
+  },
+  {
+    "name": "Shrinking Potion",
+    "lesson": "Potions",
+    "cost": 8,
+    "effect": "During your opponent's next turn, prevent all damage done to you."
+  },
+  {
+    "name": "Titillando",
+    "lesson": "Charms",
+    "cost": 9,
+    "effect": "Do 3 damage to your opponent or to a Creature of your choice. Then your opponent chooses 3 cards in his or her hand and discards them. (If there are fewer than 3 cards in your opponent's hand, he or she discards them all.)"
+  },
+  {
+    "name": "Transfiguration Exam",
+    "lesson": "Transfiguration",
+    "cost": 10,
+    "effect": "Discard all creatures from play (even your own)."
+  },
+  {
+    "name": "Transfiguration Test",
+    "lesson": "Transfiguration",
+    "cost": 5,
+    "effect": "If your opponent has 2 or more Creatures in play, he or she chooses 1 of them and discards the rest. Then, if you have 2 or more Creatures in play, choose 1 of them and discard the rest."
+  },
+  {
+    "name": "Alchemy",
+    "lesson": "Transfiguration",
+    "cost": 2,
+    "effect": "Search your deck. You may take up to 2 Lesson cards from your deck, show them to your opponent, and put them in your hand. Then shuffle your deck."
+  },
+  {
+    "name": "Apothecary",
+    "lesson": "Potions",
+    "cost": 5,
+    "effect": "To play this card, discard 2 other cards from your hand. You may take a card that needs Potions Power from your deck, show it to your opponent and put it into your hand. Then shuffle your deck."
+  },
+  {
+    "name": "Apparate",
+    "lesson": "Transfiguration",
+    "cost": 1,
+    "effect": "Discard the Adventure your opponent has played. (You don't get the reward.)"
+  },
+  {
+    "name": "Bluebell Flames",
+    "lesson": "Charms",
+    "cost": 7,
+    "effect": "Do 4 damage to your opponent or to a Creature of your choice."
+  },
+  {
+    "name": "Burning Bitterroot Balm",
+    "lesson": "Potions",
+    "cost": 6,
+    "effect": "To play this card, discard 1 of your Potions Lessons from play. Shuffle up to 10 non-Healing cards from your discard pile into your deck."
+  },
+  {
+    "name": "Confundus",
+    "lesson": "Charms",
+    "cost": 5,
+    "effect": "Your opponent chooses 2 cards in his or her hand and discards them (1 if he or she only has 1)."
+  },
+  {
+    "name": "Dogbreath Potion",
+    "lesson": "Potions",
+    "cost": 6,
+    "effect": "To play this card, discard 1 of your Potions Lessons from play. Do 8 damage to your opponent or to a Creature of your choice."
+  },
+  {
+    "name": "Draco's Trick",
+    "lesson": "Transfiguration",
+    "cost": 7,
+    "effect": "Discard the Adventure you've played. You get the reward."
+  },
+  {
+    "name": "Fumos",
+    "lesson": "Charms",
+    "cost": 7,
+    "effect": "Do 2 damage to each Creature (even your own)."
+  },
+  {
+    "name": "Logic Puzzle",
+    "lesson": "Charms",
+    "cost": 6,
+    "effect": "Discard the Adventure your opponent has played. You get the reward."
+  },
+  {
+    "name": "Mysterious Egg",
+    "lesson": "Care of Magical Creatures",
+    "cost": 4,
+    "effect": "Search your deck. You may take a Creature card from your deck, show it to your opponent and put it into your hand. Then shuffle your deck."
+  },
+  {
+    "name": "Nurture",
+    "lesson": "Care of Magical Creatures",
+    "cost": 2,
+    "effect": "Remove all damage counters from all of your Creatures."
+  },
+  {
+    "name": "Ollivanders",
+    "lesson": "Charms",
+    "cost": 1,
+    "effect": "Put an Item card from your discard pile into your hand."
+  },
+  {
+    "name": "Pomfrey's Pick-Me-Up",
+    "lesson": "Potions",
+    "cost": 3,
+    "effect": "Put up to 3 non-Healing cards from your discard pile on the bottom of your deck (in any order). Then draw a card."
+  },
+  {
+    "name": "Potions Exam",
+    "lesson": "Potions",
+    "cost": 10,
+    "effect": "Your opponent chooses 3 of his or her cards in play and discards them (if your opponent has fewer than 3 cards in play he or she discards them all). Your opponent may prevent this by discarding 1 of his or her Potions Lessons in play and discarding it."
+  },
+  {
+    "name": "Snuffling Potion",
+    "lesson": "Potions",
+    "cost": 4,
+    "effect": "Next turn, whenever your opponent draws a card, he or she discards it instead of putting it into his or her hand."
+  },
+  {
+    "name": "Stupefy",
+    "lesson": "Charms",
+    "cost": 6,
+    "effect": "Do 5 damage to your opponent."
+  },
+  {
+    "name": "Take Root",
+    "lesson": "Transfiguration",
+    "cost": 5,
+    "effect": "Your opponent chooses 1 of his or her Creatures in play and discards it."
+  },
+  {
+    "name": "Transmogrify",
+    "lesson": "Transfiguration",
+    "cost": 2,
+    "effect": "To play this card, discard 1 of your Creatures from play. Search your deck. You may take a Creature card from your deck, show it to your opponent and put it in your hand. Then shuffle your deck."
+  },
+  {
+    "name": "Vanishing Glass",
+    "lesson": "Transfiguration",
+    "cost": 9,
+    "effect": "Play this card only if your opponent has any Lessons in play. Choose 1 of those Lessons and discard it. Search your deck. You may take a Creature card from your deck, show it to your opponent and put it in your hand. Then shuffle your deck."
+  },
+  {
+    "name": "Accio",
+    "lesson": "Charms",
+    "cost": 2,
+    "effect": "Put up to 2 Lesson cards from your discard pile into your hand."
+  },
+  {
+    "name": "Avifors",
+    "lesson": "Transfiguration",
+    "cost": 2,
+    "effect": "Choose 1 of your opponent's Care of Magical Creatures Lessons in play and discard it."
+  },
+  {
+    "name": "Baubillious",
+    "lesson": "Charms",
+    "cost": 2,
+    "effect": "Do 1 damage to your opponent or to a Creature of your choice. Then draw a card."
+  },
+  {
+    "name": "Boil Cure",
+    "lesson": "Potions",
+    "cost": 1,
+    "effect": "Put up to 4 non-Healing cards from your discard pile on the bottom of your deck (in any order)."
+  },
+  {
+    "name": "Cauldron to Sieve",
+    "lesson": "Transfiguration",
+    "cost": 2,
+    "effect": "Choose 1 of your opponent's Potions Lessons in play and discard it."
+  },
+  {
+    "name": "Dungbomb",
+    "lesson": "Potions",
+    "cost": 2,
+    "effect": "During your opponent's next turn, prevent all damage done to you by your opponent's Adventures and Creatures."
+  },
+  {
+    "name": "Epoximise",
+    "lesson": "Transfiguration",
+    "cost": 2,
+    "effect": "Choose 1 of your opponent's Charms Lessons in play and discard it."
+  },
+  {
+    "name": "Erumpent Potion",
+    "lesson": "Potions",
+    "cost": 3,
+    "effect": "Do 1 damage to your opponent or to a Creature of your choice."
+  },
+  {
+    "name": "Fluffy Falls Asleep",
+    "lesson": "Care of Magical Creatures",
+    "cost": 3,
+    "effect": "Choose a Creature in play and return it to its owner's hand."
+  },
+  {
+    "name": "Forgetfulness Potion",
+    "lesson": "Potions",
+    "cost": 7,
+    "effect": "To play this card, discard 1 of your Potions Lessons from play. During your opponent's next turn, he or she can't play cards."
+  },
+  {
+    "name": "Foul Brew",
+    "lesson": "Potions",
+    "cost": 5,
+    "effect": "Do 2 damage to your opponent or to a Creature of your choice."
+  },
+  {
+    "name": "Hagrid and the Stranger",
+    "lesson": "Care of Magical Creatures",
+    "cost": 4,
+    "effect": "Put a Creature card from your discard pile into your hand."
+  },
+  {
+    "name": "Homework",
+    "lesson": "Transfiguration",
+    "cost": 2,
+    "effect": "Put up to 2 Lesson cards from your hand into play."
+  },
+  {
+    "name": "Hospital Wing",
+    "lesson": "Potions",
+    "cost": 4,
+    "effect": "To play this card, discard 1 of your Potions Lessons from play. Shuffle up to 8 non-Healing cards from your discard pile into your deck."
+  },
+  {
+    "name": "Illegibilus",
+    "lesson": "Charms",
+    "cost": 5,
+    "effect": "Look at your opponent's hand. Choose 1 of those cards and discard it."
+  },
+  {
+    "name": "Incarcifors",
+    "lesson": "Transfiguration",
+    "cost": 6,
+    "effect": "Choose 1 of your opponent's Creatures in play and discard it."
+  },
+  {
+    "name": "Lost Notes",
+    "lesson": "Transfiguration",
+    "cost": 5,
+    "effect": "Choose 1 of your opponent's Items or Lessons in play and discard it."
+  },
+  {
+    "name": "Magical Mishap",
+    "lesson": "Charms",
+    "cost": 2,
+    "effect": "Do 3 damage to your opponent."
+  },
+  {
+    "name": "Noxious Poison",
+    "lesson": "Potions",
+    "cost": 3,
+    "effect": "To play this card, discard 1 of your Potions Lessons from play. Do 5 damage to your opponent or to a Creature of your choice."
+  },
+  {
+    "name": "Out of the Woods",
+    "lesson": "Charms",
+    "cost": 5,
+    "effect": "Look at your opponent's hand. Discard all Creature cards from it."
+  },
+  {
+    "name": "Potions Mistake",
+    "lesson": "Potions",
+    "cost": 6,
+    "effect": "To play this card, discard 3 of your Potions Lessons from play. Choose 1 of your opponent's Creatures or Items in play and discard it."
+  },
+  {
+    "name": "Restricted Section",
+    "lesson": "Transfiguration",
+    "cost": 2,
+    "effect": "Choose 1 of your opponent's Transfiguration Lessons in play and discard it."
+  },
+  {
+    "name": "Snape's Question",
+    "lesson": "Potions",
+    "cost": 3,
+    "effect": "Do 4 damage to your opponent. Your opponent may prevent this damage by showing you a Potions Lesson from his or her hand."
+  },
+  {
+    "name": "Squiggle Quill",
+    "lesson": "Transfiguration",
+    "cost": 2,
+    "effect": "Choose 1 of your opponent's Items in play and discard it."
+  },
+  {
+    "name": "Steelclaw",
+    "lesson": "Transfiguration",
+    "cost": 4,
+    "effect": "All your creatures do damage to your opponent."
+  },
+  {
+    "name": "Toe Biter",
+    "lesson": "Charms",
+    "cost": 3,
+    "effect": "Do 2 damage to your opponent. You may also choose a Creature and do 2 damage to it."
+  },
+  {
+    "name": "Vermillious",
+    "lesson": "Charms",
+    "cost": 4,
+    "effect": "Do 3 damage to your opponent or to a Creature of your choice."
+  },
+  {
+    "name": "Wingardium Leviosa!",
+    "lesson": "Charms",
+    "cost": 1,
+    "effect": "During your opponent's next turn, prevent all damage done to you by your opponent's Creatures."
+  },
+  {
+    "name": "Wizard Crackers",
+    "lesson": "Charms",
+    "cost": 1,
+    "effect": "Reveal the top card of your deck. If it's a Lesson card, put it into play. If it isn't, put the card in your hand."
+  }
+]
