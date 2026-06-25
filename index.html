@@ -9,7 +9,95 @@
 </head>
 <body>
 
-  <div id="game-container">
+  <!-- Main Menu Screen -->
+  <div id="main-menu-container">
+    <div class="main-menu-content">
+      <h1 class="main-menu-title">Harry Potter TCG</h1>
+      <p class="main-menu-subtitle">Local Web Edition</p>
+      
+      <div class="main-menu-buttons">
+        <button id="btn-menu-play" class="menu-btn">Play Game</button>
+        <button id="btn-menu-builder" class="menu-btn">Deck Builder</button>
+        <button id="btn-menu-debug" class="menu-btn disabled" disabled>Debug Mode (Coming Soon)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Deck Builder Screen -->
+  <div id="deck-builder-container" class="hidden">
+    <header class="deck-builder-header">
+      <h1 class="game-title">Deck Builder</h1>
+      <button id="btn-deck-builder-back" class="btn btn-secondary">Back to Menu</button>
+    </header>
+
+    <div class="deck-builder-layout">
+      <!-- Left Panel: Deck Details & List -->
+      <aside class="deck-builder-left">
+        <div class="deck-builder-panel">
+          <h3 class="panel-subtitle">Deck Management</h3>
+          <div class="deck-selection-row" style="display: flex; gap: 8px; margin-top: 8px;">
+            <select id="deck-builder-select" class="deck-select-dropdown" style="flex-grow: 1; min-width: 0;"></select>
+            <button id="btn-new-deck" class="btn btn-small" style="padding: 6px 12px; font-size: 0.85rem;">New</button>
+            <button id="btn-delete-deck" class="btn btn-danger btn-small" style="padding: 6px 12px; font-size: 0.85rem;">Delete</button>
+          </div>
+          <div class="deck-name-row" style="margin-top: 12px;">
+            <label for="deck-name-input" style="font-size: 0.85rem; color: var(--text-secondary);">Deck Name:</label>
+            <input type="text" id="deck-name-input" class="deck-input" placeholder="Deck Name..." style="width: 100%; padding: 8px; background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 4px; outline: none; margin-top: 4px;" />
+          </div>
+          <div class="deck-char-row" style="margin-top: 12px; display: flex; align-items: center; gap: 12px;">
+            <div style="flex-grow: 1;">
+              <label for="deck-char-select" style="font-size: 0.85rem; color: var(--text-secondary);">Starting Character:</label>
+              <select id="deck-char-select" class="deck-select-dropdown" style="width: 100%; margin-top: 4px; padding: 8px;"></select>
+            </div>
+            <div class="deck-char-thumbnail" style="margin-top: 18px; width: 70px; height: 50px; border-radius: 4px; border: 1px solid var(--border-color); overflow: hidden; display: flex; align-items: center; justify-content: center; position: relative; background: var(--bg-primary);">
+              <img id="deck-char-preview-img" src="" alt="Char Thumbnail" style="width: 50px; height: 70px; transform: rotate(90deg); object-fit: contain; position: absolute;" />
+            </div>
+          </div>
+        </div>
+
+        <div class="deck-builder-panel deck-validation-panel">
+          <h3 class="panel-subtitle">Deck Status</h3>
+          <div class="deck-stats" style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+            <div style="font-size: 0.95rem;">Cards: <span id="deck-stats-count" style="font-weight: bold; color: var(--accent-gold);">0</span> / 60</div>
+            <div id="deck-stats-validity" class="validity-indicator invalid">INVALID DECK</div>
+          </div>
+          <ul id="deck-validation-errors" class="validation-errors-list" style="margin-top: 8px; padding-left: 16px; font-size: 0.8rem; color: #ff4d4d; display: flex; flex-direction: column; gap: 4px;"></ul>
+        </div>
+
+        <div class="deck-builder-panel deck-cards-panel" style="flex-grow: 1; display: flex; flex-direction: column; min-height: 0;">
+          <h3 class="panel-subtitle">Cards in Deck</h3>
+          <ul id="deck-builder-cards-list" style="flex-grow: 1; overflow-y: auto; list-style: none; padding: 0; margin-top: 8px; display: flex; flex-direction: column; gap: 6px;">
+            <!-- Added dynamically -->
+          </ul>
+          <button id="btn-save-deck" class="btn" style="width: 100%; margin-top: 12px; height: 38px;">Save Deck</button>
+        </div>
+      </aside>
+
+      <!-- Right Panel: Card Catalog Browser -->
+      <main class="deck-builder-right" style="flex-grow: 1; display: flex; flex-direction: column; min-height: 0;">
+        <div class="deck-builder-panel filter-panel">
+          <div class="search-row">
+            <input type="text" id="card-catalog-search" class="deck-input" placeholder="Search cards by name..." style="width: 100%; padding: 10px; background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px; outline: none; font-size: 0.95rem;" />
+          </div>
+          <div class="filter-row" id="card-catalog-filters" style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px;">
+            <button class="btn btn-secondary filter-btn active" data-filter="All" style="padding: 6px 12px; font-size: 0.85rem;">All</button>
+            <button class="btn btn-secondary filter-btn" data-filter="Lesson" style="padding: 6px 12px; font-size: 0.85rem;">Lessons</button>
+            <button class="btn btn-secondary filter-btn" data-filter="Character" style="padding: 6px 12px; font-size: 0.85rem;">Characters</button>
+            <button class="btn btn-secondary filter-btn" data-filter="Creature" style="padding: 6px 12px; font-size: 0.85rem;">Creatures</button>
+            <button class="btn btn-secondary filter-btn" data-filter="Spell" style="padding: 6px 12px; font-size: 0.85rem;">Spells</button>
+            <button class="btn btn-secondary filter-btn" data-filter="Item" style="padding: 6px 12px; font-size: 0.85rem;">Items</button>
+            <button class="btn btn-secondary filter-btn" data-filter="Adventure" style="padding: 6px 12px; font-size: 0.85rem;">Adventures</button>
+          </div>
+        </div>
+
+        <div class="card-catalog-grid" id="card-catalog-grid" style="flex-grow: 1; overflow-y: auto; margin-top: 12px; padding: 4px;">
+          <!-- Populated dynamically with all cards in the Base Set -->
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <div id="game-container" class="hidden">
     
     <!-- Top Dashboard Header -->
     <header>
@@ -17,7 +105,8 @@
       <div class="turn-indicator">
         <span id="active-player-name">Your Turn</span>
       </div>
-      <div>
+      <div style="display: flex; gap: 8px;">
+        <button id="btn-back-to-menu" class="btn btn-secondary">Main Menu</button>
         <button id="btn-reset" class="btn btn-secondary">Reset Game</button>
       </div>
     </header>
@@ -259,16 +348,11 @@
           <h3 style="color: var(--accent-gold); font-family: var(--font-display); font-size: 1.3rem; border-bottom: 1px solid var(--border-color); width: 100%; text-align: center; padding-bottom: 8px;">Your Setup</h3>
           
           <div style="display: flex; flex-direction: column; width: 100%; gap: 6px;">
-            <label for="player-char-select" style="font-size: 0.85rem; color: var(--text-secondary);">Select Character:</label>
-            <select id="player-char-select" class="deck-select-dropdown" style="width: 100%; padding: 10px; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; font-family: inherit; font-size: 0.95rem; cursor: pointer; outline: none; transition: var(--transition-smooth);"></select>
-          </div>
-
-          <div style="display: flex; flex-direction: column; width: 100%; gap: 6px;">
             <label for="player-deck-select" style="font-size: 0.85rem; color: var(--text-secondary);">Select Deck:</label>
             <select id="player-deck-select" class="deck-select-dropdown" style="width: 100%; padding: 10px; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; font-family: inherit; font-size: 0.95rem; cursor: pointer; outline: none; transition: var(--transition-smooth);"></select>
           </div>
 
-          <div style="margin-top: 12px; height: 120px; display: flex; align-items: center; justify-content: center; width: 168px; border-radius: 8px; overflow: hidden; border: 2px solid var(--accent-gold-glow); box-shadow: 0 4px 12px rgba(0,0,0,0.5); position: relative;">
+          <div style="margin-top: 12px; height: 120px; display: flex; align-items: center; justify-content: center; width: 168px; border-radius: 8px; overflow: hidden; border: 2px solid var(--accent-gold-glow); box-shadow: 0 4px 12px rgba(0,0,0,0.5); position: relative; background: var(--bg-primary);">
             <img id="player-char-preview" src="" alt="Player Character" style="width: 120px; height: 168px; transform: rotate(90deg); object-fit: contain; position: absolute;" />
           </div>
         </div>
@@ -278,16 +362,11 @@
           <h3 style="color: var(--accent-gold); font-family: var(--font-display); font-size: 1.3rem; border-bottom: 1px solid var(--border-color); width: 100%; text-align: center; padding-bottom: 8px;">Opponent Setup</h3>
           
           <div style="display: flex; flex-direction: column; width: 100%; gap: 6px;">
-            <label for="opponent-char-select" style="font-size: 0.85rem; color: var(--text-secondary);">Select Character:</label>
-            <select id="opponent-char-select" class="deck-select-dropdown" style="width: 100%; padding: 10px; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; font-family: inherit; font-size: 0.95rem; cursor: pointer; outline: none; transition: var(--transition-smooth);"></select>
-          </div>
-
-          <div style="display: flex; flex-direction: column; width: 100%; gap: 6px;">
             <label for="opponent-deck-select" style="font-size: 0.85rem; color: var(--text-secondary);">Select Deck:</label>
             <select id="opponent-deck-select" class="deck-select-dropdown" style="width: 100%; padding: 10px; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; font-family: inherit; font-size: 0.95rem; cursor: pointer; outline: none; transition: var(--transition-smooth);"></select>
           </div>
 
-          <div style="margin-top: 12px; height: 120px; display: flex; align-items: center; justify-content: center; width: 168px; border-radius: 8px; overflow: hidden; border: 2px solid var(--accent-gold-glow); box-shadow: 0 4px 12px rgba(0,0,0,0.5); position: relative;">
+          <div style="margin-top: 12px; height: 120px; display: flex; align-items: center; justify-content: center; width: 168px; border-radius: 8px; overflow: hidden; border: 2px solid var(--accent-gold-glow); box-shadow: 0 4px 12px rgba(0,0,0,0.5); position: relative; background: var(--bg-primary);">
             <img id="opponent-char-preview" src="" alt="Opponent Character" style="width: 120px; height: 168px; transform: rotate(90deg); object-fit: contain; position: absolute;" />
           </div>
         </div>

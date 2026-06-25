@@ -5,6 +5,7 @@
 
 import { GameEngine } from './game-engine.js';
 import { UIManager } from './ui.js';
+import { DeckBuilder, validateDeck } from './deck-builder.js';
 
 // Predefined themed wizarding decks (40 cards each)
 const PRESET_DECKS = {
@@ -120,115 +121,140 @@ async function bootstrap() {
       ui.render();
     });
 
-    // 6. Setup the Deck & Character Selection Dialog
-    const deckSelectionModal = document.getElementById('deck-selection-modal');
-    
-    const playerCharSelect = document.getElementById('player-char-select');
-    const playerDeckSelect = document.getElementById('player-deck-select');
-    const playerPreview = document.getElementById('player-char-preview');
-    
-    const opponentCharSelect = document.getElementById('opponent-char-select');
-    const opponentDeckSelect = document.getElementById('opponent-deck-select');
-    const opponentPreview = document.getElementById('opponent-char-preview');
-    
-    const btnStartMatch = document.getElementById('btn-start-match');
-
-    // List of canonical wizard/witch starting characters
-    const characters = [
-      { name: 'Dean Thomas', id: '1' },
-      { name: 'Draco Malfoy', id: '2' },
-      { name: 'Hannah Abbott', id: '7' },
-      { name: 'Harry Potter', id: '8' },
-      { name: 'Hermione Granger', id: '9' },
-      { name: 'Nearly Headless Nick', id: '13' },
-      { name: 'Professor Filius Flitwick', id: '15' },
-      { name: 'Professor Severus Snape', id: '16' },
-      { name: 'Ron Weasley', id: '17' },
-      { name: 'Rubeus Hagrid', id: '18' }
-    ];
-
-    // Populate Character select tags
-    characters.forEach(char => {
-      const opt1 = document.createElement('option');
-      opt1.value = char.id;
-      opt1.innerText = char.name;
-      playerCharSelect.appendChild(opt1);
-
-      const opt2 = document.createElement('option');
-      opt2.value = char.id;
-      opt2.innerText = char.name;
-      opponentCharSelect.appendChild(opt2);
+    // 6. Setup the Deck Builder and Screen Management
+    const deckBuilder = new DeckBuilder(cardsDb, () => {
+      showScreen('menu');
     });
 
-    // Populate Deck select tags
-    Object.keys(PRESET_DECKS).forEach(key => {
-      const opt1 = document.createElement('option');
-      opt1.value = key;
-      opt1.innerText = PRESET_DECKS[key].name;
-      playerDeckSelect.appendChild(opt1);
-
-      const opt2 = document.createElement('option');
-      opt2.value = key;
-      opt2.innerText = PRESET_DECKS[key].name;
-      opponentDeckSelect.appendChild(opt2);
-    });
-
-    // Preview updater
-    const updatePreviews = () => {
-      const pChar = cardsDb.find(c => c.id === playerCharSelect.value);
-      if (pChar) playerPreview.src = pChar.image;
-
-      const oChar = cardsDb.find(c => c.id === opponentCharSelect.value);
-      if (oChar) opponentPreview.src = oChar.image;
+    const showScreen = (screenId) => {
+      document.getElementById('main-menu-container').classList.add('hidden');
+      document.getElementById('deck-builder-container').classList.add('hidden');
+      document.getElementById('game-container').classList.add('hidden');
+      
+      if (screenId === 'menu') {
+        document.getElementById('main-menu-container').classList.remove('hidden');
+      } else if (screenId === 'builder') {
+        deckBuilder.show();
+      } else if (screenId === 'game') {
+        document.getElementById('game-container').classList.remove('hidden');
+        ui.render();
+      }
     };
 
-    playerCharSelect.addEventListener('change', updatePreviews);
-    opponentCharSelect.addEventListener('change', updatePreviews);
+    // Main Menu Buttons
+    const btnMenuPlay = document.getElementById('btn-menu-play');
+    const btnMenuBuilder = document.getElementById('btn-menu-builder');
+    const deckSelectionModal = document.getElementById('deck-selection-modal');
 
-    // Default configuration: Hermione Granger + Gryffindor deck vs Draco Malfoy + Slytherin deck
-    playerCharSelect.value = '9';
-    playerDeckSelect.value = 'gryffindor';
-    opponentCharSelect.value = '2';
-    opponentDeckSelect.value = 'slytherin';
-    updatePreviews();
+    const playerDeckSelect = document.getElementById('player-deck-select');
+    const playerPreview = document.getElementById('player-char-preview');
+    const opponentDeckSelect = document.getElementById('opponent-deck-select');
+    const opponentPreview = document.getElementById('opponent-char-preview');
+    const btnStartMatch = document.getElementById('btn-start-match');
 
-    // Show selection dialog overlay initially
-    const introRulesModal = document.getElementById('intro-rules-modal');
-    const btnGotoDeckSelect = document.getElementById('btn-goto-deck-select');
+    const updatePreviews = () => {
+      const pDeck = deckBuilder.decks.find(d => d.id === playerDeckSelect.value);
+      if (pDeck) {
+        const pChar = cardsDb.find(c => c.id === pDeck.characterId);
+        if (pChar) playerPreview.src = pChar.image;
+      }
 
-    if (introRulesModal && btnGotoDeckSelect) {
-      introRulesModal.showModal();
-      btnGotoDeckSelect.addEventListener('click', () => {
-        introRulesModal.close();
-        deckSelectionModal.showModal();
+      const oDeck = deckBuilder.decks.find(d => d.id === opponentDeckSelect.value);
+      if (oDeck) {
+        const oChar = cardsDb.find(c => c.id === oDeck.characterId);
+        if (oChar) opponentPreview.src = oChar.image;
+      }
+    };
+
+    const populateMatchDecks = () => {
+      playerDeckSelect.innerHTML = '';
+      opponentDeckSelect.innerHTML = '';
+
+      deckBuilder.decks.forEach(deck => {
+        const opt1 = document.createElement('option');
+        opt1.value = deck.id;
+        opt1.innerText = deck.name + (deck.isPreset ? " (Preset)" : "");
+        playerDeckSelect.appendChild(opt1);
+
+        const opt2 = document.createElement('option');
+        opt2.value = deck.id;
+        opt2.innerText = deck.name + (deck.isPreset ? " (Preset)" : "");
+        opponentDeckSelect.appendChild(opt2);
       });
-    } else {
+
+      // Default selections
+      if (deckBuilder.decks.length > 0) {
+        playerDeckSelect.value = deckBuilder.decks[0].id;
+        if (deckBuilder.decks.length > 1) {
+          opponentDeckSelect.value = deckBuilder.decks[1].id;
+        } else {
+          opponentDeckSelect.value = deckBuilder.decks[0].id;
+        }
+      }
+      updatePreviews();
+    };
+
+    playerDeckSelect.addEventListener('change', updatePreviews);
+    opponentDeckSelect.addEventListener('change', updatePreviews);
+
+    btnMenuPlay.addEventListener('click', () => {
+      populateMatchDecks();
       deckSelectionModal.showModal();
-    }
+    });
 
-    // Bind Start Match action
+    btnMenuBuilder.addEventListener('click', () => {
+      showScreen('builder');
+    });
+
+    // Start Match action
     btnStartMatch.addEventListener('click', () => {
-      const pDeckDef = PRESET_DECKS[playerDeckSelect.value];
-      const oDeckDef = PRESET_DECKS[opponentDeckSelect.value];
+      const pDeck = deckBuilder.decks.find(d => d.id === playerDeckSelect.value);
+      const oDeck = deckBuilder.decks.find(d => d.id === opponentDeckSelect.value);
 
-      const pDeckIds = buildCustomDeck(cardsDb, pDeckDef);
-      const oDeckIds = buildCustomDeck(cardsDb, oDeckDef);
+      if (!pDeck || !oDeck) {
+        alert("Decks not found!");
+        return;
+      }
 
+      // Check player deck validity
+      const pValidity = validateDeck(pDeck, cardsDb);
+      if (!pValidity.isValid) {
+        alert(`Cannot play game: your deck "${pDeck.name}" is invalid!\n\nErrors:\n- ${pValidity.errors.join('\n- ')}`);
+        return;
+      }
+
+      // Check opponent deck validity
+      const oValidity = validateDeck(oDeck, cardsDb);
+      if (!oValidity.isValid) {
+        alert(`Cannot play game: rival's deck "${oDeck.name}" is invalid!\n\nErrors:\n- ${oValidity.errors.join('\n- ')}`);
+        return;
+      }
+
+      // Set up the match
       engine.setupGame(
-        pDeckIds,
-        oDeckIds,
-        playerCharSelect.value,
-        opponentCharSelect.value
+        pDeck.cardIds,
+        oDeck.cardIds,
+        pDeck.characterId,
+        oDeck.characterId
       );
 
       deckSelectionModal.close();
-      ui.render();
+      showScreen('game');
     });
 
-    // Bind top-right Reset Game button to reopen selection modal
+    // Back to Menu button inside Game
+    const btnBackToMenu = document.getElementById('btn-back-to-menu');
+    if (btnBackToMenu) {
+      btnBackToMenu.addEventListener('click', () => {
+        showScreen('menu');
+      });
+    }
+
+    // Reset Game button inside Game
     const btnReset = document.getElementById('btn-reset');
     if (btnReset) {
       btnReset.addEventListener('click', () => {
+        populateMatchDecks();
         deckSelectionModal.showModal();
       });
     }
