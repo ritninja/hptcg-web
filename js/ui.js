@@ -181,7 +181,6 @@ export class UIManager {
         const selectedEls = this.el.spellTargetingOptions.querySelectorAll('.selected');
         const selectedIds = Array.from(selectedEls).map(el => el.getAttribute('data-choice-id'));
         this.engine.resolvePendingSpell(selectedIds);
-        this.closeSpellTargetingModal();
       });
     }
 
@@ -672,7 +671,6 @@ export class UIManager {
         choiceEl.addEventListener('click', () => {
           if (maxChoices === 1 && minChoices === 1) {
             this.engine.resolvePendingSpell([choice.id]);
-            this.closeSpellTargetingModal();
           } else {
             if (choiceEl.classList.contains('selected')) {
               choiceEl.classList.remove('selected');
