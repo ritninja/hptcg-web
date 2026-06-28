@@ -1,6 +1,6 @@
 import fs from 'fs';
 
-const data = JSON.parse(fs.readFileSync('./data/cards.json', 'utf8'));
+const data = JSON.parse(fs.readFileSync('./data/base_set/cards.json', 'utf8'));
 const characters = data.cards.filter(c => c.type && c.type.includes('Character'));
 
 console.log(`Found ${characters.length} characters.`);

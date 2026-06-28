@@ -23,7 +23,7 @@ function normalizeCards(rawCards) {
   });
 }
 
-const cardsDataRaw = JSON.parse(fs.readFileSync('./data/cards.json', 'utf8'));
+const cardsDataRaw = JSON.parse(fs.readFileSync('./data/base_set/cards.json', 'utf8'));
 const cardsDb = normalizeCards(cardsDataRaw.cards);
 
 function assert(condition, message) {

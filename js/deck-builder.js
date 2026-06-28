@@ -66,6 +66,9 @@ export class DeckBuilder {
     this.decks = [];
     this.currentDeck = null;
     this.activeFilter = 'All';
+    this.activeLessonFilter = 'All';
+    this.deckCardTypeFilter = 'All';
+    this.deckLessonTypeFilter = 'All';
     this.searchQuery = '';
 
     // Cache elements on construction
@@ -74,6 +77,7 @@ export class DeckBuilder {
       selectDeck: document.getElementById('deck-builder-select'),
       btnNew: document.getElementById('btn-new-deck'),
       btnDelete: document.getElementById('btn-delete-deck'),
+      btnClear: document.getElementById('btn-clear-deck'),
       inputName: document.getElementById('deck-name-input'),
       selectChar: document.getElementById('deck-char-select'),
       previewChar: document.getElementById('deck-char-preview-img'),
@@ -85,7 +89,10 @@ export class DeckBuilder {
       btnBack: document.getElementById('btn-deck-builder-back'),
       inputSearch: document.getElementById('card-catalog-search'),
       filterButtons: document.getElementById('card-catalog-filters'),
-      catalogGrid: document.getElementById('card-catalog-grid')
+      catalogGrid: document.getElementById('card-catalog-grid'),
+      inputLessonFilter: document.getElementById('card-catalog-lesson-filter'),
+      deckCardTypeFilterSelect: document.getElementById('deck-card-type-filter'),
+      deckLessonTypeFilterSelect: document.getElementById('deck-lesson-type-filter')
     };
 
     this.initDecks();
@@ -203,6 +210,22 @@ export class DeckBuilder {
       });
     }
 
+    // Empty/Clear Deck
+    if (this.el.btnClear) {
+      this.el.btnClear.addEventListener('click', () => {
+        if (!this.currentDeck) return;
+        if (this.currentDeck.isPreset) {
+          this.cloneCurrentPreset();
+        }
+
+        if (confirm(`Are you sure you want to empty all cards in "${this.currentDeck.name}"?`)) {
+          this.currentDeck.cardIds = [];
+          this.saveDecksToStorage();
+          this.loadCurrentDeckToUI();
+        }
+      });
+    }
+
     // Deck Name Edit Input
     if (this.el.inputName) {
       this.el.inputName.addEventListener('input', (e) => {
@@ -261,6 +284,30 @@ export class DeckBuilder {
         
         this.activeFilter = btn.getAttribute('data-filter');
         this.renderCatalog();
+      });
+    }
+
+    // Catalog Lesson Type Filter Select
+    if (this.el.inputLessonFilter) {
+      this.el.inputLessonFilter.addEventListener('change', (e) => {
+        this.activeLessonFilter = e.target.value;
+        this.renderCatalog();
+      });
+    }
+
+    // Deck Card Type Filter Select
+    if (this.el.deckCardTypeFilterSelect) {
+      this.el.deckCardTypeFilterSelect.addEventListener('change', (e) => {
+        this.deckCardTypeFilter = e.target.value;
+        this.renderCurrentDeckCards();
+      });
+    }
+
+    // Deck Lesson Type Filter Select
+    if (this.el.deckLessonTypeFilterSelect) {
+      this.el.deckLessonTypeFilterSelect.addEventListener('change', (e) => {
+        this.deckLessonTypeFilter = e.target.value;
+        this.renderCurrentDeckCards();
       });
     }
   }
@@ -330,6 +377,14 @@ export class DeckBuilder {
       this.el.selectChar.value = this.currentDeck.characterId;
     }
 
+    // Reset filters to All when switching/loading decks
+    if (this.el.inputLessonFilter) this.el.inputLessonFilter.value = 'All';
+    if (this.el.deckCardTypeFilterSelect) this.el.deckCardTypeFilterSelect.value = 'All';
+    if (this.el.deckLessonTypeFilterSelect) this.el.deckLessonTypeFilterSelect.value = 'All';
+    this.activeLessonFilter = 'All';
+    this.deckCardTypeFilter = 'All';
+    this.deckLessonTypeFilter = 'All';
+
     this.updateCharacterPreview();
     this.validateAndRenderStatus();
     this.renderCurrentDeckCards();
@@ -382,9 +437,28 @@ export class DeckBuilder {
     if (!this.el.cardsList || !this.currentDeck) return;
     this.el.cardsList.innerHTML = '';
 
+    // Apply active deck list filters
+    const filteredCardIds = this.currentDeck.cardIds.filter(id => {
+      const card = this.cardsDb.find(c => c.id === id);
+      if (!card) return false;
+
+      // Filter by card type
+      if (this.deckCardTypeFilter && this.deckCardTypeFilter !== 'All') {
+        if (card.type !== this.deckCardTypeFilter) return false;
+      }
+
+      // Filter by lesson type
+      if (this.deckLessonTypeFilter && this.deckLessonTypeFilter !== 'All') {
+        const cardLessonType = card.type === 'Lesson' ? (card.provides?.type || card.lessonType) : card.lessonCost?.type;
+        if (cardLessonType !== this.deckLessonTypeFilter) return false;
+      }
+
+      return true;
+    });
+
     // Group cards by name
     const grouped = {};
-    this.currentDeck.cardIds.forEach(id => {
+    filteredCardIds.forEach(id => {
       const card = this.cardsDb.find(c => c.id === id);
       if (card) {
         if (!grouped[card.name]) {
@@ -405,7 +479,11 @@ export class DeckBuilder {
     });
 
     if (sorted.length === 0) {
-      this.el.cardsList.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); font-style: italic; padding: 40px;">No cards in deck yet. Click "Add to Deck" on the left to add them!</div>`;
+      const isFiltered = (this.deckCardTypeFilter !== 'All' || this.deckLessonTypeFilter !== 'All');
+      const msg = isFiltered
+        ? "No cards in deck match the active filters."
+        : 'No cards in deck yet. Click "Add to Deck" on the left to add them!';
+      this.el.cardsList.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); font-style: italic; padding: 40px;">${msg}</div>`;
       return;
     }
 
@@ -494,6 +572,24 @@ export class DeckBuilder {
       btnRow.appendChild(btnMinus);
       btnRow.appendChild(btnPlus);
 
+      // Add "+5" button for Lesson cards in deck view
+      if (group.card.type === 'Lesson') {
+        const btnPlusFive = document.createElement('button');
+        btnPlusFive.className = 'btn btn-icon btn-small btn-secondary';
+        btnPlusFive.innerText = '+5';
+        btnPlusFive.style.width = '36px';
+        btnPlusFive.style.height = '28px';
+        btnPlusFive.style.display = 'flex';
+        btnPlusFive.style.alignItems = 'center';
+        btnPlusFive.style.justifyContent = 'center';
+        btnPlusFive.addEventListener('click', () => {
+          for (let i = 0; i < 5; i++) {
+            this.addCardToDeck(group.card.id);
+          }
+        });
+        btnRow.appendChild(btnPlusFive);
+      }
+
       info.appendChild(name);
       info.appendChild(typeCost);
       info.appendChild(desc);
@@ -558,6 +654,14 @@ export class DeckBuilder {
         return false;
       }
 
+      // Apply active lesson type filter
+      if (this.activeLessonFilter && this.activeLessonFilter !== 'All') {
+        const cardLessonType = c.type === 'Lesson' ? (c.provides?.type || c.lessonType) : c.lessonCost?.type;
+        if (cardLessonType !== this.activeLessonFilter) {
+          return false;
+        }
+      }
+
       return true;
     });
 
@@ -617,24 +721,59 @@ export class DeckBuilder {
       desc.className = 'catalog-card-desc';
       desc.innerText = card.text || '';
 
-      const btnAdd = document.createElement('button');
-      btnAdd.className = 'btn btn-small';
-      btnAdd.innerText = 'Add to Deck';
-      
-      if (card.type !== 'Lesson' && countInDeck >= 4) {
-        btnAdd.classList.add('disabled');
-        btnAdd.disabled = true;
-        btnAdd.innerText = 'Max copies';
-      }
-
-      btnAdd.addEventListener('click', () => {
-        this.addCardToDeck(card.id);
-      });
-
       info.appendChild(name);
       info.appendChild(typeCost);
       info.appendChild(desc);
-      info.appendChild(btnAdd);
+
+      if (card.type === 'Lesson') {
+        const btnContainer = document.createElement('div');
+        btnContainer.style.display = 'flex';
+        btnContainer.style.gap = '8px';
+        btnContainer.style.marginTop = '6px';
+        btnContainer.style.alignSelf = 'flex-start';
+
+        const btnAdd = document.createElement('button');
+        btnAdd.className = 'btn btn-small';
+        btnAdd.innerText = 'Add 1';
+        btnAdd.style.height = '28px';
+        btnAdd.style.padding = '0 10px';
+        btnAdd.style.fontSize = '0.78rem';
+        btnAdd.addEventListener('click', () => {
+          this.addCardToDeck(card.id);
+        });
+
+        const btnAddFive = document.createElement('button');
+        btnAddFive.className = 'btn btn-small btn-secondary';
+        btnAddFive.innerText = 'Add 5';
+        btnAddFive.style.height = '28px';
+        btnAddFive.style.padding = '0 10px';
+        btnAddFive.style.fontSize = '0.78rem';
+        btnAddFive.addEventListener('click', () => {
+          for (let i = 0; i < 5; i++) {
+            this.addCardToDeck(card.id);
+          }
+        });
+
+        btnContainer.appendChild(btnAdd);
+        btnContainer.appendChild(btnAddFive);
+        info.appendChild(btnContainer);
+      } else {
+        const btnAdd = document.createElement('button');
+        btnAdd.className = 'btn btn-small';
+        btnAdd.innerText = 'Add to Deck';
+        
+        if (countInDeck >= 4) {
+          btnAdd.classList.add('disabled');
+          btnAdd.disabled = true;
+          btnAdd.innerText = 'Max copies';
+        }
+
+        btnAdd.addEventListener('click', () => {
+          this.addCardToDeck(card.id);
+        });
+
+        info.appendChild(btnAdd);
+      }
 
       cardEl.appendChild(thumb);
       cardEl.appendChild(info);

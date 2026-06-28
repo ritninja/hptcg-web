@@ -64,7 +64,7 @@ function normalizeCards(rawCards) {
 }
 
 // 1. Setup Mock Card Database and Game Rules
-const cardsDataRaw = JSON.parse(fs.readFileSync('./data/cards.json', 'utf8'));
+const cardsDataRaw = JSON.parse(fs.readFileSync('./data/base_set/cards.json', 'utf8'));
 const cardsDb = normalizeCards(cardsDataRaw.cards);
 
 const rulesConfig = {
@@ -352,6 +352,18 @@ assert(hagridDef !== undefined, "Found Rubeus Hagrid definition");
   console.log("Activating Severus Snape...");
   assert(engine.canActivateCharacterAbility('player', testChar), "Can activate Severus Snape");
   engine.activateCharacterAbility('player', 'snape-char');
+
+  assert(engine.pendingSpell !== null, "Snape prompted for cards to shuffle");
+  // Choose 7 non-healing cards
+  engine.resolvePendingSpell([
+    'discard-player-d1',
+    'discard-player-d2',
+    'discard-player-d3',
+    'discard-player-d4',
+    'discard-player-d5',
+    'discard-player-d6',
+    'discard-player-d7'
+  ]);
 
   assert(engine.players.player.deck.length === 7, "Shuffled exactly 7 cards back to deck");
   assert(engine.players.player.discardPile.length === 2, "Left 2 cards in discard (D8 and Heal1)");

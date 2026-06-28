@@ -20,7 +20,7 @@
       "effect": [
         "Once per game, you may draw 3 cards."
       ],
-      "image": "assets/images/cards/Base Set/Dean_Thomas.png"
+      "image": "assets/images/cards/base_set/Dean_Thomas.png"
     },
     {
       "number": "2",
@@ -39,7 +39,7 @@
       "effect": [
         "During your turn, you may use an Action and discard a card from your hand to look at your opponent's hand. You may then choose 1 card in his or her hand and discard it."
       ],
-      "image": "assets/images/cards/Base Set/Draco_Malfoy.png"
+      "image": "assets/images/cards/base_set/Draco_Malfoy.png"
     },
     {
       "number": "3a",
@@ -58,7 +58,7 @@
       "effect": [
         "During your turn, you may use an Action and discard a card from your hand to look at your opponent's hand. You may then choose 1 card in his or her hand and discard it."
       ],
-      "image": "assets/images/cards/Base Set/Draco_Malfoy.png"
+      "image": "assets/images/cards/base_set/Draco_Malfoy.png"
     },
     {
       "number": "3b",
@@ -77,7 +77,7 @@
       "effect": [
         "During your turn, you may use an Action and discard a card from your hand to look at your opponent's hand. You may then choose 1 card in his or her hand and discard it."
       ],
-      "image": "assets/images/cards/Base Set/Draco_Malfoy.png"
+      "image": "assets/images/cards/base_set/Draco_Malfoy.png"
     },
     {
       "number": "4",
@@ -94,7 +94,7 @@
       ],
       "toSolve": "Your opponent chooses 3 of his or her Lessons in play and discards them.",
       "reward": "Your opponent draws 3 cards or does 3 damage to you.",
-      "image": "assets/images/cards/Base Set/Dragons_Escape.png"
+      "image": "assets/images/cards/base_set/Dragons_Escape.png"
     },
     {
       "number": "5",
@@ -115,7 +115,7 @@
       "effect": [
         "To play this card, discard 2 of your Potions Lessons from play. Shuffle up to 16 non-Healing cards from your discard pile into your deck."
       ],
-      "image": "assets/images/cards/Base Set/Elixir_Of_Life.png"
+      "image": "assets/images/cards/base_set/Elixir_Of_Life.png"
     },
     {
       "number": "6",
@@ -133,7 +133,7 @@
       ],
       "toSolve": "Your opponent skips a total of 5 Actions. (Those Actions don't have to be one right after the other.)",
       "reward": "Your opponent may draw 5 cards.",
-      "image": "assets/images/cards/Base Set/Gringotts_Cart_Ride.png"
+      "image": "assets/images/cards/base_set/Gringotts_Cart_Ride.png"
     },
     {
       "number": "7",
@@ -152,7 +152,7 @@
       "effect": [
         "Once per game, you may trade 2 cards in your hand for 2 non-Healing cards in your discard pile."
       ],
-      "image": "assets/images/cards/Base Set/Hannah_Abbott.png"
+      "image": "assets/images/cards/base_set/Hannah_Abbott.png"
     },
     {
       "number": "8",
@@ -171,7 +171,7 @@
       "effect": [
         "Whenever you use an Action to draw a card, you may draw 2 cards instead of 1."
       ],
-      "image": "assets/images/cards/Base Set/Harry_Potter.png"
+      "image": "assets/images/cards/base_set/Harry_Potter.png"
     },
     {
       "number": "9",
@@ -190,7 +190,7 @@
       "effect": [
         "If you already have 2 or more Lessons in play, then whenever you use an Action to play a Lesson card, you may play 2 Lesson cards instead of 1."
       ],
-      "image": "assets/images/cards/Base Set/Hermione_Granger.png"
+      "image": "assets/images/cards/base_set/Hermione_Granger.png"
     },
     {
       "number": "10a",
@@ -209,7 +209,7 @@
       "effect": [
         "If you already have 2 or more Lessons in play, then whenever you use an Action to play a Lesson card, you may play 2 Lesson cards instead of 1."
       ],
-      "image": "assets/images/cards/Base Set/Hermione_Granger.png"
+      "image": "assets/images/cards/base_set/Hermione_Granger.png"
     },
     {
       "number": "10b",
@@ -228,7 +228,7 @@
       "effect": [
         "If you already have 2 or more Lessons in play, then whenever you use an Action to play a Lesson card, you may play 2 Lesson cards instead of 1."
       ],
-      "image": "assets/images/cards/Base Set/Hermione_Granger.png"
+      "image": "assets/images/cards/base_set/Hermione_Granger.png"
     },
     {
       "number": "11",
@@ -245,7 +245,7 @@
       ],
       "toSolve": "Your opponent chooses and discards 1 of his or her Characters in play (other than his or her starting Character) or 8 cards from his or her hand.",
       "reward": "Your opponent may draw 3 cards.",
-      "image": "assets/images/cards/Base Set/Human_Chess_Game.png"
+      "image": "assets/images/cards/base_set/Human_Chess_Game.png"
     },
     {
       "number": "12",
@@ -266,7 +266,7 @@
       "effect": [
         "Once during each of your opponent's turns, you may prevent all damage done by a Spell card."
       ],
-      "image": "assets/images/cards/Base Set/Invisibility_Cloak.png"
+      "image": "assets/images/cards/base_set/Invisibility_Cloak.png"
     },
     {
       "number": "13",
@@ -285,7 +285,7 @@
       "effect": [
         "Once per game, you may search your deck. When you do, you may take up to 2 Item cards from your deck, show them to your opponent, and put them into your hand. Then shuffle your deck."
       ],
-      "image": "assets/images/cards/Base Set/Nearly_Headless_Nick.png"
+      "image": "assets/images/cards/base_set/Nearly_Headless_Nick.png"
     },
     {
       "number": "14",
@@ -303,7 +303,7 @@
       "effect": [
         "Your opponent discards his or her hand."
       ],
-      "image": "assets/images/cards/Base Set/Obliviate.png"
+      "image": "assets/images/cards/base_set/Obliviate.png"
     },
     {
       "number": "15",
@@ -328,7 +328,7 @@
       "effect": [
         "Once per game, you may trade 2 cards in your hand for 1 card in your discard pile that needs Charms Power."
       ],
-      "image": "assets/images/cards/Base Set/Professor_Filius_Flitwick.png"
+      "image": "assets/images/cards/base_set/Professor_Filius_Flitwick.png"
     },
     {
       "number": "16",
@@ -354,7 +354,7 @@
       "effect": [
         "Once per game, you may shuffle up to 7 non-Healing cards from your discard pile into your deck."
       ],
-      "image": "assets/images/cards/Base Set/Professor_Severous_Snape.png"
+      "image": "assets/images/cards/base_set/Professor_Severous_Snape.png"
     },
     {
       "number": "17",
@@ -373,7 +373,7 @@
       "effect": [
         "Whenever you play a Character card, you use up 1 Action to play it instead of 2."
       ],
-      "image": "assets/images/cards/Base Set/Ron_Weasley.png"
+      "image": "assets/images/cards/base_set/Ron_Weasley.png"
     },
     {
       "number": "18",
@@ -390,7 +390,7 @@
       "effect": [
         "Whenever 1 of your Creatures does 3 or more damage to your opponent, it does 2 more damage than it usually would."
       ],
-      "image": "assets/images/cards/Base Set/Rubeus_Hagrid.png"
+      "image": "assets/images/cards/base_set/Rubeus_Hagrid.png"
     },
     {
       "number": "19",
@@ -408,7 +408,7 @@
       ],
       "toSolve": "Your opponent chooses 7 cards in his or her hand and discards them.",
       "reward": "You take 4 damage.",
-      "image": "assets/images/cards/Base Set/Troll_in_the_Bathroom.png"
+      "image": "assets/images/cards/base_set/Troll_in_the_Bathroom.png"
     },
     {
       "number": "20",
@@ -430,7 +430,7 @@
       "effect": [
         "To play this card, discard 1 of your Care of Magical Creatures Lessons from play. You get 1 more Action on each of your turns (including the turn you play Unicorn)."
       ],
-      "image": "assets/images/cards/Base Set/Unicorn.png"
+      "image": "assets/images/cards/base_set/Unicorn.png"
     },
     {
       "number": "21",
@@ -452,7 +452,7 @@
       "effect": [
         "To play this card, discard 1 of your Care of Magical Creatures Lessons from play. Before each of your turns, draw a card."
       ],
-      "image": "assets/images/cards/Base Set/Delivery_Owl.png"
+      "image": "assets/images/cards/base_set/Delivery_Owl.png"
     },
     {
       "number": "22",
@@ -470,7 +470,7 @@
       "effect": [
         "To play this card, discard 2 of your Potions Lessons from play. Do 12 damage to your opponent or to a creature of your choice."
       ],
-      "image": "assets/images/cards/Base Set/Draught_Of_Living_Death.png"
+      "image": "assets/images/cards/base_set/Draught_Of_Living_Death.png"
     },
     {
       "number": "23",
@@ -487,7 +487,7 @@
       ],
       "toSolve": "Your opponent chooses 7 cards in his or her hand and discards them.",
       "reward": "Your opponent may put a Lesson card from his or her discard pile into play.",
-      "image": "assets/images/cards/Base Set/Harry_Hunting.png"
+      "image": "assets/images/cards/base_set/Harry_Hunting.png"
     },
     {
       "number": "24",
@@ -505,7 +505,7 @@
       "effect": [
         "Look at your opponent's hand. Discard all Adventure cards from it."
       ],
-      "image": "assets/images/cards/Base Set/History_Of_Magic.png"
+      "image": "assets/images/cards/base_set/History_Of_Magic.png"
     },
     {
       "number": "25",
@@ -522,7 +522,7 @@
       "effect": [
         "Count the number of Charms Lessons you have in play. Do that much damage to a Creature of your choice."
       ],
-      "image": "assets/images/cards/Base Set/Incendio.png"
+      "image": "assets/images/cards/base_set/Incendio.png"
     },
     {
       "number": "26",
@@ -539,7 +539,7 @@
       "effect": [
         "To play this card, discard 2 of your Potions Lessons from play. Do 10 damage to your opponent or to a Creature of your choice."
       ],
-      "image": "assets/images/cards/Base Set/Malevolent_Mixture.png"
+      "image": "assets/images/cards/base_set/Malevolent_Mixture.png"
     },
     {
       "number": "27",
@@ -557,7 +557,7 @@
       ],
       "toSolve": "Your opponent discards his or her hand. (Your opponent may do this even if his or her hand is empty.)",
       "reward": "You play with your hand face up for the rest of the game.",
-      "image": "assets/images/cards/Base Set/Meet_The_Centaurs.png"
+      "image": "assets/images/cards/base_set/Meet_The_Centaurs.png"
     },
     {
       "number": "28",
@@ -577,7 +577,7 @@
       "flavorText": "'And then they heard it - a low grunting and the shuffling footfalls of gigantic feet.'",
       "rarity": "Rare",
       "artist": "Patrick Faricy",
-      "image": "assets/images/cards/Base Set/Mountain_Troll.png"
+      "image": "assets/images/cards/base_set/Mountain_Troll.png"
     },
     {
       "number": "29",
@@ -600,7 +600,7 @@
       "effect": [
         "Your opponent plays with his or her hand face up."
       ],
-      "image": "assets/images/cards/Base Set/Mrs_Norris.png"
+      "image": "assets/images/cards/base_set/Mrs_Norris.png"
     },
     {
       "number": "30",
@@ -624,7 +624,7 @@
       "effect": [
         "To play this card, discard 2 of your Care of Magical Creatures Lessons from play."
       ],
-      "image": "assets/images/cards/Base Set/Norbert.png"
+      "image": "assets/images/cards/base_set/Norbert.png"
     },
     {
       "number": "31",
@@ -650,7 +650,7 @@
       "effect": [
         "Play this card only is you have cards in play that provide at least 3 Charms Power. If you play this card, and you already have a Wand in play, discard the old one."
       ],
-      "image": "assets/images/cards/Base Set/Phoenix_Feather_Wand.png"
+      "image": "assets/images/cards/base_set/Phoenix_Feather_Wand.png"
     },
     {
       "number": "32",
@@ -668,7 +668,7 @@
       "effect": [
         "To play this card, discard 1 of your Lessons from play. You get 2 more Actions this turn."
       ],
-      "image": "assets/images/cards/Base Set/Platform_9_3_4.png"
+      "image": "assets/images/cards/base_set/Platform_9_3_4.png"
     },
     {
       "number": "33",
@@ -685,7 +685,7 @@
       "effect": [
         "When a Spell card damages you, you may discard this card from play to prevent all of that damage."
       ],
-      "image": "assets/images/cards/Base Set/Potion_Ingredients.png"
+      "image": "assets/images/cards/base_set/Potion_Ingredients.png"
     },
     {
       "number": "34",
@@ -702,7 +702,7 @@
       "effect": [
         "If your opponent has 2 or more Creatures in play, choose 1 of them and discard it."
       ],
-      "image": "assets/images/cards/Base Set/Raven_To_Writing_Desk.png"
+      "image": "assets/images/cards/base_set/Raven_To_Writing_Desk.png"
     },
     {
       "number": "35",
@@ -719,7 +719,7 @@
       "effect": [
         "During your opponent's next turn, prevent all damage done to you."
       ],
-      "image": "assets/images/cards/Base Set/Shrinking_Potion.png"
+      "image": "assets/images/cards/base_set/Shrinking_Potion.png"
     },
     {
       "number": "36",
@@ -736,7 +736,7 @@
       "effect": [
         "Do 3 damage to your opponent or to a Creature of your choice. Then your opponent chooses 3 cards in his or her hand and discards them. (If there are fewer than 3 cards in your opponent's hand, he or she discards them all.)"
       ],
-      "image": "assets/images/cards/Base Set/Titillando.png"
+      "image": "assets/images/cards/base_set/Titillando.png"
     },
     {
       "number": "37",
@@ -753,7 +753,7 @@
       "effect": [
         "Discard all creatures from play (even your own)."
       ],
-      "image": "assets/images/cards/Base Set/Transfiguration_Exam.png"
+      "image": "assets/images/cards/base_set/Transfiguration_Exam.png"
     },
     {
       "number": "38",
@@ -770,7 +770,7 @@
       "effect": [
         "If your opponent has 2 or more Creatures in play, he or she chooses 1 of them and discards the rest. Then, if you have 2 or more Creatures in play, choose 1 of them and discard the rest."
       ],
-      "image": "assets/images/cards/Base Set/Transfiguration_Test.png"
+      "image": "assets/images/cards/base_set/Transfiguration_Test.png"
     },
     {
       "number": "39",
@@ -788,7 +788,7 @@
       ],
       "toSolve": "Your opponent chooses 6 cards in his or her hand and discards them.",
       "reward": "Your opponent may draw a card.",
-      "image": "assets/images/cards/Base Set/4_Privet_Drive.png"
+      "image": "assets/images/cards/base_set/4_Privet_Drive.png"
     },
     {
       "number": "40",
@@ -806,7 +806,7 @@
       "effect": [
         "Search your deck. You may take up to 2 Lesson cards from your deck, show them to your opponent, and put them in your hand. Then shuffle your deck."
       ],
-      "image": "assets/images/cards/Base Set/Alchemy.png"
+      "image": "assets/images/cards/base_set/Alchemy.png"
     },
     {
       "number": "41",
@@ -823,7 +823,7 @@
       "effect": [
         "To play this card, discard 2 other cards from your hand. You may take a card that needs Potions Power from your deck, show it to your opponent and put it into your hand. Then shuffle your deck."
       ],
-      "image": "assets/images/cards/Base Set/Apothecary.png"
+      "image": "assets/images/cards/base_set/Apothecary.png"
     },
     {
       "number": "42",
@@ -840,7 +840,7 @@
       "effect": [
         "Discard the Adventure your opponent has played. (You don't get the reward.)"
       ],
-      "image": "assets/images/cards/Base Set/Apparate.png"
+      "image": "assets/images/cards/base_set/Apparate.png"
     },
     {
       "number": "43",
@@ -863,7 +863,7 @@
       "effect": [
         "To play this card, discard 1 of your Care of Magical Creatures Lessons from play."
       ],
-      "image": "assets/images/cards/Base Set/Baby_Dragon.png"
+      "image": "assets/images/cards/base_set/Baby_Dragon.png"
     },
     {
       "number": "44",
@@ -881,7 +881,7 @@
       "effect": [
         "Do 4 damage to your opponent or to a Creature of your choice."
       ],
-      "image": "assets/images/cards/Base Set/Bluebell_Flames.png"
+      "image": "assets/images/cards/base_set/Bluebell_Flames.png"
     },
     {
       "number": "45",
@@ -901,7 +901,7 @@
       "effect": [
         "To play this card, discard 1 of your Potions Lessons from play. Shuffle up to 10 non-Healing cards from your discard pile into your deck."
       ],
-      "image": "assets/images/cards/Base Set/Burning_Bitterroot_Balm.png"
+      "image": "assets/images/cards/base_set/Burning_Bitterroot_Balm.png"
     },
     {
       "number": "46",
@@ -924,7 +924,7 @@
       "effect": [
         "During your turn, you may discard this card from play and use an Action to choose a Creature in play (yours or your opponent's) and return it to it's owner's hand."
       ],
-      "image": "assets/images/cards/Base Set/Cage.png"
+      "image": "assets/images/cards/base_set/Cage.png"
     },
     {
       "number": "47",
@@ -941,7 +941,7 @@
       "effect": [
         "Your opponent chooses 2 cards in his or her hand and discards them (1 if he or she only has 1)."
       ],
-      "image": "assets/images/cards/Base Set/Confundus.png"
+      "image": "assets/images/cards/base_set/Confundus.png"
     },
     {
       "number": "48",
@@ -959,7 +959,7 @@
       ],
       "toSolve": "Your opponent skips a total of 7 Actions. (Those Actions don't need to be one right after the other.)",
       "reward": "Your opponent may draw any number of cards.",
-      "image": "assets/images/cards/Base Set/Diagon_Alley.png"
+      "image": "assets/images/cards/base_set/Diagon_Alley.png"
     },
     {
       "number": "49",
@@ -976,7 +976,7 @@
       "effect": [
         "To play this card, discard 1 of your Potions Lessons from play. Do 8 damage to your opponent or to a Creature of your choice."
       ],
-      "image": "assets/images/cards/Base Set/Dogbreath_Potion.png"
+      "image": "assets/images/cards/base_set/Dogbreath_Potion.png"
     },
     {
       "number": "50",
@@ -993,7 +993,7 @@
       "effect": [
         "Discard the Adventure you've played. You get the reward."
       ],
-      "image": "assets/images/cards/Base Set/Dracos_Trick.png"
+      "image": "assets/images/cards/base_set/Dracos_Trick.png"
     },
     {
       "number": "51",
@@ -1019,7 +1019,7 @@
       "effect": [
         "Play this card only if you have cards in play that provide at least 2 Charms Power. If you play this card, and you already have a Wand in play, discard the old one."
       ],
-      "image": "assets/images/cards/Base Set/Dragon_Heart_Wand.png"
+      "image": "assets/images/cards/base_set/Dragon_Heart_Wand.png"
     },
     {
       "number": "52",
@@ -1036,7 +1036,7 @@
       "effect": [
         "Do 2 damage to each Creature (even your own)."
       ],
-      "image": "assets/images/cards/Base Set/Fumos.png"
+      "image": "assets/images/cards/base_set/Fumos.png"
     },
     {
       "number": "53",
@@ -1056,7 +1056,7 @@
       "flavorText": "'He let them in, struggling to keep a hold on the collar of an enourmous black boarhound.'",
       "rarity": "Uncommon",
       "artist": "Ron Spencer",
-      "image": "assets/images/cards/Base Set/Guard_Dog.png"
+      "image": "assets/images/cards/base_set/Guard_Dog.png"
     },
     {
       "number": "54",
@@ -1073,7 +1073,7 @@
       ],
       "toSolve": "Your opponent chooses 4 Item cards in his or her hand and discards them.",
       "reward": "Your opponent may search his or her deck for any card and put it into his or her hand. Then your opponent shuffles his or her deck.",
-      "image": "assets/images/cards/Base Set/Hiding_From_Snape.png"
+      "image": "assets/images/cards/base_set/Hiding_From_Snape.png"
     },
     {
       "number": "55",
@@ -1096,7 +1096,7 @@
       "effect": [
         "To play this card, discard 1 of your Care of Magical Creature Lessons from play. Whenever a Spell card damages you, you may let Kelpie take that damage instead."
       ],
-      "image": "assets/images/cards/Base Set/Kelpie.png"
+      "image": "assets/images/cards/base_set/Kelpie.png"
     },
     {
       "number": "56",
@@ -1114,7 +1114,7 @@
       "effect": [
         "Discard the Adventure your opponent has played. You get the reward."
       ],
-      "image": "assets/images/cards/Base Set/Logic_Puzzle.png"
+      "image": "assets/images/cards/base_set/Logic_Puzzle.png"
     },
     {
       "number": "57",
@@ -1132,7 +1132,7 @@
       "effect": [
         "Search your deck. You may take a Creature card from your deck, show it to your opponent and put it into your hand. Then shuffle your deck."
       ],
-      "image": "assets/images/cards/Base Set/Mysterious_Egg.png"
+      "image": "assets/images/cards/base_set/Mysterious_Egg.png"
     },
     {
       "number": "58",
@@ -1150,7 +1150,7 @@
       "effect": [
         "Remove all damage counters from all of your Creatures."
       ],
-      "image": "assets/images/cards/Base Set/Nurture.png"
+      "image": "assets/images/cards/base_set/Nurture.png"
     },
     {
       "number": "59",
@@ -1168,7 +1168,7 @@
       "effect": [
         "Put an Item card from your discard pile into your hand."
       ],
-      "image": "assets/images/cards/Base Set/Ollivanders.png"
+      "image": "assets/images/cards/base_set/Ollivanders.png"
     },
     {
       "number": "60",
@@ -1186,7 +1186,7 @@
       ],
       "toSolve": "Your opponent skips a total of 5 Actions. (Those Actions don't need to be one right after the other.)",
       "reward": "You take 3 damage.",
-      "image": "assets/images/cards/Base Set/Peeves_Causes_Trouble.png"
+      "image": "assets/images/cards/base_set/Peeves_Causes_Trouble.png"
     },
     {
       "number": "61",
@@ -1208,7 +1208,7 @@
       "effect": [
         "Whenever a Spell card damages you, you may let Pet Toad take that damage instead."
       ],
-      "image": "assets/images/cards/Base Set/Pet_Toad.png"
+      "image": "assets/images/cards/base_set/Pet_Toad.png"
     },
     {
       "number": "62",
@@ -1229,7 +1229,7 @@
       "effect": [
         "Put up to 3 non-Healing cards from your discard pile on the bottom of your deck (in any order). Then draw a card."
       ],
-      "image": "assets/images/cards/Base Set/Pomfreys_Pick_Me_Up.png"
+      "image": "assets/images/cards/base_set/Pomfreys_Pick_Me_Up.png"
     },
     {
       "number": "63",
@@ -1246,7 +1246,7 @@
       "effect": [
         "Your opponent chooses 3 of his or her cards in play and discards them (if your opponent has fewer than 3 cards in play he or she discards them all). Your opponent may prevent this by discarding 1 of his or her Potions Lessons in play and discarding it."
       ],
-      "image": "assets/images/cards/Base Set/Potions_Exam.png"
+      "image": "assets/images/cards/base_set/Potions_Exam.png"
     },
     {
       "number": "64",
@@ -1264,7 +1264,7 @@
       ],
       "toSolve": "Your opponent chooses 4 of his or her Lessons in play and discards them.",
       "reward": "Your opponent may draw a card.",
-      "image": "assets/images/cards/Base Set/Reptile_House.png"
+      "image": "assets/images/cards/base_set/Reptile_House.png"
     },
     {
       "number": "65",
@@ -1290,7 +1290,7 @@
       "effect": [
         "To play this card, discard 2 of your Potions Lessons from play."
       ],
-      "image": "assets/images/cards/Base Set/Silver_Cauldron.png"
+      "image": "assets/images/cards/base_set/Silver_Cauldron.png"
     },
     {
       "number": "66",
@@ -1307,7 +1307,7 @@
       "effect": [
         "Next turn, whenever your opponent draws a card, he or she discards it instead of putting it into his or her hand."
       ],
-      "image": "assets/images/cards/Base Set/Snuffling_Potion.png"
+      "image": "assets/images/cards/base_set/Snuffling_Potion.png"
     },
     {
       "number": "67",
@@ -1325,7 +1325,7 @@
       "effect": [
         "Do 5 damage to your opponent."
       ],
-      "image": "assets/images/cards/Base Set/Stupefy.png"
+      "image": "assets/images/cards/base_set/Stupefy.png"
     },
     {
       "number": "68",
@@ -1342,7 +1342,7 @@
       "effect": [
         "Your opponent chooses 1 of his or her Creatures in play and discards it."
       ],
-      "image": "assets/images/cards/Base Set/Take_Root.png"
+      "image": "assets/images/cards/base_set/Take_Root.png"
     },
     {
       "number": "69",
@@ -1359,7 +1359,7 @@
       "effect": [
         "To play this card, discard 1 of your Creatures from play. Search your deck. You may take a Creature card from your deck, show it to your opponent and put it in your hand. Then shuffle your deck."
       ],
-      "image": "assets/images/cards/Base Set/Transmogrify.png"
+      "image": "assets/images/cards/base_set/Transmogrify.png"
     },
     {
       "number": "70",
@@ -1378,7 +1378,7 @@
       ],
       "toSolve": "Your opponent chooses 2 of his or her Creatures in play and discards them.",
       "reward": "Your opponent may draw a card.",
-      "image": "assets/images/cards/Base Set/Unusual_Pets.png"
+      "image": "assets/images/cards/base_set/Unusual_Pets.png"
     },
     {
       "number": "71",
@@ -1395,7 +1395,7 @@
       "effect": [
         "Play this card only if your opponent has any Lessons in play. Choose 1 of those Lessons and discard it. Search your deck. You may take a Creature card from your deck, show it to your opponent and put it in your hand. Then shuffle your deck."
       ],
-      "image": "assets/images/cards/Base Set/Vanishing_Glass.png"
+      "image": "assets/images/cards/base_set/Vanishing_Glass.png"
     },
     {
       "number": "72",
@@ -1412,7 +1412,7 @@
       "effect": [
         "Once during each of your turns, you may choose 1 of your opponent's Creatures in play. Prevent all damage done by that creature until the end of your opponent's next turn."
       ],
-      "image": "assets/images/cards/Base Set/Winged_Keys.png"
+      "image": "assets/images/cards/base_set/Winged_Keys.png"
     },
     {
       "number": "73",
@@ -1430,7 +1430,7 @@
       "effect": [
         "Put up to 2 Lesson cards from your discard pile into your hand."
       ],
-      "image": "assets/images/cards/Base Set/Accio.png"
+      "image": "assets/images/cards/base_set/Accio.png"
     },
     {
       "number": "74",
@@ -1447,7 +1447,7 @@
       "effect": [
         "Choose 1 of your opponent's Care of Magical Creatures Lessons in play and discard it."
       ],
-      "image": "assets/images/cards/Base Set/Avifors.png"
+      "image": "assets/images/cards/base_set/Avifors.png"
     },
     {
       "number": "75",
@@ -1464,7 +1464,7 @@
       "effect": [
         "Do 1 damage to your opponent or to a Creature of your choice. Then draw a card."
       ],
-      "image": "assets/images/cards/Base Set/Baubillious.png"
+      "image": "assets/images/cards/base_set/Baubillious.png"
     },
     {
       "number": "76",
@@ -1484,7 +1484,7 @@
       "flavorText": "'Brazil, here I come... Thanks, amigo.' - The Snake",
       "rarity": "Common",
       "artist": "Patrick Faricy",
-      "image": "assets/images/cards/Base Set/Boa_Constrictor.png"
+      "image": "assets/images/cards/base_set/Boa_Constrictor.png"
     },
     {
       "number": "77",
@@ -1505,7 +1505,7 @@
       "effect": [
         "Put up to 4 non-Healing cards from your discard pile on the bottom of your deck (in any order)."
       ],
-      "image": "assets/images/cards/Base Set/Boil_Cure.png"
+      "image": "assets/images/cards/base_set/Boil_Cure.png"
     },
     {
       "number": "78",
@@ -1531,7 +1531,7 @@
       "effect": [
         "If you play this card and you already have a Wand in play, discard the old one."
       ],
-      "image": "assets/images/cards/Base Set/Borrowed_Wand.png"
+      "image": "assets/images/cards/base_set/Borrowed_Wand.png"
     },
     {
       "number": "79",
@@ -1548,7 +1548,7 @@
       "effect": [
         "Choose 1 of your opponent's Potions Lessons in play and discard it."
       ],
-      "image": "assets/images/cards/Base Set/Cauldron_To_Sieve.png"
+      "image": "assets/images/cards/base_set/Cauldron_To_Sieve.png"
     },
     {
       "number": "80",
@@ -1567,7 +1567,7 @@
       "health": "1",
       "rarity": "Common",
       "artist": "Melissa Ferreira",
-      "image": "assets/images/cards/Base Set/Curious_Raven.png"
+      "image": "assets/images/cards/base_set/Curious_Raven.png"
     },
     {
       "number": "81",
@@ -1585,7 +1585,7 @@
       "effect": [
         "During your opponent's next turn, prevent all damage done to you by your opponent's Adventures and Creatures."
       ],
-      "image": "assets/images/cards/Base Set/Dungbomb.png"
+      "image": "assets/images/cards/base_set/Dungbomb.png"
     },
     {
       "number": "82",
@@ -1602,7 +1602,7 @@
       "effect": [
         "Choose 1 of your opponent's Charms Lessons in play and discard it."
       ],
-      "image": "assets/images/cards/Base Set/Epoximise.png"
+      "image": "assets/images/cards/base_set/Epoximise.png"
     },
     {
       "number": "83",
@@ -1619,7 +1619,7 @@
       "effect": [
         "Do 1 damage to your opponent or to a Creature of your choice."
       ],
-      "image": "assets/images/cards/Base Set/Erumpent_Potion.png"
+      "image": "assets/images/cards/base_set/Erumpent_Potion.png"
     },
     {
       "number": "84",
@@ -1637,7 +1637,7 @@
       "effect": [
         "Choose a Creature in play and return it to its owner's hand."
       ],
-      "image": "assets/images/cards/Base Set/Fluffy_Falls_Asleep.png"
+      "image": "assets/images/cards/base_set/Fluffy_Falls_Asleep.png"
     },
     {
       "number": "85",
@@ -1660,7 +1660,7 @@
       "effect": [
         "To play this card, discard 1 of your Care of Magical Creatures Lessons from play."
       ],
-      "image": "assets/images/cards/Base Set/Forest_Troll.png"
+      "image": "assets/images/cards/base_set/Forest_Troll.png"
     },
     {
       "number": "86",
@@ -1678,7 +1678,7 @@
       "effect": [
         "To play this card, discard 1 of your Potions Lessons from play. During your opponent's next turn, he or she can't play cards."
       ],
-      "image": "assets/images/cards/Base Set/Forgetfullness_Potion.png"
+      "image": "assets/images/cards/base_set/Forgetfullness_Potion.png"
     },
     {
       "number": "87",
@@ -1696,7 +1696,7 @@
       "effect": [
         "Do 2 damage to your opponent or to a Creature of your choice."
       ],
-      "image": "assets/images/cards/Base Set/Foul_Brew.png"
+      "image": "assets/images/cards/base_set/Foul_Brew.png"
     },
     {
       "number": "88",
@@ -1719,7 +1719,7 @@
       "effect": [
         "To play this card, discard 1 of your Care of Magical Creatures Lessons from play."
       ],
-      "image": "assets/images/cards/Base Set/Giant_Tarantula.png"
+      "image": "assets/images/cards/base_set/Giant_Tarantula.png"
     },
     {
       "number": "89",
@@ -1737,7 +1737,7 @@
       "effect": [
         "Put a Creature card from your discard pile into your hand."
       ],
-      "image": "assets/images/cards/Base Set/Hagrid_And_The_Stranger.png"
+      "image": "assets/images/cards/base_set/Hagrid_And_The_Stranger.png"
     },
     {
       "number": "90",
@@ -1755,7 +1755,7 @@
       "effect": [
         "Put up to 2 Lesson cards from your hand into play."
       ],
-      "image": "assets/images/cards/Base Set/Homework.png"
+      "image": "assets/images/cards/base_set/Homework.png"
     },
     {
       "number": "91",
@@ -1775,7 +1775,7 @@
       "effect": [
         "To play this card, discard 1 of your Potions Lessons from play. Shuffle up to 8 non-Healing cards from your discard pile into your deck."
       ],
-      "image": "assets/images/cards/Base Set/Hospital_Wing.png"
+      "image": "assets/images/cards/base_set/Hospital_Wing.png"
     },
     {
       "number": "92",
@@ -1792,7 +1792,7 @@
       "effect": [
         "Look at your opponent's hand. Choose 1 of those cards and discard it."
       ],
-      "image": "assets/images/cards/Base Set/Illegibilus.png"
+      "image": "assets/images/cards/base_set/Illegibilus.png"
     },
     {
       "number": "93",
@@ -1810,7 +1810,7 @@
       "effect": [
         "Choose 1 of your opponent's Creatures in play and discard it."
       ],
-      "image": "assets/images/cards/Base Set/Incarcifors.png"
+      "image": "assets/images/cards/base_set/Incarcifors.png"
     },
     {
       "number": "94",
@@ -1827,7 +1827,7 @@
       "effect": [
         "Choose 1 of your opponent's Items or Lessons in play and discard it."
       ],
-      "image": "assets/images/cards/Base Set/Lost_Notes.png"
+      "image": "assets/images/cards/base_set/Lost_Notes.png"
     },
     {
       "number": "95",
@@ -1845,7 +1845,7 @@
       "effect": [
         "Do 3 damage to your opponent."
       ],
-      "image": "assets/images/cards/Base Set/Magical_Mishap.png"
+      "image": "assets/images/cards/base_set/Magical_Mishap.png"
     },
     {
       "number": "96",
@@ -1863,7 +1863,7 @@
       "effect": [
         "To play this card, discard 1 of your Potions Lessons from play. Do 5 damage to your opponent or to a Creature of your choice."
       ],
-      "image": "assets/images/cards/Base Set/Noxious_Poison.png"
+      "image": "assets/images/cards/base_set/Noxious_Poison.png"
     },
     {
       "number": "97",
@@ -1881,7 +1881,7 @@
       "effect": [
         "Look at your opponent's hand. Discard all Creature cards from it."
       ],
-      "image": "assets/images/cards/Base Set/Out_Of_The_Woods.png"
+      "image": "assets/images/cards/base_set/Out_Of_The_Woods.png"
     },
     {
       "number": "98",
@@ -1904,7 +1904,7 @@
       "effect": [
         "To play this card, discard 1 of your Care of Magical Creatures Lessons from play."
       ],
-      "image": "assets/images/cards/Base Set/Pet_Rat.png"
+      "image": "assets/images/cards/base_set/Pet_Rat.png"
     },
     {
       "number": "99",
@@ -1930,7 +1930,7 @@
       "effect": [
         "To play this card, discard 1 of your Potions Lessons from play."
       ],
-      "image": "assets/images/cards/Base Set/Pewter_Cauldron.png"
+      "image": "assets/images/cards/base_set/Pewter_Cauldron.png"
     },
     {
       "number": "100",
@@ -1948,7 +1948,7 @@
       "effect": [
         "To play this card, discard 3 of your Potions Lessons from play. Choose 1 of your opponent's Creatures or Items in play and discard it."
       ],
-      "image": "assets/images/cards/Base Set/Potions_Mistake.png"
+      "image": "assets/images/cards/base_set/Potions_Mistake.png"
     },
     {
       "number": "101",
@@ -1965,7 +1965,7 @@
       "effect": [
         "During your turn, you may use an Action to put a Lesson card from your discard pile into play."
       ],
-      "image": "assets/images/cards/Base Set/Remembrall.png"
+      "image": "assets/images/cards/base_set/Remembrall.png"
     },
     {
       "number": "102",
@@ -1983,7 +1983,7 @@
       "effect": [
         "Choose 1 of your opponent's Transfiguration Lessons in play and discard it."
       ],
-      "image": "assets/images/cards/Base Set/Restricted_Section.png"
+      "image": "assets/images/cards/base_set/Restricted_Section.png"
     },
     {
       "number": "103",
@@ -2003,7 +2003,7 @@
       "flavorText": "'... the path became almost impossible to follow because the trees were so thick.'",
       "rarity": "Common",
       "artist": "Doug Chaffee",
-      "image": "assets/images/cards/Base Set/Scottish_Stag.png"
+      "image": "assets/images/cards/base_set/Scottish_Stag.png"
     },
     {
       "number": "104",
@@ -2021,7 +2021,7 @@
       "effect": [
         "Do 4 damage to your opponent. Your opponent may prevent this damage by showing you a Potions Lesson from his or her hand."
       ],
-      "image": "assets/images/cards/Base Set/Snapes_Question.png"
+      "image": "assets/images/cards/base_set/Snapes_Question.png"
     },
     {
       "number": "105",
@@ -2038,7 +2038,7 @@
       "effect": [
         "Choose 1 of your opponent's Items in play and discard it."
       ],
-      "image": "assets/images/cards/Base Set/Squiggle_Quill.png"
+      "image": "assets/images/cards/base_set/Squiggle_Quill.png"
     },
     {
       "number": "106",
@@ -2055,7 +2055,7 @@
       "effect": [
         "All your creatures do damage to your opponent."
       ],
-      "image": "assets/images/cards/Base Set/Steelclaw.png"
+      "image": "assets/images/cards/base_set/Steelclaw.png"
     },
     {
       "number": "107",
@@ -2075,7 +2075,7 @@
       "flavorText": "'When Harry knocked they heard a frantic scrabbling from inside and several booming barks.'",
       "rarity": "Common",
       "artist": "Scott Lewis",
-      "image": "assets/images/cards/Base Set/Surly_Hound.png"
+      "image": "assets/images/cards/base_set/Surly_Hound.png"
     },
     {
       "number": "108",
@@ -2092,7 +2092,7 @@
       "effect": [
         "Do 2 damage to your opponent. You may also choose a Creature and do 2 damage to it."
       ],
-      "image": "assets/images/cards/Base Set/Toe_Biter.png"
+      "image": "assets/images/cards/base_set/Toe_Biter.png"
     },
     {
       "number": "109",
@@ -2109,7 +2109,7 @@
       "effect": [
         "Do 3 damage to your opponent or to a Creature of your choice."
       ],
-      "image": "assets/images/cards/Base Set/Vermillious.png"
+      "image": "assets/images/cards/base_set/Vermillious.png"
     },
     {
       "number": "110",
@@ -2128,7 +2128,7 @@
       "health": "3",
       "rarity": "Common",
       "artist": "Patrick Faricy",
-      "image": "assets/images/cards/Base Set/Vicious_Wolf.png"
+      "image": "assets/images/cards/base_set/Vicious_Wolf.png"
     },
     {
       "number": "111",
@@ -2146,7 +2146,7 @@
       "effect": [
         "During your opponent's next turn, prevent all damage done to you by your opponent's Creatures."
       ],
-      "image": "assets/images/cards/Base Set/Wingardium_Leviosa.png"
+      "image": "assets/images/cards/base_set/Wingardium_Leviosa.png"
     },
     {
       "number": "112",
@@ -2164,7 +2164,7 @@
       "effect": [
         "Reveal the top card of your deck. If it's a Lesson card, put it into play. If it isn't, put the card in your hand."
       ],
-      "image": "assets/images/cards/Base Set/Wizard_Crackers.png"
+      "image": "assets/images/cards/base_set/Wizard_Crackers.png"
     },
     {
       "number": "113",
@@ -2186,7 +2186,7 @@
         "Shanth Enjeti",
         "Melissa Ferreira"
       ],
-      "image": "assets/images/cards/Base Set/Care_Of_Magical_Creatures.png"
+      "image": "assets/images/cards/base_set/Care_Of_Magical_Creatures.png"
     },
     {
       "number": "114",
@@ -2208,7 +2208,7 @@
         "Shanth Enjeti",
         "Melissa Ferreira"
       ],
-      "image": "assets/images/cards/Base Set/Charms.png"
+      "image": "assets/images/cards/base_set/Charms.png"
     },
     {
       "number": "115",
@@ -2230,7 +2230,7 @@
         "Shanth Enjeti",
         "Melissa Ferreira"
       ],
-      "image": "assets/images/cards/Base Set/Potions.png"
+      "image": "assets/images/cards/base_set/Potions.png"
     },
     {
       "number": "116",
@@ -2252,7 +2252,7 @@
         "Shanth Enjeti",
         "Melissa Ferreira"
       ],
-      "image": "assets/images/cards/Base Set/Transfiguration.png"
+      "image": "assets/images/cards/base_set/Transfiguration.png"
     }
   ]
 }

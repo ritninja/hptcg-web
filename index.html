@@ -18,7 +18,7 @@
       <div class="main-menu-buttons">
         <button id="btn-menu-play" class="menu-btn">Play Game</button>
         <button id="btn-menu-builder" class="menu-btn">Deck Builder</button>
-        <button id="btn-menu-debug" class="menu-btn disabled" disabled>Debug Mode (Coming Soon)</button>
+        <button id="btn-menu-debug" class="menu-btn">Debug Mode</button>
       </div>
     </div>
   </div>
@@ -38,6 +38,7 @@
           <select id="deck-builder-select" class="deck-select-dropdown" style="flex-grow: 1; min-width: 0;"></select>
           <button id="btn-new-deck" class="btn btn-small" style="padding: 6px 12px; font-size: 0.85rem;">New</button>
           <button id="btn-delete-deck" class="btn btn-danger btn-small" style="padding: 6px 12px; font-size: 0.85rem;">Delete</button>
+          <button id="btn-clear-deck" class="btn btn-danger btn-small" style="padding: 6px 12px; font-size: 0.85rem; background: rgba(139, 0, 0, 0.7) !important; border-color: #8b0000 !important;">Empty</button>
         </div>
         <div class="deck-name-row" style="margin-top: 12px;">
           <label for="deck-name-input" style="font-size: 0.85rem; color: var(--text-secondary);">Deck Name:</label>
@@ -85,6 +86,17 @@
             <button class="btn btn-secondary filter-btn" data-filter="Item" style="padding: 6px 12px; font-size: 0.85rem;">Items</button>
             <button class="btn btn-secondary filter-btn" data-filter="Adventure" style="padding: 6px 12px; font-size: 0.85rem;">Adventures</button>
           </div>
+          <div class="filter-row" style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; align-items: center;">
+            <span style="font-size: 0.82rem; color: var(--text-secondary);">Lesson Type:</span>
+            <select id="card-catalog-lesson-filter" class="deck-input" style="padding: 4px 10px; font-size: 0.82rem; background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px; outline: none; cursor: pointer; height: 32px; width: 160px;">
+              <option value="All">All Types</option>
+              <option value="Charms">Charms</option>
+              <option value="Potions">Potions</option>
+              <option value="Transfiguration">Transfiguration</option>
+              <option value="Care of Magical Creatures">Care of Magical Creatures</option>
+              <option value="Quidditch">Quidditch</option>
+            </select>
+          </div>
         </div>
         <div class="card-catalog-grid" id="card-catalog-grid" style="flex-grow: 1; overflow-y: auto; margin-top: 12px; padding: 4px;">
           <!-- Populated dynamically with all cards in the Base Set -->
@@ -95,9 +107,24 @@
       <div class="deck-builder-pane pane-deck">
         <div class="deck-builder-panel filter-panel">
           <h3 class="panel-subtitle">Cards in Deck</h3>
-          <div class="deck-filter-placeholder" style="height: 38px; display: flex; align-items: center; justify-content: space-between; font-size: 0.9rem; color: var(--text-secondary); margin-top: 8px;">
-            <span>Visual Deck Grid</span>
-            <span style="font-size: 0.8rem; color: var(--text-muted);">Adjust quantities directly</span>
+          <div class="deck-filter-row" style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; align-items: center; width: 100%;">
+            <select id="deck-card-type-filter" class="deck-input" style="padding: 4px 10px; font-size: 0.82rem; background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px; outline: none; cursor: pointer; flex: 1; height: 32px;">
+              <option value="All">All Card Types</option>
+              <option value="Lesson">Lessons</option>
+              <option value="Character">Characters</option>
+              <option value="Creature">Creatures</option>
+              <option value="Spell">Spells</option>
+              <option value="Item">Items</option>
+              <option value="Adventure">Adventures</option>
+            </select>
+            <select id="deck-lesson-type-filter" class="deck-input" style="padding: 4px 10px; font-size: 0.82rem; background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px; outline: none; cursor: pointer; flex: 1; height: 32px;">
+              <option value="All">All Lesson Types</option>
+              <option value="Charms">Charms</option>
+              <option value="Potions">Potions</option>
+              <option value="Transfiguration">Transfiguration</option>
+              <option value="Care of Magical Creatures">Care of Magical Creatures</option>
+              <option value="Quidditch">Quidditch</option>
+            </select>
           </div>
         </div>
         <div class="card-catalog-grid" id="deck-builder-cards-grid" style="flex-grow: 1; overflow-y: auto; margin-top: 12px; padding: 4px;">
@@ -140,7 +167,7 @@
 
 
       <!-- Card Rulings Errata -->
-      <section class="panel-section" id="rulings-panel" style="display: flex; flex-direction: column; max-height: 180px;">
+      <section class="panel-section" id="rulings-panel" style="display: none; flex-direction: column; max-height: 180px;">
         <h2 class="panel-title">Card Rulings</h2>
         <div id="rulings-content" style="font-size: 0.72rem; color: var(--text-muted); line-height: 1.45; overflow-y: auto; flex-grow: 1;">
           Hover over a card to view official rulings.
@@ -153,6 +180,20 @@
         <ul id="log-list" style="flex-grow: 1;">
           <!-- Appended via JavaScript -->
         </ul>
+      </section>
+
+      <!-- Debug Menu -->
+      <section class="panel-section" id="debug-menu-panel" style="display: none; flex-direction: column; gap: 8px;">
+        <h2 class="panel-title">Debug Menu</h2>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <button id="btn-debug-creature-damage" class="btn btn-secondary" style="width: 100%;">Deal Creature Damage</button>
+          <button id="btn-debug-deal-10-damage" class="btn btn-secondary" style="width: 100%;">Deal 10 Damage to Self</button>
+          <button id="btn-debug-enable-actions" class="btn btn-secondary" style="width: 100%;">Enable 99 Actions</button>
+          <button id="btn-debug-disable-actions" class="btn btn-secondary" style="width: 100%;">Disable 99 Actions</button>
+          <button id="btn-debug-shuffle-deck" class="btn btn-secondary" style="width: 100%;">Shuffle Your Deck</button>
+          <button id="btn-debug-enable-lessons" class="btn btn-secondary" style="width: 100%;">Enable 10 Lessons Each</button>
+          <button id="btn-debug-disable-lessons" class="btn btn-secondary" style="width: 100%;">Disable Lessons</button>
+        </div>
       </section>
     </aside>
 
@@ -167,7 +208,7 @@
         <div class="playmat-left">
           <div class="deck-discard-row">
             <div class="mat-deck-slot">
-              <div class="mat-deck-placeholder">
+              <div class="mat-deck-placeholder" id="opponent-deck-pile" style="cursor: pointer;">
                 <span class="pile-title">Deck</span>
                 <span class="pile-count" id="opponent-deck-count">33</span>
               </div>
@@ -189,13 +230,18 @@
           <div class="zone-label">Lessons</div>
         </div>
 
-        <!-- Column 3: Creatures and Items -->
+        <!-- Column 3: Creatures -->
+        <div class="playmat-creatures zone-container" id="opponent-creatures-zone">
+          <div class="zone-label">Creatures</div>
+        </div>
+
+        <!-- Column 4: Items (top) and Adventure (bottom) -->
         <div class="playmat-right">
-          <div class="creatures-zone zone-container" id="opponent-creatures-zone">
-            <div class="zone-label">Creatures</div>
+          <div class="items-zone zone-container" id="opponent-items-zone">
+            <div class="zone-label">Items</div>
           </div>
-          <div class="permanents-zone zone-container" id="opponent-permanents-zone">
-            <div class="zone-label">Items & Adventures</div>
+          <div class="adventures-zone zone-container" id="opponent-adventures-zone">
+            <div class="zone-label">Adventure</div>
           </div>
         </div>
       </section>
@@ -206,7 +252,7 @@
         <div class="playmat-left">
           <div class="deck-discard-row">
             <div class="mat-deck-slot">
-              <div class="mat-deck-placeholder">
+              <div class="mat-deck-placeholder" id="player-deck-pile" style="cursor: pointer;">
                 <span class="pile-title">Deck</span>
                 <span class="pile-count" id="player-deck-count">33</span>
               </div>
@@ -228,13 +274,18 @@
           <div class="zone-label">Lessons</div>
         </div>
 
-        <!-- Column 3: Creatures and Items -->
+        <!-- Column 3: Creatures -->
+        <div class="playmat-creatures zone-container" id="player-creatures-zone">
+          <div class="zone-label">Creatures</div>
+        </div>
+
+        <!-- Column 4: Items (top) and Adventure (bottom) -->
         <div class="playmat-right">
-          <div class="creatures-zone zone-container" id="player-creatures-zone">
-            <div class="zone-label">Creatures</div>
+          <div class="items-zone zone-container" id="player-items-zone">
+            <div class="zone-label">Items</div>
           </div>
-          <div class="permanents-zone zone-container" id="player-permanents-zone">
-            <div class="zone-label">Items & Adventures</div>
+          <div class="adventures-zone zone-container" id="player-adventures-zone">
+            <div class="zone-label">Adventure</div>
           </div>
         </div>
       </section>
@@ -258,6 +309,54 @@
     </div>
   </dialog>
 
+  <!-- Modal Dialog for Play Error / Cannot Play Card -->
+  <dialog id="play-error-modal" closedby="any" aria-label="Cannot Play Card">
+    <div class="modal-content" style="max-width: 450px; text-align: center; border-color: #ff4d4d; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8), 0 0 30px rgba(255, 77, 77, 0.2);">
+      <button class="modal-close-btn" id="play-error-close-btn" aria-label="Close modal" style="color: #ff4d4d; border-color: rgba(255, 77, 77, 0.3);">&times;</button>
+      <h2 style="color: #ff4d4d; text-shadow: 0 0 10px rgba(255, 77, 77, 0.4); margin-bottom: 16px;">Cannot Play Card</h2>
+      <div id="play-error-message" style="font-size: 1.1rem; color: var(--text-primary); line-height: 1.5; margin-bottom: 24px;">
+        <!-- Error message will be injected here -->
+      </div>
+      <button class="btn btn-secondary" id="play-error-ok-btn" style="width: 120px; border-color: #ff4d4d; color: #ff4d4d;">OK</button>
+    </div>
+  </dialog>
+
+  <!-- Modal Dialog for Action Error / Illegal Action -->
+  <dialog id="action-error-modal" closedby="any" aria-label="Illegal Action">
+    <div class="modal-content" style="max-width: 450px; text-align: center; border-color: #ff9900; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8), 0 0 30px rgba(255, 153, 0, 0.2);">
+      <button class="modal-close-btn" id="action-error-close-btn" aria-label="Close modal" style="color: #ff9900; border-color: rgba(255, 153, 0, 0.3);">&times;</button>
+      <h2 style="color: #ff9900; text-shadow: 0 0 10px rgba(255, 153, 0, 0.4); margin-bottom: 16px; font-family: var(--font-display);">Illegal Action</h2>
+      <div id="action-error-message" style="font-size: 1.1rem; color: var(--text-primary); line-height: 1.5; margin-bottom: 24px;">
+        <!-- Error message will be injected here -->
+      </div>
+      <button class="btn btn-secondary" id="action-error-ok-btn" style="width: 120px; border-color: #ff9900; color: #ff9900;">OK</button>
+    </div>
+  </dialog>
+
+  <!-- Modal Dialog for Adventure Solved -->
+  <dialog id="adventure-solved-modal" closedby="any" aria-label="Adventure Solved">
+    <div class="modal-content" style="max-width: 450px; text-align: center; border-color: var(--accent-gold); box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8), 0 0 30px var(--accent-gold-glow);">
+      <button class="modal-close-btn" id="adventure-solved-close-btn" aria-label="Close modal" style="color: var(--accent-gold); border-color: var(--accent-gold-glow);">&times;</button>
+      <h2 id="adventure-solved-title" style="color: var(--accent-gold); text-shadow: 0 0 10px var(--accent-gold-glow); margin-bottom: 12px; font-size: 1.8rem; text-align: center; font-family: var(--font-display);">Adventure Solved!</h2>
+      <div id="adventure-solved-subtitle" style="font-size: 1rem; color: var(--text-secondary); margin-bottom: 16px; text-align: center;">
+        You solved:
+      </div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 16px; margin-bottom: 24px; width: 100%;">
+        <img id="adventure-solved-image" src="" alt="Adventure Card" style="height: 180px; border-radius: 8px; border: 1.5px solid var(--accent-gold); box-shadow: 0 0 15px var(--accent-gold-glow); object-fit: contain;" />
+        <div id="adventure-solved-name" style="font-size: 1.3rem; font-weight: bold; color: var(--text-primary); font-family: var(--font-display); text-align: center;">
+          Adventure Name
+        </div>
+        <div style="border-top: 1px dashed var(--border-color); width: 100%; padding-top: 12px;">
+          <div style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; text-align: center;">Reward Received</div>
+          <div id="adventure-solved-reward" style="font-size: 1.1rem; color: var(--accent-gold); font-weight: bold; line-height: 1.4; text-align: center;">
+            Reward Description
+          </div>
+        </div>
+      </div>
+      <button class="btn" id="adventure-solved-ok-btn" style="width: 120px;">Awesome</button>
+    </div>
+  </dialog>
+
   <!-- Modal Dialog for Spell Cast Announcement -->
   <dialog id="spell-cast-modal" aria-label="Spell Played">
     <div class="spell-cast-content">
@@ -273,6 +372,17 @@
       <button class="modal-close-btn" id="discard-viewer-close-btn" aria-label="Close modal">&times;</button>
       <h2 id="discard-viewer-title">Discard Pile</h2>
       <div id="discard-viewer-grid">
+        <!-- Cards rendered dynamically as a grid -->
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Modal Dialog for Deck Viewer -->
+  <dialog id="deck-viewer-modal" closedby="any" aria-label="Deck Viewer">
+    <div class="modal-content discard-viewer-content">
+      <button class="modal-close-btn" id="deck-viewer-close-btn" aria-label="Close modal">&times;</button>
+      <h2 id="deck-viewer-title">Deck Cards</h2>
+      <div id="deck-viewer-grid">
         <!-- Cards rendered dynamically as a grid -->
       </div>
     </div>

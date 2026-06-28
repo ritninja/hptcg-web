@@ -101,7 +101,7 @@ const PRESET_DECKS = {
 async function bootstrap() {
   try {
     // 1. Fetch JSON databases
-    const cardsResponse = await fetch('./data/cards.json');
+    const cardsResponse = await fetch('./data/base_set/cards.json');
     const cardsDbRaw = await cardsResponse.json();
 
     const rulesResponse = await fetch('./data/rules.json');
@@ -121,6 +121,8 @@ async function bootstrap() {
       ui.render();
     });
 
+
+
     // 6. Setup the Deck Builder and Screen Management
     const deckBuilder = new DeckBuilder(cardsDb, () => {
       showScreen('menu');
@@ -137,6 +139,10 @@ async function bootstrap() {
         deckBuilder.show();
       } else if (screenId === 'game') {
         document.getElementById('game-container').classList.remove('hidden');
+        const debugPanel = document.getElementById('debug-menu-panel');
+        if (debugPanel) {
+          debugPanel.style.display = isDebugMatch ? 'flex' : 'none';
+        }
         ui.render();
       }
     };
@@ -197,10 +203,26 @@ async function bootstrap() {
     playerDeckSelect.addEventListener('change', updatePreviews);
     opponentDeckSelect.addEventListener('change', updatePreviews);
 
+    let isDebugMatch = false;
+
     btnMenuPlay.addEventListener('click', () => {
+      isDebugMatch = false;
+      const titleEl = document.getElementById('deck-selection-title');
+      if (titleEl) titleEl.innerText = "Choose Your Deck";
       populateMatchDecks();
       deckSelectionModal.showModal();
     });
+
+    const btnMenuDebug = document.getElementById('btn-menu-debug');
+    if (btnMenuDebug) {
+      btnMenuDebug.addEventListener('click', () => {
+        isDebugMatch = true;
+        const titleEl = document.getElementById('deck-selection-title');
+        if (titleEl) titleEl.innerText = "Choose Decks (Debug Mode)";
+        populateMatchDecks();
+        deckSelectionModal.showModal();
+      });
+    }
 
     btnMenuBuilder.addEventListener('click', () => {
       showScreen('builder');
@@ -216,18 +238,21 @@ async function bootstrap() {
         return;
       }
 
-      // Check player deck validity
-      const pValidity = validateDeck(pDeck, cardsDb);
-      if (!pValidity.isValid) {
-        alert(`Cannot play game: your deck "${pDeck.name}" is invalid!\n\nErrors:\n- ${pValidity.errors.join('\n- ')}`);
-        return;
-      }
+      // Check deck validity only if NOT in Debug Mode
+      if (!isDebugMatch) {
+        // Check player deck validity
+        const pValidity = validateDeck(pDeck, cardsDb);
+        if (!pValidity.isValid) {
+          alert(`Cannot play game: your deck "${pDeck.name}" is invalid!\n\nErrors:\n- ${pValidity.errors.join('\n- ')}`);
+          return;
+        }
 
-      // Check opponent deck validity
-      const oValidity = validateDeck(oDeck, cardsDb);
-      if (!oValidity.isValid) {
-        alert(`Cannot play game: rival's deck "${oDeck.name}" is invalid!\n\nErrors:\n- ${oValidity.errors.join('\n- ')}`);
-        return;
+        // Check opponent deck validity
+        const oValidity = validateDeck(oDeck, cardsDb);
+        if (!oValidity.isValid) {
+          alert(`Cannot play game: rival's deck "${oDeck.name}" is invalid!\n\nErrors:\n- ${oValidity.errors.join('\n- ')}`);
+          return;
+        }
       }
 
       // Set up the match
@@ -235,8 +260,12 @@ async function bootstrap() {
         pDeck.cardIds,
         oDeck.cardIds,
         pDeck.characterId,
-        oDeck.characterId
+        oDeck.characterId,
+        isDebugMatch
       );
+
+      ui.lastTurnNumber = null;
+      ui.lastActivePlayerId = null;
 
       deckSelectionModal.close();
       showScreen('game');
@@ -254,8 +283,62 @@ async function bootstrap() {
     const btnReset = document.getElementById('btn-reset');
     if (btnReset) {
       btnReset.addEventListener('click', () => {
+        const titleEl = document.getElementById('deck-selection-title');
+        if (titleEl) {
+          titleEl.innerText = isDebugMatch ? "Choose Decks (Debug Mode)" : "Choose Your Deck";
+        }
         populateMatchDecks();
         deckSelectionModal.showModal();
+      });
+    }
+
+    // Debug Menu buttons
+    const btnDebugCreatureDmg = document.getElementById('btn-debug-creature-damage');
+    if (btnDebugCreatureDmg) {
+      btnDebugCreatureDmg.addEventListener('click', () => {
+        engine.debugDealCreatureDamage();
+      });
+    }
+
+    const btnDebugDealTenDmg = document.getElementById('btn-debug-deal-10-damage');
+    if (btnDebugDealTenDmg) {
+      btnDebugDealTenDmg.addEventListener('click', () => {
+        engine.applyDeckDamage('player', 10);
+      });
+    }
+
+    const btnDebugEnableActions = document.getElementById('btn-debug-enable-actions');
+    if (btnDebugEnableActions) {
+      btnDebugEnableActions.addEventListener('click', () => {
+        engine.enableUnlimitedActions();
+      });
+    }
+
+    const btnDebugDisableActions = document.getElementById('btn-debug-disable-actions');
+    if (btnDebugDisableActions) {
+      btnDebugDisableActions.addEventListener('click', () => {
+        engine.disableUnlimitedActions();
+      });
+    }
+
+    const btnDebugShuffleDeck = document.getElementById('btn-debug-shuffle-deck');
+    if (btnDebugShuffleDeck) {
+      btnDebugShuffleDeck.addEventListener('click', () => {
+        engine.debugShuffleDeck();
+      });
+    }
+
+    const btnDebugEnableLessons = document.getElementById('btn-debug-enable-lessons');
+    if (btnDebugEnableLessons) {
+      btnDebugEnableLessons.addEventListener('click', () => {
+        engine.debugEnableLessons();
+      });
+    }
+
+    const btnDebugDisableLessons = document.getElementById('btn-debug-disable-lessons');
+    if (btnDebugDisableLessons) {
+      btnDebugDisableLessons.addEventListener('click', () => {
+        engine.debugDisableLessons();
       });
     }
 
@@ -307,13 +390,22 @@ function normalizeCards(rawCards) {
       };
     }
 
+    if (card.provides && card.provides.length > 0) {
+      normalized.provides = {
+        type: card.provides[0].lesson,
+        amount: parseInt(card.provides[0].amount || '1', 10)
+      };
+    }
+
     if (primaryType === 'Lesson') {
       const lessonType = card.lesson ? card.lesson[0] : '';
       normalized.lessonType = lessonType;
-      normalized.provides = {
-        type: card.provides?.[0]?.lesson || lessonType,
-        amount: parseInt(card.provides?.[0]?.amount || '1', 10)
-      };
+      if (!normalized.provides) {
+        normalized.provides = {
+          type: lessonType,
+          amount: 1
+        };
+      }
     } else if (primaryType !== 'Character') {
       if (card.cost !== undefined) {
         normalized.lessonCost = {

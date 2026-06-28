@@ -64,7 +64,7 @@ function normalizeCards(rawCards) {
 }
 
 // 1. Setup Mock Card Database and Game Rules
-const cardsDataRaw = JSON.parse(fs.readFileSync('./data/cards.json', 'utf8'));
+const cardsDataRaw = JSON.parse(fs.readFileSync('./data/base_set/cards.json', 'utf8'));
 const cardsDb = normalizeCards(cardsDataRaw.cards);
 
 const rulesConfig = {

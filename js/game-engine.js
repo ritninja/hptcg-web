@@ -9,16 +9,23 @@ export class PlayerState {
     this.name = name;
     this.startingCharacter = startingCharacter;
     
+    this._deck = [];
+    this._hand = [];
+    this._discardPile = [];
+    this._creatures = [];
+    this._characters = [];
+    
+    // Set initial values using the setters to apply the wrappers
     this.deck = [];
     this.hand = [];
     this.discardPile = [];
+    this.creatures = [];
+    this.characters = startingCharacter ? [startingCharacter] : [];
     
     // Zones in play
     this.lessons = [];
-    this.creatures = [];
     this.items = [];
     this.adventures = [];
-    this.characters = startingCharacter ? [startingCharacter] : [];
 
     // Next-turn status flags for spell effects
     this.preventAllDamageNextTurn = false;
@@ -37,6 +44,102 @@ export class PlayerState {
     this.revealHandRestOfGame = false;
     this.preventSpellDamageOnceThisTurn = false;
     this.wingedKeysTargetInstanceId = null;
+    this.inDrawingInstance = false;
+    this.tookPeevesDamageThisInstance = false;
+  }
+
+  get deck() { return this._deck; }
+  set deck(val) {
+    this._deck = val;
+    this.resetDamageOnPushOrUnshift(val);
+  }
+
+  get hand() { return this._hand; }
+  set hand(val) {
+    this._hand = val;
+    this.resetDamageOnPushOrUnshift(val);
+  }
+
+  get discardPile() { return this._discardPile; }
+  set discardPile(val) {
+    this._discardPile = val;
+    this.resetDamageOnPushOrUnshift(val);
+  }
+
+  get creatures() { return this._creatures; }
+  set creatures(val) {
+    this._creatures = val;
+    this.resetDamageOnPushOrUnshift(val);
+  }
+
+  get characters() { return this._characters; }
+  set characters(val) {
+    if (val && this.startingCharacter) {
+      const hasStarting = val.some(c => c.instanceId === this.startingCharacter.instanceId);
+      if (!hasStarting) {
+        val.unshift(this.startingCharacter);
+      }
+    }
+    this._characters = val;
+    this.preventStartingCharacterRemoval(val);
+  }
+
+  preventStartingCharacterRemoval(arr) {
+    if (!arr) return;
+    const originalSplice = arr.splice;
+    arr.splice = function(start, deleteCount, ...items) {
+      const itemsToDelete = arr.slice(start, start + (deleteCount !== undefined ? deleteCount : arr.length));
+      const containsStartingChar = itemsToDelete.some(c => 
+        c && (c.instanceId === 'player-starting-char' || c.instanceId === 'opponent-starting-char')
+      );
+      if (containsStartingChar) {
+        console.warn("Rules Enforcement: Attempted to remove starting character from play. Blocked!");
+        return [];
+      }
+      return originalSplice.apply(this, [start, deleteCount, ...items]);
+    };
+    
+    const originalPop = arr.pop;
+    arr.pop = function() {
+      const last = arr[arr.length - 1];
+      if (last && (last.instanceId === 'player-starting-char' || last.instanceId === 'opponent-starting-char')) {
+        console.warn("Rules Enforcement: Attempted to pop starting character from play. Blocked!");
+        return undefined;
+      }
+      return originalPop.apply(this);
+    };
+    
+    const originalShift = arr.shift;
+    arr.shift = function() {
+      const first = arr[0];
+      if (first && (first.instanceId === 'player-starting-char' || first.instanceId === 'opponent-starting-char')) {
+        console.warn("Rules Enforcement: Attempted to shift starting character from play. Blocked!");
+        return undefined;
+      }
+      return originalShift.apply(this);
+    };
+  }
+
+  resetDamageOnPushOrUnshift(arr) {
+    if (!arr) return;
+    const originalPush = arr.push;
+    arr.push = function(...items) {
+      items.forEach(item => {
+        if (item && typeof item === 'object') {
+          delete item.damage;
+        }
+      });
+      return originalPush.apply(this, items);
+    };
+    const originalUnshift = arr.unshift;
+    arr.unshift = function(...items) {
+      items.forEach(item => {
+        if (item && typeof item === 'object') {
+          delete item.damage;
+        }
+      });
+      return originalUnshift.apply(this, items);
+    };
   }
 
   clearNextTurnFlags() {
@@ -52,7 +155,14 @@ export class PlayerState {
     const counts = {};
     let total = 0;
     
-    this.lessons.forEach(card => {
+    const allInPlay = [
+      ...this.lessons,
+      ...this.characters,
+      ...this.items,
+      ...this.adventures
+    ];
+    
+    allInPlay.forEach(card => {
       const type = card.provides?.type;
       const amount = card.provides?.amount || 1;
       if (type) {
@@ -96,6 +206,11 @@ export class GameEngine {
     this.logs = [];
     this.onStateChangeCallback = null;
     this.onSpellPlayedCallback = null;
+    this.onShuffleCallback = null;
+    this.onDamageTakenCallback = null;
+    this.onPlayErrorCallback = null;
+    this.onAdventureSolvedCallback = null;
+    this.onActionErrorCallback = null;
     this.gameOver = false;
     this.winnerMessage = null;
     this.pendingSpell = null;
@@ -109,6 +224,31 @@ export class GameEngine {
   // Subscribe UI to spell play events
   onSpellPlayed(callback) {
     this.onSpellPlayedCallback = callback;
+  }
+
+  // Subscribe UI to shuffle events
+  onShuffle(callback) {
+    this.onShuffleCallback = callback;
+  }
+
+  // Subscribe UI to damage taken events
+  onDamageTaken(callback) {
+    this.onDamageTakenCallback = callback;
+  }
+
+  // Subscribe UI to play error events
+  onPlayError(callback) {
+    this.onPlayErrorCallback = callback;
+  }
+
+  // Subscribe UI to adventure solved events
+  onAdventureSolved(callback) {
+    this.onAdventureSolvedCallback = callback;
+  }
+
+  // Subscribe UI to illegal action error events
+  onActionError(callback) {
+    this.onActionErrorCallback = callback;
   }
 
   notifyStateChange() {
@@ -126,8 +266,24 @@ export class GameEngine {
     this.notifyStateChange();
   }
 
+  logPlayError(playerId, message) {
+    this.log(message, 'error');
+    if (this.onPlayErrorCallback) {
+      this.onPlayErrorCallback(message, playerId);
+    }
+  }
+
+  logActionError(playerId, message) {
+    this.log(message, 'error');
+    if (this.onActionErrorCallback) {
+      this.onActionErrorCallback(message, playerId);
+    }
+  }
+
   // Setup game with chosen decks
-  setupGame(playerDeckIds, opponentDeckIds, playerCharId, opponentCharId) {
+  setupGame(playerDeckIds, opponentDeckIds, playerCharId, opponentCharId, isDebugMode = false) {
+    this.isDebugMode = isDebugMode;
+    this.debugUnlimitedActions = isDebugMode;
     const pCharRaw = this.cardDatabase.find(c => c.id === playerCharId);
     const oCharRaw = this.cardDatabase.find(c => c.id === opponentCharId);
     const pChar = pCharRaw ? { ...pCharRaw, instanceId: 'player-starting-char' } : null;
@@ -153,17 +309,58 @@ export class GameEngine {
     this.shuffle(this.players.player.deck);
     this.shuffle(this.players.opponent.deck);
 
-    // Starting Hand Size logic (Harry Potter increases hand size by 1)
-    const pHandModifier = pChar?.effects?.handSizeModifier || 0;
-    const oHandModifier = oChar?.effects?.handSizeModifier || 0;
-    const pStartHand = this.rules.setup.startingHandSize + pHandModifier;
-    const oStartHand = this.rules.setup.startingHandSize + oHandModifier;
+    if (this.isDebugMode) {
+      // 1. Spawning lessons in play for player and opponent (10 of each type each)
+      const lessonTypesToSpawn = ['Care of Magical Creatures', 'Potions', 'Transfiguration', 'Charms'];
+      lessonTypesToSpawn.forEach(lType => {
+        const proto = this.cardDatabase.find(c => c.type === 'Lesson' && c.lessonType === lType);
+        if (proto) {
+          for (let i = 0; i < 10; i++) {
+            this.players.player.lessons.push({
+              ...proto,
+              instanceId: `debug-lesson-${lType.replace(/\s+/g, '-')}-${i}`
+            });
+            this.players.opponent.lessons.push({
+              ...proto,
+              instanceId: `debug-lesson-opponent-${lType.replace(/\s+/g, '-')}-${i}`
+            });
+          }
+        }
+      });
 
-    // Draw hands
-    for (let i = 0; i < pStartHand; i++) this.drawCard('player', false);
-    for (let i = 0; i < oStartHand; i++) this.drawCard('opponent', false);
+      // 2. Put all non-lesson cards in player's deck into player's hand, leaving only lessons in deck
+      const pNonLessons = this.players.player.deck.filter(c => c.type !== 'Lesson');
+      const pLessonsOnly = this.players.player.deck.filter(c => c.type === 'Lesson');
+
+      this.players.player.hand = pNonLessons;
+      this.players.player.deck = pLessonsOnly;
+
+      // 3. Put all non-lesson cards in opponent's deck into opponent's hand, leaving only lessons in deck
+      const oNonLessons = this.players.opponent.deck.filter(c => c.type !== 'Lesson');
+      const oLessonsOnly = this.players.opponent.deck.filter(c => c.type === 'Lesson');
+
+      this.players.opponent.hand = oNonLessons;
+      this.players.opponent.deck = oLessonsOnly;
+
+    } else {
+      // Normal game setup
+      const pHandModifier = pChar?.effects?.handSizeModifier || 0;
+      const oHandModifier = oChar?.effects?.handSizeModifier || 0;
+      const pStartHand = this.rules.setup.startingHandSize + pHandModifier;
+      const oStartHand = this.rules.setup.startingHandSize + oHandModifier;
+
+      // Draw starting hands
+      this.drawCards('player', pStartHand, false);
+      this.drawCards('opponent', oStartHand, false);
+
+      // Start of first turn draw for the active player
+      this.drawCard(this.activePlayerId, false);
+    }
 
     this.actionsRemaining = this.rules.setup.startingActions;
+    if (this.isDebugMode && this.debugUnlimitedActions) {
+      this.actionsRemaining = 99;
+    }
     this.log('Game initialized! Shuffling decks and drawing starting hands.', 'turn');
     this.notifyStateChange();
   }
@@ -174,6 +371,45 @@ export class GameEngine {
       const j = Math.floor(Math.random() * (i + 1));
       [array[i], array[j]] = [array[j], array[i]];
     }
+
+    let targetPlayerId = null;
+    if (this.players.player && array === this.players.player.deck) {
+      targetPlayerId = 'player';
+    } else if (this.players.opponent && array === this.players.opponent.deck) {
+      targetPlayerId = 'opponent';
+    }
+
+    if (targetPlayerId && this.onShuffleCallback) {
+      this.onShuffleCallback(targetPlayerId);
+    }
+  }
+
+  // Draw multiple cards as a single drawing instance
+  drawCards(playerId, count, costAction = false) {
+    const player = this.players[playerId];
+    const wasInInstance = player.inDrawingInstance;
+    player.inDrawingInstance = true;
+    if (!wasInInstance) {
+      player.tookPeevesDamageThisInstance = false;
+    }
+    try {
+      if (costAction) {
+        return this.drawCard(playerId, true);
+      } else {
+        let success = true;
+        for (let i = 0; i < count; i++) {
+          if (!this.drawCard(playerId, false)) {
+            success = false;
+          }
+        }
+        return success;
+      }
+    } finally {
+      if (!wasInInstance) {
+        player.inDrawingInstance = false;
+        player.tookPeevesDamageThisInstance = false;
+      }
+    }
   }
 
   // Draw card from deck to hand
@@ -183,63 +419,76 @@ export class GameEngine {
     if (costAction) {
       const hasDiagonAlley = player.adventures.some(a => a.name === 'Diagon Alley');
       if (hasDiagonAlley) {
-        this.log(`Cannot draw cards as an Action: Diagon Alley is active!`, 'error');
+        this.logActionError(playerId, `Cannot draw cards as an Action: Diagon Alley is active!`);
         return false;
       }
       if (this.actionsRemaining < 1) {
-        this.log('Not enough actions to draw a card.', 'error');
+        this.logActionError(playerId, 'Not enough actions to draw a card.');
         return false;
       }
       this.actionsRemaining--;
     }
 
-    let drawCount = 1;
-    if (costAction && player.characters.some(c => c.name === 'Harry Potter')) {
-      drawCount = 2;
-      this.log(`Harry Potter: Drawing 2 cards instead of 1.`);
+    const isOuterInstance = !player.inDrawingInstance;
+    if (isOuterInstance) {
+      player.inDrawingInstance = true;
+      player.tookPeevesDamageThisInstance = false;
     }
 
-    for (let d = 0; d < drawCount; d++) {
-      if (player.deck.length === 0) {
-        this.log(`${player.name} has no cards left to draw!`, 'damage');
-        this.checkWinConditions();
-        break;
+    try {
+      let drawCount = 1;
+      if (costAction && player.characters.some(c => c.name === 'Harry Potter')) {
+        drawCount = 2;
+        this.log(`Harry Potter: Drawing 2 cards instead of 1.`);
       }
-      const card = player.deck.pop();
-      if (player.discardDrawsNextTurn) {
-        player.discardPile.push(card);
-        this.log(`${player.name} drew ${card.name} but discarded it immediately due to Snuffling Potion!`, 'damage');
-      } else {
-        player.hand.push(card);
+
+      for (let d = 0; d < drawCount; d++) {
+        if (player.deck.length === 0) {
+          this.log(`${player.name} has no cards left to draw!`, 'damage');
+          this.checkWinConditions();
+          break;
+        }
+        const card = player.deck.pop();
+        if (player.discardDrawsNextTurn) {
+          player.discardPile.push(card);
+          this.log(`${player.name} drew ${card.name} but discarded it immediately due to Snuffling Potion!`, 'damage');
+        } else {
+          player.hand.push(card);
+        }
+      }
+      
+      if (costAction) {
+        this.log(`${player.name} drew ${drawCount} card(s). (${this.actionsRemaining} action(s) left)`);
+        this.notifyStateChange();
+      }
+
+      // Peeves Causes Trouble check
+      const hasPeeves = player.adventures.some(a => a.name === 'Peeves Causes Trouble');
+      if (hasPeeves && !player.tookPeevesDamageThisInstance) {
+        player.tookPeevesDamageThisInstance = true;
+        this.log(`Peeves Causes Trouble: Draw triggers 1 damage to ${player.name}.`);
+        this.dealDamage(playerId, 1, 'adventure');
+      }
+
+      return true;
+    } finally {
+      if (isOuterInstance) {
+        player.inDrawingInstance = false;
+        player.tookPeevesDamageThisInstance = false;
       }
     }
-    
-    if (costAction) {
-      this.log(`${player.name} drew ${drawCount} card(s). (${this.actionsRemaining} action(s) left)`);
-      this.notifyStateChange();
-    }
-
-    // Peeves Causes Trouble check
-    const hasPeeves = player.adventures.some(a => a.name === 'Peeves Causes Trouble');
-    if (hasPeeves && !player.tookPeevesDamageThisEvent) {
-      player.tookPeevesDamageThisEvent = true;
-      this.log(`Peeves Causes Trouble: Draw triggers 1 damage to ${player.name}.`);
-      this.dealDamage(playerId, 1, 'adventure');
-    }
-
-    return true;
   }
 
   // Play a card from hand to board
   playCard(playerId, cardInstanceId) {
     if (this.activePlayerId !== playerId) {
-      this.log('It is not your turn!', 'error');
+      this.logPlayError(playerId, 'It is not your turn!');
       return false;
     }
 
     const player = this.players[playerId];
     if (player.cantPlayCardsNextTurn) {
-      this.log(`Cannot play cards this turn (Forgetfulness Potion is active)!`, 'error');
+      this.logPlayError(playerId, `Cannot play cards this turn (Forgetfulness Potion is active)!`);
       return false;
     }
     const cardIndex = player.hand.findIndex(c => c.instanceId === cardInstanceId);
@@ -247,11 +496,27 @@ export class GameEngine {
     if (cardIndex === -1) return false;
     const card = player.hand[cardIndex];
 
+    // Uniqueness rule check for characters and creatures
+    const isUnique = card.subTypes && card.subTypes.includes('Unique');
+    if (isUnique && (card.type === 'Character' || card.type === 'Creature')) {
+      const allInPlay = [
+        ...this.players.player.characters,
+        ...this.players.opponent.characters,
+        ...this.players.player.creatures,
+        ...this.players.opponent.creatures
+      ];
+      const alreadyInPlay = allInPlay.some(c => c.name === card.name);
+      if (alreadyInPlay) {
+        this.logPlayError(playerId, `Cannot play ${card.name}: A Unique copy is already in play!`);
+        return false;
+      }
+    }
+
     // Action Cost Calculation
     let actionCost = 1;
     if (card.type === 'Character') {
       if (player.characters.some(c => c.name === card.name)) {
-        this.log(`Cannot play ${card.name} - you already have this Character in play!`, 'error');
+        this.logPlayError(playerId, `Cannot play ${card.name} - you already have this Character in play!`);
         return false;
       }
       const hasRon = player.characters.some(c => c.name === 'Ron Weasley');
@@ -262,7 +527,7 @@ export class GameEngine {
     }
 
     if (this.actionsRemaining < actionCost) {
-      this.log(`Not enough actions! Requires ${actionCost} action(s) (you have ${this.actionsRemaining}).`, 'error');
+      this.logPlayError(playerId, `Not enough actions! Requires ${actionCost} action(s) (you have ${this.actionsRemaining}).`);
       return false;
     }
 
@@ -272,14 +537,14 @@ export class GameEngine {
     // 4 Privet Drive: Can't play Spell cards
     const hasPrivetDrive = activeAdventures.some(a => a.name === '4 Privet Drive');
     if (hasPrivetDrive && card.type === 'Spell') {
-      this.log(`Cannot play Spell cards while 4 Privet Drive is active!`, 'error');
+      this.logPlayError(playerId, `Cannot play Spell cards while 4 Privet Drive is active!`);
       return false;
     }
 
     // Hiding From Snape: Can't play Item cards
     const hasHidingFromSnape = activeAdventures.some(a => a.name === 'Hiding From Snape');
     if (hasHidingFromSnape && card.type === 'Item') {
-      this.log(`Cannot play Item cards while Hiding From Snape is active!`, 'error');
+      this.logPlayError(playerId, `Cannot play Item cards while Hiding From Snape is active!`);
       return false;
     }
 
@@ -288,7 +553,7 @@ export class GameEngine {
     if (hasHumanChessGame) {
       const opponent = this.players[playerId === 'player' ? 'opponent' : 'player'];
       if (opponent.playedCardsLastTurnCount === 0) {
-        this.log(`Cannot play cards: Human Chess Game is active and opponent played 0 cards in their last turn!`, 'error');
+        this.logPlayError(playerId, `Cannot play cards: Human Chess Game is active and opponent played 0 cards in their last turn!`);
         return false;
       }
     }
@@ -296,22 +561,34 @@ export class GameEngine {
     // Reptile House: Can't play more than 1 Lesson card per turn
     const hasReptileHouse = activeAdventures.some(a => a.name === 'Reptile House');
     if (hasReptileHouse && card.type === 'Lesson' && player.lessonsPlayedThisTurn >= 1) {
-      this.log(`Cannot play Lesson card: Reptile House limits you to 1 Lesson card per turn!`, 'error');
+      this.logPlayError(playerId, `Cannot play Lesson card: Reptile House limits you to 1 Lesson card per turn!`);
       return false;
     }
 
     // Special Wand play requirements
     if (card.name === 'Phoenix Feather Wand') {
-      const charmsCount = player.lessonCounts.counts['Charms'] || 0;
-      if (charmsCount < 3) {
-        this.log(`Cannot play Phoenix Feather Wand: Requires at least 3 Charms Power in play (you have ${charmsCount}).`, 'error');
+      const allInPlay = [
+        ...player.lessons,
+        ...player.characters,
+        ...player.items,
+        ...player.adventures
+      ];
+      const hasProvider = allInPlay.some(c => c.provides && c.provides.type === 'Charms' && c.provides.amount >= 3);
+      if (!hasProvider) {
+        this.logPlayError(playerId, `Cannot play Phoenix Feather Wand: Requires at least one card in play that provides at least 3 Charms Power (such as a Dragon Heart Wand).`);
         return false;
       }
     }
     if (card.name === 'Dragon Heart Wand') {
-      const charmsCount = player.lessonCounts.counts['Charms'] || 0;
-      if (charmsCount < 2) {
-        this.log(`Cannot play Dragon Heart Wand: Requires at least 2 Charms Power in play (you have ${charmsCount}).`, 'error');
+      const allInPlay = [
+        ...player.lessons,
+        ...player.characters,
+        ...player.items,
+        ...player.adventures
+      ];
+      const hasProvider = allInPlay.some(c => c.provides && c.provides.type === 'Charms' && c.provides.amount >= 2);
+      if (!hasProvider) {
+        this.logPlayError(playerId, `Cannot play Dragon Heart Wand: Requires at least one card in play that provides at least 2 Charms Power (such as a Borrowed Wand).`);
         return false;
       }
     }
@@ -320,7 +597,13 @@ export class GameEngine {
     if (card.type === 'Adventure') {
       const opponent = this.players[playerId === 'player' ? 'opponent' : 'player'];
       if (opponent.adventures.length > 0) {
-        this.log(`Cannot play ${card.name} - ${opponent.name} already has an active Adventure!`, 'error');
+        this.logPlayError(playerId, `Cannot play ${card.name}: You already have an active Adventure on your opponent's side! It must be resolved by the opponent before you can play another one.`);
+        return false;
+      }
+
+      // Unusual Pets play restriction check
+      if (card.name === 'Unusual Pets' && opponent.creatures.length === 0) {
+        this.logPlayError(playerId, `Cannot play Unusual Pets: Opponent has no Creatures in play!`);
         return false;
       }
     }
@@ -338,12 +621,12 @@ export class GameEngine {
       }
 
       if (total < requiredTotal) {
-        this.log(`Cannot play ${card.name}. Requires ${requiredTotal} lessons total (you have ${total}).`, 'error');
+        this.logPlayError(playerId, `Cannot play ${card.name}. Requires ${requiredTotal} lessons total (you have ${total}).`);
         return false;
       }
 
       if (requiredType && (!counts[requiredType] || counts[requiredType] < 1)) {
-        this.log(`Cannot play ${card.name}. Requires at least 1 ${requiredType} lesson.`, 'error');
+        this.logPlayError(playerId, `Cannot play ${card.name}. Requires at least 1 ${requiredType} lesson.`);
         return false;
       }
     }
@@ -357,7 +640,7 @@ export class GameEngine {
       }).length;
 
       if (matchCount < dl.count) {
-        this.log(`Cannot play ${card.name}. Requires discarding ${dl.count} of your ${dl.type === 'Any' ? '' : dl.type + ' '}Lessons from play (you only have ${matchCount} available).`, 'error');
+        this.logPlayError(playerId, `Cannot play ${card.name}. Requires discarding ${dl.count} of your ${dl.type === 'Any' ? '' : dl.type + ' '}Lessons from play (you only have ${matchCount} available).`);
         return false;
       }
     }
@@ -474,13 +757,24 @@ export class GameEngine {
     switch (card.name) {
       case 'Elixir of Life': {
         const nonHealing = player.discardPile.filter(c => !c.subTypes?.includes('Healing'));
-        const toShuffle = nonHealing.slice(0, 16);
-        toShuffle.forEach(c => {
-          player.discardPile = player.discardPile.filter(dc => dc.instanceId !== c.instanceId);
-          player.deck.push(c);
+        const choices = nonHealing.map(c => ({ id: c.instanceId, label: c.name, card: c }));
+        const maxTake = Math.min(16, choices.length);
+        if (maxTake === 0) {
+          this.log(`${player.name} resolved Elixir of Life: No non-Healing cards in discard pile.`);
+          break;
+        }
+        this.promptChoice(casterId, `Elixir of Life: Choose up to ${maxTake} non-Healing cards to shuffle into deck`, choices, 0, maxTake, (selected) => {
+          selected.forEach(instId => {
+            const idx = player.discardPile.findIndex(dc => dc.instanceId === instId);
+            if (idx !== -1) {
+              const [c] = player.discardPile.splice(idx, 1);
+              player.deck.push(c);
+            }
+          });
+          this.shuffle(player.deck);
+          this.log(`${player.name} shuffled ${selected.length} non-Healing card(s) from discard into deck.`);
+          this.notifyStateChange();
         });
-        this.shuffle(player.deck);
-        this.log(`${player.name} shuffled ${toShuffle.length} non-Healing card(s) from discard into deck.`);
         break;
       }
       
@@ -782,13 +1076,24 @@ export class GameEngine {
       
       case 'Burning Bitterroot Balm': {
         const nonHealing = player.discardPile.filter(c => !c.subTypes?.includes('Healing'));
-        const toShuffle = nonHealing.slice(0, 10);
-        toShuffle.forEach(c => {
-          player.discardPile = player.discardPile.filter(dc => dc.instanceId !== c.instanceId);
-          player.deck.push(c);
+        const choices = nonHealing.map(c => ({ id: c.instanceId, label: c.name, card: c }));
+        const maxTake = Math.min(10, choices.length);
+        if (maxTake === 0) {
+          this.log(`${player.name} resolved Burning Bitterroot Balm: No non-Healing cards in discard pile.`);
+          break;
+        }
+        this.promptChoice(casterId, `Burning Bitterroot Balm: Choose up to ${maxTake} non-Healing cards to shuffle into deck`, choices, 0, maxTake, (selected) => {
+          selected.forEach(instId => {
+            const idx = player.discardPile.findIndex(dc => dc.instanceId === instId);
+            if (idx !== -1) {
+              const [c] = player.discardPile.splice(idx, 1);
+              player.deck.push(c);
+            }
+          });
+          this.shuffle(player.deck);
+          this.log(`${player.name} shuffled ${selected.length} non-Healing card(s) from discard into deck.`);
+          this.notifyStateChange();
         });
-        this.shuffle(player.deck);
-        this.log(`${player.name} shuffled ${toShuffle.length} non-Healing card(s) from discard into deck.`);
         break;
       }
       
@@ -834,7 +1139,7 @@ export class GameEngine {
           const adv = player.adventures.pop();
           player.discardPile.push(adv);
           this.log(`Discarded own Adventure: ${adv.name}. Resolving reward: Draw 3 cards.`);
-          for (let i = 0; i < 3; i++) this.drawCard(casterId, false);
+          this.drawCards(casterId, 3, false);
         } else {
           this.log(`You have no active Adventure in play.`);
         }
@@ -852,13 +1157,13 @@ export class GameEngine {
       }
       
       case 'Logic Puzzle': {
-        if (opponent.adventures.length > 0) {
-          const adv = opponent.adventures.pop();
+        if (player.adventures.length > 0) {
+          const adv = player.adventures.pop();
           opponent.discardPile.push(adv);
-          this.log(`Discarded opponent's Adventure: ${adv.name}. Resolving reward: Draw 3 cards.`);
-          for (let i = 0; i < 3; i++) this.drawCard(casterId, false);
+          this.log(`Logic Puzzle: Discarded active Adventure ${adv.name} from your side. Resolving reward...`);
+          this.applyAdventureReward(casterId, adv);
         } else {
-          this.log(`Opponent has no active Adventure in play.`);
+          this.log(`You have no active Adventure in play on your side.`);
         }
         break;
       }
@@ -919,13 +1224,42 @@ export class GameEngine {
       
       case "Pomfrey's Pick-Me-Up": {
         const nonHealing = player.discardPile.filter(c => !c.subTypes?.includes('Healing'));
-        const toRetrieve = nonHealing.slice(0, 3);
-        toRetrieve.forEach(c => {
-          player.discardPile = player.discardPile.filter(dc => dc.instanceId !== c.instanceId);
-          player.deck.unshift(c);
+        const choices = nonHealing.map(c => ({
+          id: c.instanceId,
+          label: c.name,
+          card: c
+        }));
+        
+        const maxTake = Math.min(3, choices.length);
+        if (maxTake === 0) {
+          this.log(`${player.name} resolved Pomfrey's Pick-Me-Up: No non-Healing cards in discard pile.`);
+          this.drawCard(casterId, false);
+          break;
+        }
+        
+        this.promptChoice(casterId, `Pomfrey's Pick-Me-Up: Choose up to ${maxTake} non-Healing cards to put on bottom of deck (in order of selection)`, choices, 0, maxTake, (selected) => {
+          if (selected.length > 0) {
+            selected.forEach(instId => {
+              const idx = player.discardPile.findIndex(dc => dc.instanceId === instId);
+              if (idx !== -1) {
+                player.discardPile.splice(idx, 1);
+              }
+            });
+            // unshift in reverse order so the first chosen is bottom-most
+            for (let i = selected.length - 1; i >= 0; i--) {
+              const card = nonHealing.find(c => c.instanceId === selected[i]);
+              if (card) {
+                player.deck.unshift(card);
+              }
+            }
+            const cardNames = selected.map(instId => nonHealing.find(c => c.instanceId === instId)?.name || instId);
+            this.log(`${player.name} put ${selected.length} card(s) on the bottom of their deck: ${cardNames.join(', ')}.`);
+          } else {
+            this.log(`${player.name} put 0 cards on the bottom of their deck.`);
+          }
+          this.drawCard(casterId, false);
+          this.notifyStateChange();
         });
-        this.log(`${player.name} put ${toRetrieve.length} non-Healing cards on bottom of deck.`);
-        this.drawCard(casterId, false);
         break;
       }
       
@@ -1155,12 +1489,40 @@ export class GameEngine {
       
       case 'Boil Cure': {
         const nonHealing = player.discardPile.filter(c => !c.subTypes?.includes('Healing'));
-        const toRetrieve = nonHealing.slice(0, 4);
-        toRetrieve.forEach(c => {
-          player.discardPile = player.discardPile.filter(dc => dc.instanceId !== c.instanceId);
-          player.deck.unshift(c);
+        const choices = nonHealing.map(c => ({
+          id: c.instanceId,
+          label: c.name,
+          card: c
+        }));
+        
+        const maxTake = Math.min(4, choices.length);
+        if (maxTake === 0) {
+          this.log(`${player.name} resolved Boil Cure: No non-Healing cards in discard pile.`);
+          break;
+        }
+        
+        this.promptChoice(casterId, `Boil Cure: Choose up to ${maxTake} non-Healing cards to put on bottom of deck (in order of selection)`, choices, 0, maxTake, (selected) => {
+          if (selected.length > 0) {
+            selected.forEach(instId => {
+              const idx = player.discardPile.findIndex(dc => dc.instanceId === instId);
+              if (idx !== -1) {
+                player.discardPile.splice(idx, 1);
+              }
+            });
+            // unshift in reverse order so the first chosen is bottom-most
+            for (let i = selected.length - 1; i >= 0; i--) {
+              const card = nonHealing.find(c => c.instanceId === selected[i]);
+              if (card) {
+                player.deck.unshift(card);
+              }
+            }
+            const cardNames = selected.map(instId => nonHealing.find(c => c.instanceId === instId)?.name || instId);
+            this.log(`${player.name} put ${selected.length} card(s) on the bottom of their deck: ${cardNames.join(', ')}.`);
+          } else {
+            this.log(`${player.name} put 0 cards on the bottom of their deck.`);
+          }
+          this.notifyStateChange();
         });
-        this.log(`${player.name} put ${toRetrieve.length} non-Healing cards on bottom of deck.`);
         break;
       }
       
@@ -1331,13 +1693,24 @@ export class GameEngine {
       
       case 'Hospital Wing': {
         const nonHealing = player.discardPile.filter(c => !c.subTypes?.includes('Healing'));
-        const toShuffle = nonHealing.slice(0, 8);
-        toShuffle.forEach(c => {
-          player.discardPile = player.discardPile.filter(dc => dc.instanceId !== c.instanceId);
-          player.deck.push(c);
+        const choices = nonHealing.map(c => ({ id: c.instanceId, label: c.name, card: c }));
+        const maxTake = Math.min(8, choices.length);
+        if (maxTake === 0) {
+          this.log(`${player.name} resolved Hospital Wing: No non-Healing cards in discard pile.`);
+          break;
+        }
+        this.promptChoice(casterId, `Hospital Wing: Choose up to ${maxTake} non-Healing cards to shuffle into deck`, choices, 0, maxTake, (selected) => {
+          selected.forEach(instId => {
+            const idx = player.discardPile.findIndex(dc => dc.instanceId === instId);
+            if (idx !== -1) {
+              const [c] = player.discardPile.splice(idx, 1);
+              player.deck.push(c);
+            }
+          });
+          this.shuffle(player.deck);
+          this.log(`${player.name} shuffled ${selected.length} non-Healing card(s) from discard into deck.`);
+          this.notifyStateChange();
         });
-        this.shuffle(player.deck);
-        this.log(`${player.name} shuffled ${toShuffle.length} non-Healing card(s) from discard into deck.`);
         break;
       }
       
@@ -1758,7 +2131,7 @@ export class GameEngine {
       case 'Dean Thomas': {
         player.usedOncePerGameAbilities[charCard.name] = true;
         this.log(`${player.name} activated Dean Thomas: Drew 3 cards.`);
-        for (let i = 0; i < 3; i++) this.drawCard(playerId, false);
+        this.drawCards(playerId, 3, false);
         break;
       }
 
@@ -1898,15 +2271,28 @@ export class GameEngine {
       }
 
       case 'Professor Severus Snape': {
-        player.usedOncePerGameAbilities[charCard.name] = true;
         const nonHealing = player.discardPile.filter(c => !c.subTypes?.includes('Healing'));
-        const toShuffle = nonHealing.slice(0, 7);
-        toShuffle.forEach(c => {
-          player.discardPile = player.discardPile.filter(dc => dc.instanceId !== c.instanceId);
-          player.deck.push(c);
-        });
-        this.shuffle(player.deck);
-        this.log(`${player.name} activated Severus Snape's ability: Shuffled ${toShuffle.length} non-Healing cards from discard into deck.`);
+        const choices = nonHealing.map(c => ({ id: `discard-${playerId}-${c.instanceId}`, label: c.name, card: c }));
+        const maxTake = Math.min(7, choices.length);
+        if (maxTake === 0) {
+          player.usedOncePerGameAbilities[charCard.name] = true;
+          this.log(`${player.name} activated Severus Snape's ability: No non-Healing cards in discard pile.`);
+          break;
+        }
+        this.promptChoice(playerId, `Professor Severus Snape: Choose up to ${maxTake} non-Healing cards to shuffle into deck`, choices, 0, maxTake, (selected) => {
+          player.usedOncePerGameAbilities[charCard.name] = true;
+          selected.forEach(selId => {
+            const instId = selId.split('-').slice(2).join('-');
+            const idx = player.discardPile.findIndex(dc => dc.instanceId === instId);
+            if (idx !== -1) {
+              const [c] = player.discardPile.splice(idx, 1);
+              player.deck.push(c);
+            }
+          });
+          this.shuffle(player.deck);
+          this.log(`${player.name} activated Severus Snape's ability: Shuffled ${selected.length} non-Healing card(s) from discard into deck.`);
+          this.notifyStateChange();
+        }, charCard);
         break;
       }
     }
@@ -2278,6 +2664,26 @@ export class GameEngine {
     const player = this.players[playerId];
     const opponent = this.players[playerId === 'player' ? 'opponent' : 'player'];
 
+    const rewardDescriptions = {
+      "Dragon's Escape": "Draw 3 cards OR deal 3 damage to opponent.",
+      "Gringotts' Cart Ride": "Draw 5 cards.",
+      "Human Chess Game": "Draw 3 cards.",
+      "Troll in the Bathroom": "Opponent takes 4 damage.",
+      "Harry Hunting": "Search discard pile for a Lesson card and put it into play.",
+      "Meet the Centaurs": "Opponent plays with hand face up for the rest of the game.",
+      "4 Privet Drive": "Draw 1 card.",
+      "Diagon Alley": "Choose how many cards to draw (up to your deck size).",
+      "Hiding From Snape": "Search deck for any card and put it into hand.",
+      "Peeves Causes Trouble": "Opponent takes 3 damage.",
+      "Reptile House": "Draw 1 card.",
+      "Unusual Pets": "Draw 1 card."
+    };
+
+    const rewardDescription = rewardDescriptions[adventure.name] || "No reward description available.";
+    if (this.onAdventureSolvedCallback) {
+      this.onAdventureSolvedCallback(adventure, rewardDescription, playerId);
+    }
+
     switch (adventure.name) {
       case "Dragon's Escape": {
         const choices = [
@@ -2287,7 +2693,7 @@ export class GameEngine {
         this.promptChoice(playerId, "Dragon's Escape Reward: Choose your reward", choices, 1, 1, (selected) => {
           const sel = selected[0];
           if (sel === 'draw') {
-            for (let i = 0; i < 3; i++) this.drawCard(playerId, false);
+            this.drawCards(playerId, 3, false);
             this.log(`Dragon's Escape Reward: ${player.name} drew 3 cards.`);
           } else if (sel === 'damage') {
             this.log(`Dragon's Escape Reward: ${player.name} deals 3 damage to ${opponent.name}.`);
@@ -2299,14 +2705,14 @@ export class GameEngine {
       }
 
       case "Gringotts' Cart Ride": {
-        for (let i = 0; i < 5; i++) this.drawCard(playerId, false);
+        this.drawCards(playerId, 5, false);
         this.log(`Gringotts' Cart Ride Reward: ${player.name} drew 5 cards.`);
         this.notifyStateChange();
         break;
       }
 
       case "Human Chess Game": {
-        for (let i = 0; i < 3; i++) this.drawCard(playerId, false);
+        this.drawCards(playerId, 3, false);
         this.log(`Human Chess Game Reward: ${player.name} drew 3 cards.`);
         this.notifyStateChange();
         break;
@@ -2357,12 +2763,13 @@ export class GameEngine {
       }
 
       case "Diagon Alley": {
-        const choices = Array.from({ length: 11 }, (_, i) => ({ id: `draw-${i}`, label: `Draw ${i} card(s)` }));
-        this.promptChoice(playerId, "Diagon Alley Reward: Choose how many cards to draw (0-10)", choices, 1, 1, (selected) => {
+        const maxDraw = player.deck.length;
+        const choices = Array.from({ length: maxDraw + 1 }, (_, i) => ({ id: `draw-${i}`, label: `Draw ${i} card(s)` }));
+        this.promptChoice(playerId, `Diagon Alley Reward: Choose how many cards to draw (0-${maxDraw})`, choices, 1, 1, (selected) => {
           const sel = selected[0];
           if (sel) {
             const count = parseInt(sel.split('-')[1], 10);
-            for (let i = 0; i < count; i++) this.drawCard(playerId, false);
+            this.drawCards(playerId, count, false);
             this.log(`Diagon Alley Reward: ${player.name} drew ${count} card(s).`);
             this.notifyStateChange();
           }
@@ -2507,11 +2914,19 @@ export class GameEngine {
   applyDeckDamage(targetPlayerId, amount) {
     const target = this.players[targetPlayerId];
     this.log(`${target.name} takes ${amount} damage! Discarding cards from deck.`, 'damage');
+
+    if (this.onDamageTakenCallback && amount > 0) {
+      this.onDamageTakenCallback(targetPlayerId, amount);
+    }
     
     for (let i = 0; i < amount; i++) {
       if (target.deck.length === 0) {
-        this.log(`${target.name}'s deck is depleted. Game Over!`, 'damage');
-        this.checkWinConditions();
+        if (this.isDebugMode) {
+          this.log(`${target.name}'s deck is depleted. Damage ignored.`, 'damage');
+        } else {
+          this.log(`${target.name}'s deck is depleted. Game Over!`, 'damage');
+          this.checkWinConditions();
+        }
         return;
       }
       const discardedCard = target.deck.pop();
@@ -2536,48 +2951,49 @@ export class GameEngine {
 
     this.log(`Ending turn for ${activePlayer.name}.`, 'turn');
 
-    // 1. Resolve active player's creatures' end-of-turn damage
-    if (activePlayer.creatures.length > 0) {
-      const targetId = this.activePlayerId === 'player' ? 'opponent' : 'player';
-      const targetPlayer = this.players[targetId];
-      activePlayer.creatures.forEach(creature => {
+    // Reset active player's turn-based flags
+    activePlayer.lessonsPlayedThisTurn = 0;
+    activePlayer.preventSpellDamageOnceThisTurn = false;
+    activePlayer.playedCardsLastTurnCount = activePlayer.playedCardsThisTurnCount;
+    activePlayer.playedCardsThisTurnCount = 0;
+    activePlayer.items.forEach(i => { i.usedThisTurn = false; });
+    inactivePlayer.wingedKeysTargetInstanceId = null;
+
+    // Toggle active player
+    this.activePlayerId = this.activePlayerId === 'player' ? 'opponent' : 'player';
+    
+    const nextPlayer = this.players[this.activePlayerId];
+    const prevPlayer = activePlayer; // activePlayer is the player who just ended their turn
+
+    const unicornCount = nextPlayer.creatures.filter(c => c.name === 'Unicorn').length;
+    this.actionsRemaining = 2 + unicornCount;
+    if (this.isDebugMode && this.debugUnlimitedActions) {
+      this.actionsRemaining = 99;
+    }
+    this.turnNumber++;
+
+    this.log(`--- Turn ${this.turnNumber}: Start of ${nextPlayer.name}'s Turn ---`, 'turn');
+
+    // Resolve active player's (nextPlayer's) creatures' start-of-turn damage
+    if (nextPlayer.creatures.length > 0) {
+      nextPlayer.creatures.forEach(creature => {
         let dmg = creature.damagePerTurn || 0;
-        // Check Winged Keys prevention
-        if (targetPlayer.wingedKeysTargetInstanceId === creature.instanceId) {
+        // Check Winged Keys prevention (Winged Keys is in play on prevPlayer)
+        if (prevPlayer.wingedKeysTargetInstanceId === creature.instanceId) {
           this.log(`Winged Keys: Prevented all damage from ${creature.name}.`);
           dmg = 0;
         }
         if (dmg > 0) {
-          const hasHagrid = activePlayer.characters.some(c => c.name === 'Rubeus Hagrid');
+          const hasHagrid = nextPlayer.characters.some(c => c.name === 'Rubeus Hagrid');
           if (hasHagrid && dmg >= 3) {
             dmg += 2;
             this.log(`Rubeus Hagrid: ${creature.name}'s damage is boosted by +2 (deals ${dmg} total).`);
           }
           this.log(`${creature.name} attacks!`);
-          this.dealDamage(targetId, dmg, 'creature');
+          this.dealDamage(prevPlayer.id, dmg, 'creature');
         }
       });
     }
-
-    // Reset active player's turn-based flags
-    activePlayer.lessonsPlayedThisTurn = 0;
-    activePlayer.preventSpellDamageOnceThisTurn = false;
-    activePlayer.tookPeevesDamageThisEvent = false;
-    activePlayer.playedCardsLastTurnCount = activePlayer.playedCardsThisTurnCount;
-    activePlayer.playedCardsThisTurnCount = 0;
-    activePlayer.items.forEach(i => { i.usedThisTurn = false; });
-    inactivePlayer.tookPeevesDamageThisEvent = false;
-    inactivePlayer.wingedKeysTargetInstanceId = null;
-
-    // 2. Toggle active player
-    this.activePlayerId = this.activePlayerId === 'player' ? 'opponent' : 'player';
-    
-    const nextPlayer = this.players[this.activePlayerId];
-    const unicornCount = nextPlayer.creatures.filter(c => c.name === 'Unicorn').length;
-    this.actionsRemaining = 2 + unicornCount;
-    this.turnNumber++;
-
-    this.log(`--- Turn ${this.turnNumber}: Start of ${nextPlayer.name}'s Turn ---`, 'turn');
 
     // 2.5 Resolve start-of-turn Adventure effects for nextPlayer
     const oppHasDragonsEscape = activePlayer.adventures.some(a => a.name === "Dragon's Escape");
@@ -2629,6 +3045,8 @@ export class GameEngine {
 
   // Win condition checker
   checkWinConditions() {
+    if (this.isDebugMode) return; // In Debug Mode, game doesn't end on empty deck
+
     const pDeckEmpty = this.players.player.deck.length === 0;
     const oDeckEmpty = this.players.opponent.deck.length === 0;
 
@@ -2645,5 +3063,172 @@ export class GameEngine {
       this.winnerMessage = 'Opponent ran out of cards! You win!';
       this.log(this.winnerMessage, 'turn');
     }
+  }
+
+  // Debug menu command to deal player's creature damage instantly to opponent
+  debugDealCreatureDamage() {
+    const player = this.players.player;
+    let totalDmg = 0;
+    player.creatures.forEach(creature => {
+      let dmg = creature.damagePerTurn || 0;
+      if (dmg > 0) {
+        const hasHagrid = player.characters.some(c => c.name === 'Rubeus Hagrid');
+        if (hasHagrid && dmg >= 3) {
+          dmg += 2;
+        }
+        totalDmg += dmg;
+      }
+    });
+    if (totalDmg > 0) {
+      this.log(`Debug Menu: Instantly dealing ${totalDmg} creature damage to opponent.`, 'damage');
+      this.dealDamage('opponent', totalDmg, 'creature');
+      this.notifyStateChange();
+    } else {
+      this.log(`Debug Menu: No creatures in play to deal damage.`, 'error');
+    }
+  }
+
+  // Debug command to move a card from a source zone to a target zone
+  debugMoveCard(playerId, instanceId, sourceZone, targetZone) {
+    const player = this.players[playerId];
+    if (!player) return;
+
+    let card = null;
+
+    // Helper to find and remove from array
+    const findAndRemove = (arr) => {
+      const idx = arr.findIndex(c => c.instanceId === instanceId);
+      if (idx !== -1) {
+        card = arr.splice(idx, 1)[0];
+        return true;
+      }
+      return false;
+    };
+
+    // 1. Locate and remove from source
+    if (sourceZone === 'hand') {
+      findAndRemove(player.hand);
+    } else if (sourceZone === 'deck') {
+      findAndRemove(player.deck);
+    } else if (sourceZone === 'discard') {
+      findAndRemove(player.discardPile);
+    } else if (sourceZone === 'field') {
+      findAndRemove(player.lessons) ||
+      findAndRemove(player.creatures) ||
+      findAndRemove(player.characters) ||
+      findAndRemove(player.items) ||
+      findAndRemove(player.adventures);
+    }
+
+    if (!card) {
+      this.log(`Debug Mode: Card ${instanceId} not found in source zone "${sourceZone}" for ${player.name}.`, 'error');
+      return;
+    }
+
+    // 2. Add to target zone
+    const isOpposite = targetZone.startsWith('opp_');
+    const targetPlayer = isOpposite ? this.players[playerId === 'player' ? 'opponent' : 'player'] : player;
+    const actualTargetZone = isOpposite ? targetZone.substring(4) : targetZone;
+
+    if (actualTargetZone === 'hand') {
+      targetPlayer.hand.push(card);
+      this.log(`Debug Mode: Moved ${card.name} to ${targetPlayer.name}'s hand.`, 'action');
+    } else if (actualTargetZone === 'deck') {
+      targetPlayer.deck.push(card); // push to top (which is end of array)
+      this.log(`Debug Mode: Moved ${card.name} to the top of ${targetPlayer.name}'s deck.`, 'action');
+    } else if (actualTargetZone === 'discard') {
+      targetPlayer.discardPile.push(card);
+      this.log(`Debug Mode: Moved ${card.name} to ${targetPlayer.name}'s discard pile.`, 'action');
+    } else if (actualTargetZone === 'field') {
+      if (card.type === 'Lesson') {
+        targetPlayer.lessons.push(card);
+      } else if (card.type === 'Creature') {
+        targetPlayer.creatures.push(card);
+      } else if (card.type === 'Character') {
+        targetPlayer.characters.push(card);
+      } else if (card.type === 'Adventure') {
+        targetPlayer.adventures.push(card);
+      } else {
+        targetPlayer.items.push(card);
+      }
+      this.log(`Debug Mode: Moved ${card.name} to ${targetPlayer.name}'s field.`, 'action');
+    }
+
+    this.notifyStateChange();
+  }
+
+  // Debug command to instantly solve an active adventure
+  debugSolveAdventure(playerId, adventureInstanceId) {
+    const player = this.players[playerId];
+    const opponent = this.players[playerId === 'player' ? 'opponent' : 'player'];
+    const advIndex = player.adventures.findIndex(a => a.instanceId === adventureInstanceId);
+    if (advIndex === -1) return;
+    const adventure = player.adventures[advIndex];
+
+    player.adventures.splice(advIndex, 1);
+    opponent.discardPile.push(adventure);
+    this.log(`Debug Mode: Instantly solved active Adventure ${adventure.name} on ${player.name}'s side.`, 'action');
+    this.applyAdventureReward(playerId, adventure);
+    this.notifyStateChange();
+  }
+
+  enableUnlimitedActions() {
+    this.debugUnlimitedActions = true;
+    this.actionsRemaining = 99;
+    this.log(`Debug Mode: 99 actions enabled for active player.`, 'action');
+    this.notifyStateChange();
+  }
+
+  disableUnlimitedActions() {
+    this.debugUnlimitedActions = false;
+    const active = this.players[this.activePlayerId];
+    const unicornCount = active.creatures.filter(c => c.name === 'Unicorn').length;
+    this.actionsRemaining = 2 + unicornCount;
+    this.log(`Debug Mode: Normal action counts enabled for active player.`, 'action');
+    this.notifyStateChange();
+  }
+
+  debugShuffleDeck() {
+    this.shuffle(this.players.player.deck);
+    this.log("Debug Mode: Shuffled player's deck.", "action");
+    this.notifyStateChange();
+  }
+
+  debugEnableLessons() {
+    if (!this.isDebugMode) return;
+    
+    // Clear existing lessons for both players
+    this.players.player.lessons = [];
+    this.players.opponent.lessons = [];
+
+    const lessonTypesToSpawn = ['Care of Magical Creatures', 'Potions', 'Transfiguration', 'Charms'];
+    lessonTypesToSpawn.forEach(lType => {
+      const proto = this.cardDatabase.find(c => c.type === 'Lesson' && c.lessonType === lType);
+      if (proto) {
+        for (let i = 0; i < 10; i++) {
+          this.players.player.lessons.push({
+            ...proto,
+            instanceId: `debug-lesson-${lType.replace(/\s+/g, '-')}-${i}`
+          });
+          this.players.opponent.lessons.push({
+            ...proto,
+            instanceId: `debug-lesson-opponent-${lType.replace(/\s+/g, '-')}-${i}`
+          });
+        }
+      }
+    });
+
+    this.log('Debug Mode: Enabled 10 of each Lesson for both players.', 'action');
+    this.notifyStateChange();
+  }
+
+  debugDisableLessons() {
+    if (!this.isDebugMode) return;
+    
+    this.players.player.lessons = [];
+    this.players.opponent.lessons = [];
+
+    this.log('Debug Mode: Cleared all Lessons in play for both players.', 'action');
+    this.notifyStateChange();
   }
 }
