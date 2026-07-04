@@ -108,6 +108,7 @@ assert(hagridDef !== undefined, "Found Rubeus Hagrid definition");
 {
   engine.players.player = new PlayerState('player', 'You', { ...harryDef, instanceId: 'player-starting-char' });
   engine.players.opponent = new PlayerState('opponent', 'Hogwarts Rival', { ...dracoDef, instanceId: 'opponent-starting-char' });
+  engine.gameOver = false;
   
   // Fill deck
   engine.players.player.deck = [{ name: 'Lesson 1' }, { name: 'Lesson 2' }, { name: 'Lesson 3' }];
@@ -126,6 +127,7 @@ assert(hagridDef !== undefined, "Found Rubeus Hagrid definition");
   const testChar = { ...hagridDef, instanceId: 'hagrid-char' };
   engine.players.player = new PlayerState('player', 'You', testChar);
   engine.players.opponent = new PlayerState('opponent', 'Hogwarts Rival', { ...dracoDef, instanceId: 'opponent-starting-char' });
+  engine.gameOver = false;
 
   engine.players.opponent.deck = Array(10).fill(null).map((_, i) => ({ name: `Mock Card ${i}` }));
 
@@ -138,7 +140,7 @@ assert(hagridDef !== undefined, "Found Rubeus Hagrid definition");
     instanceId: 'wolf-inst'
   });
 
-  engine.activePlayerId = 'player';
+  engine.activePlayerId = 'opponent';
   console.log("Ending turn with Hagrid in play and Vicious Wolf...");
   
   console.log("Active Player ID:", engine.activePlayerId);
@@ -151,7 +153,7 @@ assert(hagridDef !== undefined, "Found Rubeus Hagrid definition");
   console.log("Opponent Deck size after attack:", engine.players.opponent.deck.length);
   console.log("Deck size reduction:", preOppDeck - engine.players.opponent.deck.length);
 
-  assert(engine.players.opponent.deck.length === preOppDeck - 6, "Hagrid boosted Vicious Wolf's damage from 3 to 5 (plus 1 card drawn at start of turn)");
+  assert(engine.players.opponent.deck.length === preOppDeck - 5, "Hagrid boosted Vicious Wolf's damage from 3 to 5");
 }
 
 // TEST 3: Ron Weasley Play Cost Modifier
@@ -159,6 +161,7 @@ assert(hagridDef !== undefined, "Found Rubeus Hagrid definition");
   const testChar = { ...ronDef, instanceId: 'ron-char' };
   engine.players.player = new PlayerState('player', 'You', testChar);
   engine.players.opponent = new PlayerState('opponent', 'Hogwarts Rival', { ...dracoDef, instanceId: 'opponent-starting-char' });
+  engine.gameOver = false;
 
   // Give player Dean Thomas card in hand
   const deanHandCard = { ...deanDef, instanceId: 'dean-hand-inst' };
@@ -178,6 +181,7 @@ assert(hagridDef !== undefined, "Found Rubeus Hagrid definition");
   const testChar = { ...deanDef, instanceId: 'dean-char' };
   engine.players.player = new PlayerState('player', 'You', testChar);
   engine.players.opponent = new PlayerState('opponent', 'Hogwarts Rival', { ...dracoDef, instanceId: 'opponent-starting-char' });
+  engine.gameOver = false;
 
   engine.players.player.deck = [{ name: 'C1', instanceId: 'c1' }, { name: 'C2', instanceId: 'c2' }, { name: 'C3', instanceId: 'c3' }, { name: 'C4', instanceId: 'c4' }];
   engine.actionsRemaining = 1;
@@ -195,6 +199,7 @@ assert(hagridDef !== undefined, "Found Rubeus Hagrid definition");
   const testChar = { ...dracoDef, instanceId: 'draco-char' };
   engine.players.player = new PlayerState('player', 'You', testChar);
   engine.players.opponent = new PlayerState('opponent', 'Hogwarts Rival', { ...dracoDef, instanceId: 'opponent-starting-char' });
+  engine.gameOver = false;
 
   engine.players.player.hand = [
     { name: 'Discard Cost', instanceId: 'cost-inst', type: 'Lesson' },
@@ -238,6 +243,7 @@ assert(hagridDef !== undefined, "Found Rubeus Hagrid definition");
   const testChar = { ...hannahDef, instanceId: 'hannah-char' };
   engine.players.player = new PlayerState('player', 'You', testChar);
   engine.players.opponent = new PlayerState('opponent', 'Hogwarts Rival', { ...dracoDef, instanceId: 'opponent-starting-char' });
+  engine.gameOver = false;
 
   engine.players.player.hand = [
     { name: 'H1', instanceId: 'h1', type: 'Lesson' },
@@ -274,6 +280,7 @@ assert(hagridDef !== undefined, "Found Rubeus Hagrid definition");
   const testChar = { ...nickDef, instanceId: 'nick-char' };
   engine.players.player = new PlayerState('player', 'You', testChar);
   engine.players.opponent = new PlayerState('opponent', 'Hogwarts Rival', { ...dracoDef, instanceId: 'opponent-starting-char' });
+  engine.gameOver = false;
 
   engine.players.player.deck = [
     { name: 'Item 1', instanceId: 'item1', type: 'Item' },
@@ -301,6 +308,7 @@ assert(hagridDef !== undefined, "Found Rubeus Hagrid definition");
   const testChar = { ...flitwickDef, instanceId: 'flitwick-char' };
   engine.players.player = new PlayerState('player', 'You', testChar);
   engine.players.opponent = new PlayerState('opponent', 'Hogwarts Rival', { ...dracoDef, instanceId: 'opponent-starting-char' });
+  engine.gameOver = false;
 
   engine.players.player.hand = [
     { name: 'F1', instanceId: 'f1', type: 'Lesson' },
@@ -334,6 +342,7 @@ assert(hagridDef !== undefined, "Found Rubeus Hagrid definition");
   const testChar = { ...snapeDef, instanceId: 'snape-char' };
   engine.players.player = new PlayerState('player', 'You', testChar);
   engine.players.opponent = new PlayerState('opponent', 'Hogwarts Rival', { ...dracoDef, instanceId: 'opponent-starting-char' });
+  engine.gameOver = false;
 
   engine.players.player.discardPile = [
     { name: 'D1', instanceId: 'd1', subTypes: [] },
@@ -376,8 +385,8 @@ assert(hagridDef !== undefined, "Found Rubeus Hagrid definition");
   const testChar = { ...hermioneDef, instanceId: 'hermione-char' };
   engine.players.player = new PlayerState('player', 'You', testChar);
   engine.players.opponent = new PlayerState('opponent', 'Hogwarts Rival', { ...dracoDef, instanceId: 'opponent-starting-char' });
+  engine.gameOver = false;
 
-  // Give 2 lessons in play
   engine.players.player.lessons = [
     { name: 'Lesson 1', instanceId: 'l1', type: 'Lesson' },
     { name: 'Lesson 2', instanceId: 'l2', type: 'Lesson' }
@@ -417,8 +426,8 @@ assert(hagridDef !== undefined, "Found Rubeus Hagrid definition");
   // Reset engine states
   engine.players.player = new PlayerState('player', 'You', { ...harryDef, instanceId: 'player-starting-char' });
   engine.players.opponent = new PlayerState('opponent', 'Hogwarts Rival', { ...dracoDef, instanceId: 'opponent-starting-char' });
+  engine.gameOver = false;
 
-  // Give player 6 Care of Magical Creatures lessons in play
   engine.players.player.lessons = Array(6).fill(null).map((_, i) => ({
     name: 'Care of Magical Creatures',
     type: 'Lesson',
@@ -433,6 +442,7 @@ assert(hagridDef !== undefined, "Found Rubeus Hagrid definition");
   engine.activePlayerId = 'player';
   const success = engine.playCard('player', 'unicorn-hand');
   console.log("Play success:", success);
+  engine.resolvePendingSpell(['lesson-player-comc-l-0']);
   console.log("Actions remaining:", engine.actionsRemaining);
   console.log("Last engine logs:", engine.logs.slice(-3));
 
@@ -471,6 +481,56 @@ assert(hagridDef !== undefined, "Found Rubeus Hagrid definition");
   const toadInPlay = engine.players.player.discardPile.find(c => c.instanceId === 'toad-in-play');
   assert(toadInPlay !== undefined, "Pet Toad took damage, was defeated, and is in discard pile");
   assert(engine.players.player.deck.length === 2, "Player deck was not damaged (still has 2 cards)");
+}
+
+// TEST 12: Neville Longbottom character ability
+{
+  console.log("=== Running Neville Longbottom character ability tests ===");
+  // Reset engine states with Neville Longbottom as starting character
+  const nevilleDef = {
+    name: 'Neville Longbottom',
+    type: 'Character',
+    subTypes: ['Wizard', 'Gryffindor', 'Unique'],
+    effect: ['You may prevent all but the first 8 damage done to you each turn.']
+  };
+  
+  engine.players.player = new PlayerState('player', 'You', { ...nevilleDef, instanceId: 'player-starting-char' });
+  engine.players.opponent = new PlayerState('opponent', 'Hogwarts Rival', { ...dracoDef, instanceId: 'opponent-starting-char' });
+  engine.gameOver = false;
+
+  engine.players.player.deck = Array(20).fill(null).map((_, i) => ({ name: `Deck Card ${i}` }));
+
+  // Deal 10 damage in one turn
+  engine.dealDamage('player', 10, 'spell');
+  
+  // Neville Longbottom should prevent 2 of the 10 damage, so deck should lose exactly 8 cards
+  assert(engine.players.player.deck.length === 12, `Deck should have 12 cards remaining after taking 10 damage (took 8, prevented 2). Actual: ${engine.players.player.deck.length}`);
+  assert(engine.players.player.damageTakenThisTurn === 8, `damageTakenThisTurn should be 8. Actual: ${engine.players.player.damageTakenThisTurn}`);
+
+  // Deal another 5 damage in the same turn
+  engine.dealDamage('player', 5, 'spell');
+  
+  // Since player already took 8 damage this turn, all 5 damage should be prevented
+  assert(engine.players.player.deck.length === 12, `Deck should still have 12 cards remaining (took 0 more, prevented all). Actual: ${engine.players.player.deck.length}`);
+  assert(engine.players.player.damageTakenThisTurn === 8, `damageTakenThisTurn should still be 8. Actual: ${engine.players.player.damageTakenThisTurn}`);
+
+  // End turn to reset the turn damage counter
+  engine.endTurn(); // toggles active player, resets damageTakenThisTurn at start of opponent's turn
+  
+  // Deal 5 damage during opponent's turn (Neville's cap does not apply)
+  engine.dealDamage('player', 5, 'spell');
+  
+  // Since it is opponent's turn, player should take all 5 damage
+  assert(engine.players.player.deck.length === 7, `Deck should have 7 cards remaining after taking 5 damage during opponent's turn. Actual: ${engine.players.player.deck.length}`);
+  assert(engine.players.player.damageTakenThisTurn === 8, `damageTakenThisTurn should still reflect player's last turn (8). Actual: ${engine.players.player.damageTakenThisTurn}`);
+
+  engine.endTurn(); // player's turn again; Neville counter resets at start of player's turn
+
+  // Deal 5 damage in the new player turn (start-of-turn draw removed 1 card from deck first)
+  engine.dealDamage('player', 5, 'spell');
+  
+  assert(engine.players.player.deck.length === 1, `Deck should have 1 card remaining after start-of-turn draw and 5 damage. Actual: ${engine.players.player.deck.length}`);
+  assert(engine.players.player.damageTakenThisTurn === 5, `damageTakenThisTurn should be 5. Actual: ${engine.players.player.damageTakenThisTurn}`);
 }
 
 

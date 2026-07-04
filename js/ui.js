@@ -7,6 +7,7 @@ export class UIManager {
   constructor(engine) {
     this.engine = engine;
     this.selectedCardId = null;
+    this.isInitialTurnAnnouncementDelayed = false;
 
     // Cache DOM Elements
     this.el = {
@@ -15,12 +16,14 @@ export class UIManager {
       playerCreatures: document.getElementById('player-creatures-zone'),
       playerItems: document.getElementById('player-items-zone'),
       playerAdventures: document.getElementById('player-adventures-zone'),
+      playerMatches: document.getElementById('player-matches-zone'),
       playerCharacter: document.getElementById('player-character-zone'),
       
       opponentLessons: document.getElementById('opponent-lessons-zone'),
       opponentCreatures: document.getElementById('opponent-creatures-zone'),
       opponentItems: document.getElementById('opponent-items-zone'),
       opponentAdventures: document.getElementById('opponent-adventures-zone'),
+      opponentMatches: document.getElementById('opponent-matches-zone'),
       opponentCharacter: document.getElementById('opponent-character-zone'),
       opponentHand: document.getElementById('opponent-hand-area'),
 
@@ -95,7 +98,17 @@ export class UIManager {
       actionErrorModal: document.getElementById('action-error-modal'),
       actionErrorMessage: document.getElementById('action-error-message'),
       actionErrorCloseBtn: document.getElementById('action-error-close-btn'),
-      actionErrorOkBtn: document.getElementById('action-error-ok-btn')
+      actionErrorOkBtn: document.getElementById('action-error-ok-btn'),
+
+      // Match won modal elements
+      matchWonModal: document.getElementById('match-won-modal'),
+      matchWonTitle: document.getElementById('match-won-title'),
+      matchWonSubtitle: document.getElementById('match-won-subtitle'),
+      matchWonImage: document.getElementById('match-won-image'),
+      matchWonName: document.getElementById('match-won-name'),
+      matchWonPrize: document.getElementById('match-won-prize'),
+      matchWonCloseBtn: document.getElementById('match-won-close-btn'),
+      matchWonOkBtn: document.getElementById('match-won-ok-btn')
     };
 
     // Listen for spell play events
@@ -125,6 +138,11 @@ export class UIManager {
       this.showAdventureSolvedModal(adventure, rewardDescription, solverId);
     });
 
+    // Listen for match won events
+    this.engine.onMatchWon((winnerId, matchCard) => {
+      this.showMatchWonModal(winnerId, matchCard);
+    });
+
     // Listen for action error events
     this.engine.onActionError((message, playerId) => {
       if (playerId === 'player' || this.engine.isDebugMode) {
@@ -146,6 +164,14 @@ export class UIManager {
     }
     if (this.el.adventureSolvedOkBtn) {
       this.el.adventureSolvedOkBtn.addEventListener('click', () => this.closeAdventureSolvedModal());
+    }
+
+    // Setup close listeners for match-won-modal
+    if (this.el.matchWonCloseBtn) {
+      this.el.matchWonCloseBtn.addEventListener('click', () => this.closeMatchWonModal());
+    }
+    if (this.el.matchWonOkBtn) {
+      this.el.matchWonOkBtn.addEventListener('click', () => this.closeMatchWonModal());
     }
 
     // Setup close listeners for action-error-modal
@@ -352,6 +378,15 @@ export class UIManager {
         return;
       }
 
+      // 0. Check if there is an active adventure on AI's side that can be solved
+      const solvableAdventure = opponent.adventures.find(a => this.engine.canSolveAdventure('opponent', a));
+      if (solvableAdventure) {
+        this.engine.log(`Rival chooses to solve adventure: ${solvableAdventure.name}`);
+        this.engine.solveAdventure('opponent', solvableAdventure.instanceId);
+        setTimeout(() => tryPlayAI(new Set()), 1200);
+        return;
+      }
+
       // 1. Look for a Lesson to play first
       const lesson = opponent.hand.find(c => c.type === 'Lesson' && !triedInstanceIds.has(c.instanceId));
       if (lesson) {
@@ -406,13 +441,28 @@ export class UIManager {
 
     if (!player || !opponent) return;
 
+    // Enable/Disable top action buttons based on active player turn
+    const isHumanTurn = this.engine.activePlayerId === 'player' || this.engine.isDebugMode;
+    if (this.el.btnDraw) {
+      this.el.btnDraw.disabled = !isHumanTurn;
+      this.el.btnDraw.style.opacity = isHumanTurn ? '' : '0.5';
+      this.el.btnDraw.style.pointerEvents = isHumanTurn ? '' : 'none';
+    }
+    if (this.el.btnEndTurn) {
+      this.el.btnEndTurn.disabled = !isHumanTurn;
+      this.el.btnEndTurn.style.opacity = isHumanTurn ? '' : '0.5';
+      this.el.btnEndTurn.style.pointerEvents = isHumanTurn ? '' : 'none';
+    }
+
     // Check Turn Transition for Dim Screen Animation
     const activePlayerId = this.engine.activePlayerId;
     const turnNumber = this.engine.turnNumber;
     if (this.lastActivePlayerId !== activePlayerId || this.lastTurnNumber !== turnNumber) {
       this.lastActivePlayerId = activePlayerId;
       this.lastTurnNumber = turnNumber;
-      this.triggerTurnAnnouncement(activePlayerId);
+      if (!this.isInitialTurnAnnouncementDelayed) {
+        this.triggerTurnAnnouncement(activePlayerId);
+      }
     }
 
     // Render Hands
@@ -430,6 +480,7 @@ export class UIManager {
     this.renderZone(this.el.playerCreatures, player.creatures);
     this.renderZone(this.el.playerItems, player.items);
     this.renderZone(this.el.playerAdventures, player.adventures);
+    this.renderZone(this.el.playerMatches, player.matches);
     
     this.renderZone(this.el.opponentCharacter, opponent.characters);
     if (this.engine.isDebugMode) {
@@ -440,6 +491,7 @@ export class UIManager {
     this.renderZone(this.el.opponentCreatures, opponent.creatures);
     this.renderZone(this.el.opponentItems, opponent.items);
     this.renderZone(this.el.opponentAdventures, opponent.adventures);
+    this.renderZone(this.el.opponentMatches, opponent.matches);
 
     // Update Decks & Discard Counts
     if (this.el.playerDeckCount) this.el.playerDeckCount.innerText = player.deck.length;
@@ -529,6 +581,170 @@ export class UIManager {
     }, 1000);
   }
 
+  triggerCoinToss(callback) {
+    const overlay = document.createElement('div');
+    overlay.className = 'coin-toss-overlay';
+
+    const container = document.createElement('div');
+    container.className = 'coin-toss-container';
+
+    const title = document.createElement('h2');
+    title.className = 'coin-toss-title';
+    title.innerText = 'Starting Coin Toss';
+
+    const subtitle = document.createElement('p');
+    subtitle.className = 'coin-toss-subtitle';
+    subtitle.innerText = 'Call Heads or Tails to determine who goes first!';
+
+    const coinWrapper = document.createElement('div');
+    coinWrapper.className = 'coin-wrapper';
+
+    const coin = document.createElement('div');
+    coin.className = 'coin';
+
+    const coinHeads = document.createElement('div');
+    coinHeads.className = 'coin-face heads';
+    coinHeads.innerHTML = `
+      <div class="coin-emblem">
+        <span class="coin-emblem-text">H</span>
+        <span class="coin-emblem-sub">Heads</span>
+      </div>
+    `;
+
+    const coinTails = document.createElement('div');
+    coinTails.className = 'coin-face tails';
+    coinTails.innerHTML = `
+      <div class="coin-emblem">
+        <span class="coin-emblem-text">T</span>
+        <span class="coin-emblem-sub">Tails</span>
+      </div>
+    `;
+
+    coin.appendChild(coinHeads);
+    coin.appendChild(coinTails);
+    coinWrapper.appendChild(coin);
+
+    const choicesContainer = document.createElement('div');
+    choicesContainer.className = 'coin-choices';
+
+    const btnHeads = document.createElement('button');
+    btnHeads.className = 'btn-coin-choice';
+    btnHeads.innerText = 'Heads';
+
+    const btnTails = document.createElement('button');
+    btnTails.className = 'btn-coin-choice';
+    btnTails.innerText = 'Tails';
+
+    choicesContainer.appendChild(btnHeads);
+    choicesContainer.appendChild(btnTails);
+
+    container.appendChild(title);
+    container.appendChild(subtitle);
+    container.appendChild(coinWrapper);
+    container.appendChild(choicesContainer);
+    overlay.appendChild(container);
+    document.body.appendChild(overlay);
+
+    const handleChoice = (calledChoice) => {
+      // Hide buttons
+      choicesContainer.style.display = 'none';
+      subtitle.innerText = `You called ${calledChoice.toUpperCase()}. Flipping the galleon...`;
+
+      // Determine result
+      const isHeads = Math.random() < 0.5;
+      const tossResult = isHeads ? 'heads' : 'tails';
+      const playerWon = calledChoice === tossResult;
+      const startingPlayerId = playerWon ? 'player' : 'opponent';
+
+      // Apply animation class
+      coin.className = 'coin'; // reset
+      void coin.offsetWidth; // force reflow
+      coin.classList.add(isHeads ? 'flip-to-heads' : 'flip-to-tails');
+
+      // Wait for animation to finish (2 seconds)
+      setTimeout(() => {
+        const resultBox = document.createElement('div');
+        resultBox.className = 'coin-toss-result-box';
+
+        const resultText = document.createElement('div');
+        resultText.className = 'coin-toss-result-text';
+        if (playerWon) {
+          resultText.innerText = `${isHeads ? 'Heads' : 'Tails'}! You won the toss and go first.`;
+          resultText.style.color = '#ffd700';
+        } else {
+          resultText.innerText = `${isHeads ? 'Heads' : 'Tails'}! You lost the toss. Rival goes first.`;
+          resultText.style.color = '#ff4d4d';
+        }
+
+        const btnContinue = document.createElement('button');
+        btnContinue.className = 'btn-coin-choice';
+        btnContinue.innerText = 'Enter the Match';
+        btnContinue.addEventListener('click', () => {
+          overlay.style.opacity = '0';
+          setTimeout(() => {
+            if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+            callback(startingPlayerId);
+          }, 500);
+        });
+
+        resultBox.appendChild(resultText);
+        resultBox.appendChild(btnContinue);
+        container.appendChild(resultBox);
+
+        // Animate result box in
+        setTimeout(() => {
+          resultBox.classList.add('visible');
+        }, 50);
+      }, 2000);
+    };
+
+    btnHeads.addEventListener('click', () => handleChoice('heads'));
+    btnTails.addEventListener('click', () => handleChoice('tails'));
+  }
+
+  triggerGameStartAnnouncement(startingPlayerId) {
+    const overlay = document.createElement('div');
+    overlay.className = 'game-start-overlay';
+
+    const content = document.createElement('div');
+    content.className = 'game-start-content';
+
+    const title = document.createElement('h1');
+    title.className = 'game-start-title';
+    title.innerText = 'GAME INITIALIZED';
+
+    const subtitle = document.createElement('p');
+    subtitle.className = 'game-start-subtitle';
+    subtitle.innerText = 'Shuffling decks and drawing starting hands...';
+
+    const loader = document.createElement('div');
+    loader.className = 'magical-loader';
+
+    content.appendChild(title);
+    content.appendChild(loader);
+    content.appendChild(subtitle);
+    overlay.appendChild(content);
+    document.body.appendChild(overlay);
+
+    // Keep it on screen for 2 seconds
+    setTimeout(() => {
+      overlay.style.opacity = '0';
+      setTimeout(() => {
+        if (overlay.parentNode) {
+          overlay.parentNode.removeChild(overlay);
+        }
+        // Once the Game Initialized modal is completely gone, trigger the first turn announcement!
+        this.isInitialTurnAnnouncementDelayed = false;
+        this.triggerTurnAnnouncement(startingPlayerId);
+        
+        // If opponent goes first and NOT in debug mode, start AI simulation
+        if (startingPlayerId === 'opponent' && !this.engine.isDebugMode) {
+          setTimeout(() => this.runOpponentTurnSimulation(), 1200);
+        }
+      }, 500);
+    }, 2000);
+  }
+
   triggerShuffleAnnouncement(playerId) {
     const gameContainer = document.getElementById('game-container');
     if (gameContainer && gameContainer.classList.contains('hidden')) {
@@ -609,7 +825,26 @@ export class UIManager {
     if (!container) return;
     container.innerHTML = '';
 
-    hand.forEach(card => {
+    let handToRender = [...hand];
+    if (this.engine.isDebugMode) {
+      const typePriority = {
+        'Spell': 1,
+        'Adventure': 2,
+        'Creature': 3,
+        'Item': 4,
+        'Match': 5,
+        'Character': 6,
+        'Lesson': 7
+      };
+      handToRender.sort((a, b) => {
+        const pA = typePriority[a.type] || 99;
+        const pB = typePriority[b.type] || 99;
+        if (pA !== pB) return pA - pB;
+        return a.name.localeCompare(b.name);
+      });
+    }
+
+    handToRender.forEach(card => {
       const cardEl = this.createCardElement(card, true);
       if (isInteractive) {
         // Single click to preview modal (with play button)
@@ -695,6 +930,35 @@ export class UIManager {
     return totalDmg;
   }
 
+  getLessonsTallyString(playerId) {
+    const player = this.engine.players[playerId];
+    if (!player) return '';
+    const counts = player.lessonCounts.counts;
+    
+    const abbreviationMap = {
+      'Care of Magical Creatures': 'CoM',
+      'Potions': 'P',
+      'Charms': 'Cha',
+      'Transfiguration': 'T',
+      'Transfigurations': 'T',
+      'Quidditch': 'Q'
+    };
+
+    const parts = [];
+    const order = ['Care of Magical Creatures', 'Potions', 'Charms', 'Transfiguration', 'Quidditch'];
+    
+    order.forEach(type => {
+      const count = counts[type] || 0;
+      if (count > 0) {
+        const abbr = abbreviationMap[type] || type;
+        parts.push(`${abbr}:${count}`);
+      }
+    });
+
+    if (parts.length === 0) return '';
+    return `[${parts.join(', ')}]`;
+  }
+
   // Render cards in board zones
   renderZone(container, cards) {
     if (!container) return;
@@ -722,13 +986,26 @@ export class UIManager {
       } else {
         // Reset label for other zones to their default
         if (container === this.el.playerLessons || container === this.el.opponentLessons) {
-          label.innerHTML = 'Lessons';
+          const playerId = container === this.el.playerLessons ? 'player' : 'opponent';
+          const tallyStr = this.getLessonsTallyString(playerId);
+          label.innerHTML = `Lessons <span class="lessons-tally" style="color: var(--accent-gold); font-weight: bold; margin-left: 8px;">${tallyStr}</span>`;
         } else if (container === this.el.playerCharacter || container === this.el.opponentCharacter) {
           label.innerHTML = 'Wizard / Witch';
         } else if (container === this.el.playerItems || container === this.el.opponentItems) {
           label.innerHTML = 'Items';
         } else if (container === this.el.playerAdventures || container === this.el.opponentAdventures) {
           label.innerHTML = 'Adventure';
+        } else if (container === this.el.playerMatches || container === this.el.opponentMatches) {
+          const activeMatch = this.engine.players.player.matches[0] || this.engine.players.opponent.matches[0];
+          if (activeMatch) {
+            const toWinMatch = activeMatch.text.match(/Do (\d+) damage/i);
+            const targetDamage = toWinMatch ? parseInt(toWinMatch[1], 10) : 10;
+            const sidePlayerId = container === this.el.playerMatches ? 'player' : 'opponent';
+            const progress = this.engine.players[sidePlayerId].matchDamageDealt || 0;
+            label.innerHTML = `Match <span style="color: var(--accent-gold); font-weight: bold; margin-left: 8px;">(${progress}/${targetDamage} DMG)</span>`;
+          } else {
+            label.innerHTML = 'Match';
+          }
         }
       }
       container.appendChild(label);
@@ -785,7 +1062,11 @@ export class UIManager {
 
     const label = container.querySelector('.zone-label');
     container.innerHTML = '';
-    if (label) container.appendChild(label);
+    if (label) {
+      const tallyStr = this.getLessonsTallyString(player.id);
+      label.innerHTML = `Lessons <span class="lessons-tally" style="color: var(--accent-gold); font-weight: bold; margin-left: 8px;">${tallyStr}</span>`;
+      container.appendChild(label);
+    }
 
     const counts = player.lessonCounts.counts;
 
@@ -885,7 +1166,7 @@ export class UIManager {
       el.setAttribute('data-lesson-type', lessonType);
     }
 
-    if (card.type === 'Adventure' && !isHand) {
+    if ((card.type === 'Adventure' || card.type === 'Match') && !isHand) {
       el.classList.add('card-horizontal');
     }
 
@@ -969,7 +1250,8 @@ export class UIManager {
              engine.players.player.creatures.some(c => c.instanceId === card.instanceId) ||
              engine.players.player.characters.some(c => c.instanceId === card.instanceId) ||
              engine.players.player.items.some(c => c.instanceId === card.instanceId) ||
-             engine.players.player.adventures.some(c => c.instanceId === card.instanceId)) { cardOwner = 'player'; cardZone = 'field'; }
+             engine.players.player.adventures.some(c => c.instanceId === card.instanceId) ||
+             engine.players.player.matches.some(c => c.instanceId === card.instanceId)) { cardOwner = 'player'; cardZone = 'field'; }
              
     if (!cardZone) {
       if (engine.players.opponent.hand.some(c => c.instanceId === card.instanceId)) { cardOwner = 'opponent'; cardZone = 'hand'; }
@@ -979,7 +1261,8 @@ export class UIManager {
                engine.players.opponent.creatures.some(c => c.instanceId === card.instanceId) ||
                engine.players.opponent.characters.some(c => c.instanceId === card.instanceId) ||
                engine.players.opponent.items.some(c => c.instanceId === card.instanceId) ||
-               engine.players.opponent.adventures.some(c => c.instanceId === card.instanceId)) { cardOwner = 'opponent'; cardZone = 'field'; }
+               engine.players.opponent.adventures.some(c => c.instanceId === card.instanceId) ||
+               engine.players.opponent.matches.some(c => c.instanceId === card.instanceId)) { cardOwner = 'opponent'; cardZone = 'field'; }
     }
 
     this.el.modalCardImage.src = card.image || '';
@@ -987,7 +1270,7 @@ export class UIManager {
 
     // Determine orientation based on card type or field state
     let isHorizontal = false;
-    if (card.type === 'Lesson' || card.type === 'Adventure' || card.type === 'Character' || card.type === 'Creature') {
+    if (card.type === 'Lesson' || card.type === 'Adventure' || card.type === 'Character' || card.type === 'Creature' || card.type === 'Match') {
       isHorizontal = true;
     }
     if (cardEl) {
@@ -1023,7 +1306,7 @@ export class UIManager {
 
       // Adventure progress display (field multi-turn adventures)
       if (cardZone === 'field' && card.type === 'Adventure') {
-        const isSkipAdventure = card.name === "Gringotts' Cart Ride" || card.name === "Diagon Alley" || card.name === "Peeves Causes Trouble";
+        const isSkipAdventure = card.name === "Gringotts' Cart Ride" || card.name === "Diagon Alley" || card.name === "Peeves Causes Trouble" || card.name === "Into the Forbidden Forest";
         if (isSkipAdventure) {
           const targetSkips = card.name === "Diagon Alley" ? 7 : 5;
           const currentSkips = card.skipCount || 0;
@@ -1097,7 +1380,7 @@ export class UIManager {
         if (card.type === 'Adventure' && this.engine.canSolveAdventure(ownerId, card)) {
           const btnSolve = document.createElement('button');
           btnSolve.className = 'btn';
-          const isSkipAdventure = card.name === "Gringotts' Cart Ride" || card.name === "Diagon Alley" || card.name === "Peeves Causes Trouble";
+          const isSkipAdventure = card.name === "Gringotts' Cart Ride" || card.name === "Diagon Alley" || card.name === "Peeves Causes Trouble" || card.name === "Into the Forbidden Forest";
           btnSolve.innerText = isSkipAdventure ? 'Work on Adventure' : 'Solve Adventure';
           btnSolve.style.width = '200px';
           btnSolve.addEventListener('click', () => {
@@ -1198,6 +1481,32 @@ export class UIManager {
           ownButtonsRow.appendChild(btnInstSolve);
         }
 
+        if (card.type === 'Match') {
+          const btnInstWinPlayer = document.createElement('button');
+          btnInstWinPlayer.className = 'btn btn-secondary';
+          btnInstWinPlayer.style.borderColor = '#ff4d4d';
+          btnInstWinPlayer.innerText = 'Instantly Win (You)';
+          btnInstWinPlayer.style.fontSize = '0.85rem';
+          btnInstWinPlayer.style.padding = '6px 12px';
+          btnInstWinPlayer.addEventListener('click', () => {
+            this.engine.debugWinMatch('player', card.instanceId);
+            this.closePreviewModal();
+          });
+          ownButtonsRow.appendChild(btnInstWinPlayer);
+
+          const btnInstWinOpp = document.createElement('button');
+          btnInstWinOpp.className = 'btn btn-secondary';
+          btnInstWinOpp.style.borderColor = '#ff4d4d';
+          btnInstWinOpp.innerText = 'Instantly Win (Rival)';
+          btnInstWinOpp.style.fontSize = '0.85rem';
+          btnInstWinOpp.style.padding = '6px 12px';
+          btnInstWinOpp.addEventListener('click', () => {
+            this.engine.debugWinMatch('opponent', card.instanceId);
+            this.closePreviewModal();
+          });
+          ownButtonsRow.appendChild(btnInstWinOpp);
+        }
+
         if (cardZone === 'field' && card.type === 'Creature') {
           const btnDeductHealth = document.createElement('button');
           btnDeductHealth.className = 'btn btn-secondary';
@@ -1272,6 +1581,30 @@ export class UIManager {
   closeAdventureSolvedModal() {
     if (this.el.adventureSolvedModal) {
       this.el.adventureSolvedModal.close();
+    }
+  }
+
+  showMatchWonModal(winnerId, matchCard) {
+    if (this.el.matchWonModal) {
+      const winnerName = this.engine.players[winnerId].name;
+      if (winnerId === 'player') {
+        this.el.matchWonTitle.innerText = "Match Won!";
+        this.el.matchWonSubtitle.innerText = "You won the Match!";
+      } else {
+        this.el.matchWonTitle.innerText = "Rival Won Match!";
+        this.el.matchWonSubtitle.innerText = "Your rival won the Match!";
+      }
+      this.el.matchWonImage.src = matchCard.image || '';
+      this.el.matchWonImage.alt = matchCard.name;
+      this.el.matchWonName.innerText = matchCard.name;
+      this.el.matchWonPrize.innerText = matchCard.prize || 'No prize specified';
+      this.el.matchWonModal.showModal();
+    }
+  }
+
+  closeMatchWonModal() {
+    if (this.el.matchWonModal) {
+      this.el.matchWonModal.close();
     }
   }
 

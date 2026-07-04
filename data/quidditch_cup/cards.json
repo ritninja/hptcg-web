@@ -1,0 +1,1591 @@
+{
+    "setName": "Quidditch Cup",
+    "releaseDate": "11-2001",
+    "totalCards": "76",
+    "cards": [
+        {
+            "Legality": "legal",
+            "draftValue": 3,
+            "number": "1",
+            "name": "Bludger",
+            "artist": "Tim Hildebrandt",
+            "type": [
+                "Item"
+            ],
+            "lesson": [
+                "Quidditch"
+            ],
+            "cost": "4",
+            "rarity": "Rare",
+            "effect": [
+                "Before each of your turns, Bludger does 3 damage to your opponent if a match is in play. (If there isn't a Match in play, Bludger does no damage.)"
+            ],
+            "image": "assets/images/cards/quidditch_cup/1_Bludger.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 4,
+            "number": "2",
+            "name": "Catch the Snitch",
+            "artist": "James Bernardin",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Quidditch"
+            ],
+            "cost": "7",
+            "rarity": "Rare",
+            "flavorText": "Harry had suddenly gone into a spectacular dive, which drew gasps and cheers from the crowd.'",
+            "effect": [
+                "You win the current Match. (You get the Prize.)"
+            ],
+            "image": "assets/images/cards/quidditch_cup/2_Catch the Snitch .png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 2,
+            "number": "3",
+            "name": "Charms Exam",
+            "artist": "Keith Garletts",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Charms"
+            ],
+            "cost": "7",
+            "rarity": "Rare",
+            "flavorText": "Professor Flitwick called them one by one into his class to see if they could make a pineapple tap-dance across a desk.'",
+            "effect": [
+                "Your opponent discards his or her hand. Then he or she may draw any number of cards."
+            ],
+            "image": "assets/images/cards/quidditch_cup/3_Charms Exam .png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 4.5,
+            "number": "4",
+            "name": "Fluffy",
+            "artist": "Kevin McCann, Michael Collins",
+            "type": [
+                "Creature"
+            ],
+            "subTypes": [
+                "Dog",
+                "Unique"
+            ],
+            "lesson": [
+                "Care of Magical Creatures"
+            ],
+            "cost": "10",
+            "rarity": "Rare",
+            "flavorText": "As the door creaked, low, rumbling growls met their ears. All three of the dog's noses sniffed madly in their direction...'",
+            "dmgEachTurn": "12",
+            "health": "21",
+            "effect": [
+                "To play this card, discard 2 of your [F] Lessons from play."
+            ],
+            "image": "assets/images/cards/quidditch_cup/4_Fluffy .png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 5,
+            "number": "5",
+            "name": "Fred & George Weasley",
+            "artist": "Jon Foster",
+            "type": [
+                "Character"
+            ],
+            "subTypes": [
+                "Wizard",
+                "Gryffindor",
+                "Unique"
+            ],
+            "rarity": "Rare",
+            "effect": [
+                "You may use 1 Action (instead of 2) to put an Adventure card from your hand into play, even if you already have one in play. If you already had one in play, discard the old one. (Nobody gets the reward.)"
+            ],
+            "image": "assets/images/cards/quidditch_cup/5_Fred & George Weasley .png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 3,
+            "number": "6",
+            "name": "Gaze into the Mirror",
+            "artist": "Jim Nelson",
+            "type": [
+                "Adventure"
+            ],
+            "rarity": "Rare",
+            "flavorText": "Harry was so close to the mirror now that his nose was nearly touching that of his reflection. 'Mum?' he whispered. 'Dad?''",
+            "effect": [
+                "During your opponent's turns, prevent all Spells damage done to you by Spell cards.",
+                "to solve: Your opponent chooses 5 Spell cards in his or her hand and discards them.",
+                "reward: Your opponent gets 1 more Action (the turn this adventure is solved)."
+            ],
+            "toSolve": "Your opponent chooses 5 Spell cards in his or her hand and discards them.",
+            "reward": "Your opponent gets 1 more Action (the turn this adventure is solved).",
+            "image": "assets/images/cards/quidditch_cup/6_Gaze into the Mirror .png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 2,
+            "number": "7",
+            "name": "Golden Cauldron",
+            "artist": "Bob Petillo",
+            "type": [
+                "Item"
+            ],
+            "subTypes": [
+                "Cauldron"
+            ],
+            "lesson": [
+                "Potions"
+            ],
+            "cost": "9",
+            "rarity": "Rare",
+            "effect": [
+                "To play this card, return 2 of your [P] Lessons from play to your hand."
+            ],
+            "provides": [
+                {
+                    "lesson": "Potions",
+                    "amount": 5
+                }
+            ],
+            "image": "assets/images/cards/quidditch_cup/7_Golden Cauldron.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 2.5,
+            "number": "8",
+            "name": "Golden Snitch",
+            "artist": "Keith Garletts",
+            "type": [
+                "Item"
+            ],
+            "lesson": [
+                "Quidditch"
+            ],
+            "cost": "11",
+            "rarity": "Rare",
+            "effect": [
+                "At the end of your opponent's turn, you win the game unless your opponent has at least 10 more cards in his or her deck than you do. (If he or she does, your opponent wins the game instead.)"
+            ],
+            "image": "assets/images/cards/quidditch_cup/8_Golden Snitch.png"
+        },
+        {
+            "Legality": "banned",
+            "draftValue": 5,
+            "number": "9",
+            "name": "Hagrid Needs Help",
+            "artist": "Patrick Faricy",
+            "type": [
+                "Adventure"
+            ],
+            "rarity": "Rare",
+            "effect": [
+                "Your opponent gets 1 fewer Action on each of his or her turns (even the turn this Adventure is solved). (If this would mean your opponent has fewer than 1 Action, he or she still gets 1 Action.)",
+                "to solve: Your opponent takes 8 damage.",
+                "reward: Your opponent may draw 3 cards."
+            ],
+            "toSolve": "Your opponent takes 8 damage.",
+            "reward": "Your opponent may draw 3 cards.",
+            "image": "assets/images/cards/quidditch_cup/9_Hagrid Needs Help.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 5,
+            "number": "10",
+            "name": "Halloween Feast",
+            "artist": "James Bernardin",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Charms"
+            ],
+            "cost": "4",
+            "rarity": "Rare",
+            "flavorText": "A thousand live bats fluttered from the walls and ceilings while a thousand more swooped over the tables in low black clouds, making the candles in the pumpkins stutter.'",
+            "effect": [
+                "Put up to 4 Creature cards from your discard pile into your hand."
+            ],
+            "image": "assets/images/cards/quidditch_cup/10_Halloween Feast.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 3,
+            "number": "11",
+            "name": "Harry the Seeker",
+            "artist": "Scott M. Fischer",
+            "type": [
+                "Character"
+            ],
+            "subTypes": [
+                "Wizard",
+                "Gryffindor",
+                "Seeker",
+                "Unique"
+            ],
+            "rarity": "Rare",
+            "flavorText": "Harry saw it. In a great rush of excitement he dived downwards after the streak of gold.'",
+            "effect": [
+                "Once during each of your turns, when you use an Action to play a [Q] Lesson, you may draw a card."
+            ],
+            "image": "assets/images/cards/quidditch_cup/11_Harry the Seeker.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 2.5,
+            "number": "12",
+            "name": "Hospital Bed",
+            "artist": "Patrick Faricy",
+            "type": [
+                "Item"
+            ],
+            "lesson": [
+                "Potions"
+            ],
+            "cost": "9",
+            "rarity": "Rare",
+            "effect": [
+                "You may use an Action to search your deck. You may take a Healing card, show it to your opponent and put it into your hand. Then shuffle your deck."
+            ],
+            "image": "assets/images/cards/quidditch_cup/12_Hospital Bed.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 4,
+            "number": "13",
+            "name": "Madam Rolanda Hooch",
+            "artist": "Tony Szczudlo",
+            "type": [
+                "Character"
+            ],
+            "subTypes": [
+                "Witch",
+                "Unique"
+            ],
+            "rarity": "Rare",
+            "flavorText": "Their teacher, Madam Hooch, arrived. She had short, grey hair and yellow eyes like a hawk.'",
+            "effect": [
+                "Once per game, you may search your deck. When you do, you may take a Broom card from your deck, show it to your opponent and put it into your hand. Then shuffle your deck."
+            ],
+            "provides": [
+                {
+                    "lesson": "Quidditch",
+                    "amount": 1
+                }
+            ],
+            "image": "assets/images/cards/quidditch_cup/13_Madam Rolanda Hooch.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 3,
+            "number": "14",
+            "name": "Marcus Flint",
+            "artist": "David A. Roach",
+            "type": [
+                "Character"
+            ],
+            "subTypes": [
+                "Wizard",
+                "Slytherin",
+                "Chaser",
+                "Unique"
+            ],
+            "rarity": "Rare",
+            "flavorText": "... Slytherin captain Marcus Flint gains the Quaffle and off he goes  Flint flying like an eagle up there...' - Lee Jordan, Commentator",
+            "effect": [
+                "Once per game, you may make your opponent choose 3 cards in his or her hand and discard them. (If there are fewer than 3 cards in your opponent's hand, he or she discards them all.)"
+            ],
+            "image": "assets/images/cards/quidditch_cup/14_Marcus Flint.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 4.5,
+            "number": "15",
+            "name": "Neville Longbottom",
+            "artist": "Ken Steacy, Zina Saunders",
+            "type": [
+                "Character"
+            ],
+            "subTypes": [
+                "Wizard",
+                "Gryffindor",
+                "Unique"
+            ],
+            "rarity": "Rare",
+            "flavorText": "Neville went bright red but turned in his seat to face Malfoy. 'I'm worth twelve of you, Malfoy,' he stammered.'",
+            "effect": [
+                "You may prevent all but the first 8 damage done to you each turn."
+            ],
+            "image": "assets/images/cards/quidditch_cup/15_Neville Longbottom.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 3.5,
+            "number": "16",
+            "name": "Nimbus Two Thousand",
+            "artist": "Mark Romanoski",
+            "type": [
+                "Item"
+            ],
+            "subTypes": [
+                "Broom"
+            ],
+            "lesson": [
+                "Quidditch"
+            ],
+            "cost": "7",
+            "rarity": "Rare",
+            "effect": [
+                "Whenever 1 of your Item or Spell cards that needs [Q] Power does damage, it does 2 more damage. If you play this card, and you already have a Broom in play, discard the old one."
+            ],
+            "provides": [
+                {
+                    "lesson": "Quidditch",
+                    "amount": 1
+                }
+            ],
+            "image": "assets/images/cards/quidditch_cup/16_Nimbus Two Thousand.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 2.5,
+            "number": "17",
+            "name": "No Time to Play",
+            "artist": "Michael Koelsch",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Transfiguration"
+            ],
+            "cost": "4",
+            "rarity": "Rare",
+            "effect": [
+                "Discard all Matches and Items that need [Q] Power from play (even your own). (If a match is discarded, no one gets the prize.)"
+            ],
+            "image": "assets/images/cards/quidditch_cup/17_No Time to Play.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 3.5,
+            "number": "18",
+            "name": "Oliver Wood",
+            "artist": "Kevin McCann, Michael Collins",
+            "type": [
+                "Character"
+            ],
+            "subTypes": [
+                "Wizard",
+                "Gryffindor",
+                "Keeper",
+                "Unique"
+            ],
+            "rarity": "Rare",
+            "flavorText": "That Quidditch Cup'll have our name on it this year,' said Wood happily as they drudged back up to the castle.'",
+            "effect": [
+                "Once per game, when 1 of your Spell cards that needs [Q] Power does damage, you may have it do 8 more damage."
+            ],
+            "image": "assets/images/cards/quidditch_cup/18_Oliver Wood.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 4,
+            "number": "19",
+            "name": "Out of Control",
+            "artist": "Jeff Laubenstein",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Quidditch"
+            ],
+            "cost": "10",
+            "rarity": "Rare",
+            "effect": [
+                "Do 6 damage to your opponent. Then your opponent chooses 4 cards in his or her hand and discards them. (If there are fewer than 4 cards in your opponent's hand, he or she discards them all.)"
+            ],
+            "image": "assets/images/cards/quidditch_cup/19_Out of Control.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 2,
+            "number": "20",
+            "name": "Potions Class Disaster",
+            "artist": "Alex Horley",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Potions"
+            ],
+            "cost": "12",
+            "rarity": "Rare",
+            "effect": [
+                "Your opponent chooses 5 of his or her cards and discards them. Those cards can come from his or her hand or from play or from both. (If there are fewer than 5 total cards in your opponent's hand and in play, he or she discards them all.)"
+            ],
+            "image": "assets/images/cards/quidditch_cup/20_Potions Class Disaster.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 5,
+            "number": "21",
+            "name": "Prof. Minerva McGonagall",
+            "artist": "Scott M. Fischer",
+            "type": [
+                "Character"
+            ],
+            "subTypes": [
+                "Witch",
+                "Gryffindor",
+                "Unique"
+            ],
+            "rarity": "Rare",
+            "effect": [
+                "Once per game, you may discard the Adventure your opponent has played. (You don't get the reward.)"
+            ],
+            "provides": [
+                {
+                    "lesson": "Transfiguration",
+                    "amount": 1
+                }
+            ],
+            "image": "assets/images/cards/quidditch_cup/21_Prof. Minerva McGonagall.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 2,
+            "number": "22",
+            "name": "Put-Outer",
+            "artist": "Patrick Faricy",
+            "type": [
+                "Item"
+            ],
+            "lesson": [
+                "Transfiguration"
+            ],
+            "cost": "4",
+            "rarity": "Rare",
+            "effect": [
+                "You may use 2 Actions to choose 1 of your opponent's cards in play (other than his or her starting Character) and return it to his or her hand."
+            ],
+            "image": "assets/images/cards/quidditch_cup/22_Put-Outer.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 2.5,
+            "number": "23",
+            "name": "Ravenclaw Match",
+            "artist": "Ben Thompson",
+            "type": [
+                "Match"
+            ],
+            "lesson": [
+                "Quidditch"
+            ],
+            "cost": "1",
+            "rarity": "Rare",
+            "effect": [
+                "to win: Do 10 damage to your opponent while this card is in play. (That damage doesn't have to be done all at once.)",
+                "prize: The winner searches his or her deck. He or she may take up to 2 Lesson cards from his or her deck and put them into play. Then that player shuffles his or her deck."
+            ],
+            "toWin": "Do 10 damage to your opponent while this card is in play. (That damage doesn't have to be done all at once.)",
+            "prize": "The winner searches his or her deck. He or she may take up to 2 Lesson cards from his or her deck and put them into play. Then that player shuffles his or her deck.",
+            "image": "assets/images/cards/quidditch_cup/23_Ravenclaw Match.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 3,
+            "number": "24",
+            "name": "Scabbers",
+            "artist": "Patrick Faricy",
+            "type": [
+                "Creature"
+            ],
+            "subTypes": [
+                "Rat",
+                "Unique"
+            ],
+            "lesson": [
+                "Care of Magical Creatures"
+            ],
+            "cost": "4",
+            "rarity": "Rare",
+            "flavorText": "The rat was still snoozing on Ron's lap. 'He might have died and you wouldn't know the difference,' said Ron in disgust.'",
+            "dmgEachTurn": "1",
+            "health": "3",
+            "effect": [
+                "If Scabbers is discarded from play during your opponent's turn, put it into your hand."
+            ],
+            "image": "assets/images/cards/quidditch_cup/24_Scabbers.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 5,
+            "number": "25",
+            "name": "Seamus Finnigan",
+            "artist": "Ken Steacy, Zina Saunders",
+            "type": [
+                "Character"
+            ],
+            "subTypes": [
+                "Wizard",
+                "Gryffindor",
+                "Unique"
+            ],
+            "rarity": "Rare",
+            "flavorText": "The rat was still snoozing on Ron's lap. 'He might have died and you wouldn't know the difference,' said Ron in disgust.'",
+            "effect": [
+                "Once during each of your turns, you may discard 2 cards from your hand to get 1 more Action."
+            ],
+            "image": "assets/images/cards/quidditch_cup/25_Seamus Finnigan.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 3,
+            "number": "26",
+            "name": "Slytherin Match",
+            "artist": "Ben Thompson",
+            "type": [
+                "Match"
+            ],
+            "subTypes": [
+                "Healing"
+            ],
+            "lesson": [
+                "Quidditch"
+            ],
+            "cost": "1",
+            "rarity": "Rare",
+            "effect": [
+                "to win: Do 15 damage to your opponent while this card is in play (That damage doesn't have to be done all at once.)",
+                "prize: The winner may shuffle up to 15 non-Healing cards from his or her discard pile into his or her deck."
+            ],
+            "toWin": "Do 15 damage to your opponent while this card is in play (That damage doesn't have to be done all at once.)",
+            "prize": "The winner may shuffle up to 15 non-Healing cards from his or her discard pile into his or her deck.",
+            "image": "assets/images/cards/quidditch_cup/26_Slytherin Match.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 5,
+            "number": "27",
+            "name": "Start-of-Term Feast",
+            "artist": "James Bernardin",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Charms"
+            ],
+            "cost": "4",
+            "rarity": "Rare",
+            "effect": [
+                "Put up to 4 Lesson cards from your discard pile into your hand."
+            ],
+            "image": "assets/images/cards/quidditch_cup/27_Start-of-Term Feast.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 3.5,
+            "number": "28",
+            "name": "Support Banner",
+            "artist": "Michael Koelsch",
+            "type": [
+                "Item"
+            ],
+            "lesson": [
+                "Quidditch"
+            ],
+            "cost": "5",
+            "rarity": "Rare",
+            "effect": [
+                "At the end of your turn, draw a card if you played at least 1 Spell card that needs [Q] Power that turn."
+            ],
+            "image": "assets/images/cards/quidditch_cup/28_Support Banner.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 2,
+            "number": "29",
+            "name": "The Sorting Hat",
+            "artist": "Kevin Dobler",
+            "type": [
+                "Item"
+            ],
+            "lesson": [
+                "Transfiguration"
+            ],
+            "cost": "8",
+            "rarity": "Rare",
+            "effect": [
+                "You may use 2 Actions to search your deck. You may take a Character card of a Character that isn't already in play and put it into play. Then shuffle your deck."
+            ],
+            "image": "assets/images/cards/quidditch_cup/29_The Sorting Hat.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 3,
+            "number": "30",
+            "name": "Trevor",
+            "artist": "Zina Saunders",
+            "type": [
+                "Creature"
+            ],
+            "subTypes": [
+                "Toad",
+                "Unique"
+            ],
+            "lesson": [
+                "Care of Magical Creatures"
+            ],
+            "cost": "3",
+            "rarity": "Rare",
+            "flavorText": "The rat was still snoozing on Ron's lap. 'He might have died and you wouldn't know the difference,' said Ron in disgust.'",
+            "health": "1",
+            "effect": [
+                "When you play this card, you may put a Lesson card from your discard pile into your hand. Whenever a Spell card damages you, you may let Trevor take that damage instead."
+            ],
+            "image": "assets/images/cards/quidditch_cup/30_Trevor.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 3,
+            "number": "31",
+            "name": "Chocolate Frogs",
+            "artist": "Monte Michael Moore",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Charms"
+            ],
+            "cost": "1",
+            "rarity": "Uncommon",
+            "flavorText": "The rat was still snoozing on Ron's lap. 'He might have died and you wouldn't know the difference,' said Ron in disgust.'",
+            "effect": [
+                "Search your deck. You may take a Wizard or a Witch card from your deck, show it to your opponent and put it into your hand. Then shuffle your deck."
+            ],
+            "image": "assets/images/cards/quidditch_cup/31_Chocolate Frogs.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 3.5,
+            "number": "32",
+            "name": "Comet Two Sixty",
+            "artist": "James Bernardin",
+            "type": [
+                "Item"
+            ],
+            "subTypes": [
+                "Broom"
+            ],
+            "lesson": [
+                "Quidditch"
+            ],
+            "cost": "3",
+            "rarity": "Uncommon",
+            "effect": [
+                "Once during each of your opponent's turns, you may prevent 1 damage done to you. If you play this card, and you already have a Broom in play, discard the old one."
+            ],
+            "provides": [
+                {
+                    "lesson": "Quidditch",
+                    "amount": 1
+                }
+            ],
+            "image": "assets/images/cards/quidditch_cup/32_Comet Two Sixty.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 2,
+            "number": "33",
+            "name": "Defence!",
+            "artist": "Michael Koelsch",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Quidditch"
+            ],
+            "cost": "10",
+            "rarity": "Uncommon",
+            "effect": [
+                "During your opponent's next turn, prevent all damage done to you."
+            ],
+            "image": "assets/images/cards/quidditch_cup/33_Defence!.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 2.5,
+            "number": "34",
+            "name": "Devil's Snare",
+            "artist": null,
+            "type": [
+                "Creature"
+            ],
+            "subTypes": [
+                "Plant"
+            ],
+            "lesson": [
+                "Care of Magical Creatures"
+            ],
+            "cost": "4",
+            "rarity": "Uncommon",
+            "flavorText": "The rat was still snoozing on Ron's lap. 'He might have died and you wouldn't know the difference,' said Ron in disgust.'",
+            "dmgEachTurn": "2",
+            "health": "6",
+            "effect": [
+                "To play this card, discard 1 of your [F] Lessons from play. At the end of each of your turns, remove all damage counters from Devil's Snare."
+            ],
+            "image": "assets/images/cards/quidditch_cup/34_Devil’s Snare.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 5,
+            "number": "35",
+            "name": "Diffindo",
+            "artist": "Tim Hildebrandt",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Transfiguration"
+            ],
+            "cost": "8",
+            "rarity": "Uncommon",
+            "effect": [
+                "Choose 1 of your opponent's cards in play (other than his or her starting Character). Your opponent discards that card."
+            ],
+            "image": "assets/images/cards/quidditch_cup/35_Diffindo.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 3.5,
+            "number": "36",
+            "name": "Doxy",
+            "artist": "Jeff Laubenstein",
+            "type": [
+                "Creature"
+            ],
+            "subTypes": [
+                "Fairy"
+            ],
+            "lesson": [
+                "Care of Magical Creatures"
+            ],
+            "cost": "6",
+            "rarity": "Uncommon",
+            "dmgEachTurn": "2",
+            "health": "1",
+            "effect": [
+                "When you play this card, you may choose another Creature in play. Do 2 damage to it."
+            ],
+            "image": "assets/images/cards/quidditch_cup/36_Doxy.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 5,
+            "number": "37",
+            "name": "Hufflepuff Match",
+            "artist": "Ben Thompson",
+            "type": [
+                "Match"
+            ],
+            "lesson": [
+                "Quidditch"
+            ],
+            "cost": "1",
+            "rarity": "Uncommon",
+            "flavorText": "Up in the air, Snape turned on his broomstick just in time to see something scarlet shoot past him, missing him by inches...'",
+            "effect": [
+                "to win: Do 8 damage to your opponent while this card is in play. (That damage doesn't have to be done all at once.)",
+                "prize: The winner may draw 5 cards, the loser takes 5 damage."
+            ],
+            "toWin": "Do 8 damage to your opponent while this card is in play. (That damage doesn't have to be done all at once.)",
+            "prize": "The winner may draw 5 cards, the loser takes 5 damage.",
+            "image": "assets/images/cards/quidditch_cup/37_Hufflepuff Match.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 5,
+            "number": "38",
+            "name": "In the Stands",
+            "artist": "Patrick Faricy",
+            "type": [
+                "Adventure"
+            ],
+            "rarity": "Uncommon",
+            "flavorText": "It took perhaps thirty seconds for Snape to realise that he was on fire.'",
+            "effect": [
+                "to solve: Your opponent can't play Creature cards.  To solve: Your opponent chooses 4 Creature cards in his or her hand and discard them.",
+                "reward: Your opponent may draw a card"
+            ],
+            "toSolve": "Your opponent can't play Creature cards.  To solve: Your opponent chooses 4 Creature cards in his or her hand and discard them.",
+            "reward": "Your opponent may draw a card",
+            "image": "assets/images/cards/quidditch_cup/38_In the Stands.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 1.5,
+            "number": "39",
+            "name": "Into the Forbidden Forest",
+            "artist": "Lars Grant-West",
+            "type": [
+                "Adventure"
+            ],
+            "rarity": "Uncommon",
+            "flavorText": "They walked in silence, their eyes on the ground. Every now and then a ray of moonlight through the branches above lit a spot of silver blue blood on the fallen leaves.'",
+            "effect": [
+                "Whenever 1 of your Creatures does damage to your opponent, it does 1 more damage.",
+                "to solve: Your opponent skips a total of 5 Actions. (Those Actions don't need to be one right after the other.)",
+                "reward: Your opponent may draw a card."
+            ],
+            "toSolve": "Your opponent skips a total of 5 Actions. (Those Actions don't need to be one right after the other.)",
+            "reward": "Your opponent may draw a card.",
+            "image": "assets/images/cards/quidditch_cup/39_Into the Forbidden Forest.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 3,
+            "number": "40",
+            "name": "Jawbind Potion",
+            "artist": "Alex Horley",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Potions"
+            ],
+            "cost": "4",
+            "rarity": "Uncommon",
+            "effect": [
+                "Do 2 damage to your opponent. During your opponent's next turn, he or she can't play Spell cards."
+            ],
+            "image": "assets/images/cards/quidditch_cup/40_Jawbind Potion.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 1.5,
+            "number": "41",
+            "name": "Missing Parchment",
+            "artist": "Kevin Dobler",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Charms"
+            ],
+            "cost": "2",
+            "rarity": "Uncommon",
+            "effect": [
+                "Look at your opponent's hand. If there are any Spell cards there, choose 1 of them and discard it."
+            ],
+            "image": "assets/images/cards/quidditch_cup/41_Missing Parchment.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 2,
+            "number": "42",
+            "name": "Penalty Shot",
+            "artist": "James Bernardin",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Quidditch"
+            ],
+            "cost": "5",
+            "rarity": "Uncommon",
+            "effect": [
+                "Draw 3 cards."
+            ],
+            "image": "assets/images/cards/quidditch_cup/42_Penalty Shot.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 5,
+            "number": "43",
+            "name": "Pep Talk",
+            "artist": "Patrick Faricy",
+            "type": [
+                "Adventure"
+            ],
+            "rarity": "Uncommon",
+            "flavorText": "Don't want to pressure you, Potter, but if we ever need an early capture of the Snitch it's now.' - Oliver Wood",
+            "effect": [
+                "The first Action your opponent uses on each of his or her turns must be used to draw a card.",
+                "to solve: Your opponent shows you a card from his or her hand with a (printed) Power needed of 8 or more.",
+                "reward: Your opponent may draw 2 cards."
+            ],
+            "toSolve": "Your opponent shows you a card from his or her hand with a (printed) Power needed of 8 or more.",
+            "reward": "Your opponent may draw 2 cards.",
+            "image": "assets/images/cards/quidditch_cup/43_Pep Talk.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 1,
+            "number": "44",
+            "name": "Petrificus Totalus",
+            "artist": "Ken Steacy, Zina Saunders",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Transfiguration"
+            ],
+            "cost": "1",
+            "rarity": "Uncommon",
+            "effect": [
+                "Choose 1 of either player's Creatures in play and a Lesson card in that player's discard pile. Discard that Creature and put that Lesson card into play."
+            ],
+            "image": "assets/images/cards/quidditch_cup/44_Petificus Totalus.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 2,
+            "number": "45",
+            "name": "Power Play",
+            "artist": "David A. Roach",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Quidditch"
+            ],
+            "cost": "6",
+            "rarity": "Uncommon",
+            "effect": [
+                "Play this card only if a Match is in play. Do 7 damage to your opponent."
+            ],
+            "image": "assets/images/cards/quidditch_cup/45_Power Play.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 2,
+            "number": "46",
+            "name": "Race for the Snitch",
+            "artist": "Jon Foster",
+            "type": [
+                "Adventure"
+            ],
+            "rarity": "Uncommon",
+            "flavorText": "Harry was faster than Higgs - he could see the little round ball, wings fluttering, darting up ahead..'",
+            "effect": [
+                "to solve: Your opponent discards the card he or she draws at the start of each of his or her turns.  To solve: Your opponent discards his or her hand.",
+                "reward: You discard your hand."
+            ],
+            "toSolve": "Your opponent discards the card he or she draws at the start of each of his or her turns.  To solve: Your opponent discards his or her hand.",
+            "reward": "You discard your hand.",
+            "image": "assets/images/cards/quidditch_cup/46_Race for the Snitch.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 2.5,
+            "number": "47",
+            "name": "Snape's Bias",
+            "artist": "Patrick Faricy",
+            "type": [
+                "Adventure"
+            ],
+            "rarity": "Uncommon",
+            "flavorText": "Ron didn't answer; Snape had just awarded Hufflepuff a penalty because George Weasley had hit a Bludger at him.'",
+            "effect": [
+                "Your opponent can't use Actions to draw cards.",
+                "to solve: Your opponent lets you search your deck for up to 2 cards and put them into your hand. Then shuffle your deck.",
+                "reward: Your opponent may draw a card."
+            ],
+            "toSolve": "Your opponent lets you search your deck for up to 2 cards and put them into your hand. Then shuffle your deck.",
+            "reward": "Your opponent may draw a card.",
+            "image": "assets/images/cards/quidditch_cup/47_Snape’s Bias.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 5,
+            "number": "48",
+            "name": "Sticking Up for Neville",
+            "artist": "Patrick Faricy",
+            "type": [
+                "Adventure"
+            ],
+            "rarity": "Uncommon",
+            "flavorText": "He turned his broomstick sharply to face Malfoy in mid-air. Malfoy looked stunned.'",
+            "effect": [
+                "Before each of your turns, your opponent takes 4 damage.",
+                "to solve: Your opponent discards his or her hand.",
+                "reward: Your opponent may put up to 4 non-Healing cards from his or her discard pile on the bottom of his or her deck (in any order)."
+            ],
+            "toSolve": "Your opponent discards his or her hand.",
+            "reward": "Your opponent may put up to 4 non-Healing cards from his or her discard pile on the bottom of his or her deck (in any order).",
+            "image": "assets/images/cards/quidditch_cup/48_Sticking Up for Neville.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 2,
+            "number": "49",
+            "name": "Strategy Session",
+            "artist": "Michael Koelsch",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Quidditch"
+            ],
+            "cost": "3",
+            "rarity": "Uncommon",
+            "effect": [
+                "You may put up to 3 [Q] Lessons from your hand into play."
+            ],
+            "image": "assets/images/cards/quidditch_cup/49_Strategy Session.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 1,
+            "number": "50",
+            "name": "Weakness Potion",
+            "artist": "Keith Garletts",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Potions"
+            ],
+            "cost": "7",
+            "rarity": "Uncommon",
+            "effect": [
+                "To play this card, discard 1 of your [P] Lessons from play. Do 5 damage to your opponent. During your opponent's next turn, prevent all damage done to you by your opponent's Creatures."
+            ],
+            "image": "assets/images/cards/quidditch_cup/50_Weakness Potion.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 3,
+            "number": "51",
+            "name": "Bloodroot Poison",
+            "artist": "Keith Garletts",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Potions"
+            ],
+            "cost": "2",
+            "rarity": "Common",
+            "effect": [
+                "To play this card, discard 1 of your [P] Lessons from play. Do 4 damage to your opponent or to a Creature of your choice."
+            ],
+            "image": "assets/images/cards/quidditch_cup/51_Bloodroot Poison.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 3,
+            "number": "52",
+            "name": "Bravado",
+            "artist": "Mark Romanoski",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Charms"
+            ],
+            "cost": "3",
+            "rarity": "Common",
+            "effect": [
+                "For the rest of this turn, your Spell cards need 5 less Power to play. (You will still need at least 1 Power that matches.)"
+            ],
+            "image": "assets/images/cards/quidditch_cup/52_Bravado.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 3,
+            "number": "53",
+            "name": "Bruisewort Balm",
+            "artist": "Alex Horley",
+            "type": [
+                "Spell"
+            ],
+            "subTypes": [
+                "Healing"
+            ],
+            "lesson": [
+                "Potions"
+            ],
+            "cost": "3",
+            "rarity": "Common",
+            "effect": [
+                "Shuffle up to 5 non-Healing cards from your discard pile into your deck."
+            ],
+            "image": "assets/images/cards/quidditch_cup/53_Bruisewort Balm.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 3,
+            "number": "54",
+            "name": "Cleansweep Seven",
+            "artist": "Patrick Faricy",
+            "type": [
+                "Item"
+            ],
+            "subTypes": [
+                "Broom"
+            ],
+            "lesson": [
+                "Quidditch"
+            ],
+            "cost": "2",
+            "rarity": "Common",
+            "effect": [
+                "When you play this card, look at the top 4 cards of your deck and put them back on top in any order. (If there are fewer than 4, look at all of them.) If you play this card, and you already have a Broom in play, discard the old one."
+            ],
+            "provides": [
+                {
+                    "lesson": "Quidditch",
+                    "amount": 1
+                }
+            ],
+            "image": "assets/images/cards/quidditch_cup/54_Cleansweep Seven.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 3.5,
+            "number": "55",
+            "name": "Cobbing",
+            "artist": "Patrick Faricy",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Quidditch"
+            ],
+            "cost": "7",
+            "rarity": "Common",
+            "effect": [
+                "Do 4 damage to your opponent. Then, if your opponent has any cards in play,he or she chooses 1 of them and discards it."
+            ],
+            "image": "assets/images/cards/quidditch_cup/55_Cobbing .png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 3.5,
+            "number": "56",
+            "name": "Cobra Lily",
+            "artist": "Doug Chaffee",
+            "type": [
+                "Creature"
+            ],
+            "subTypes": [
+                "Plant"
+            ],
+            "lesson": [
+                "Care of Magical Creatures"
+            ],
+            "cost": "5",
+            "rarity": "Common",
+            "dmgEachTurn": "2",
+            "health": "3",
+            "effect": [
+                "At the end of each of your turns, remove all damage counters from Cobra Lily."
+            ],
+            "image": "assets/images/cards/quidditch_cup/56_Cobra Lily.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 3.5,
+            "number": "57",
+            "name": "Cunning Fox",
+            "artist": "Doug Chaffee",
+            "type": [
+                "Creature"
+            ],
+            "subTypes": [
+                "Fox"
+            ],
+            "lesson": [
+                "Care of Magical Creatures"
+            ],
+            "cost": "5",
+            "rarity": "Common",
+            "dmgEachTurn": "3",
+            "health": "1",
+            "image": "assets/images/cards/quidditch_cup/57_Cunning Fox.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 2.5,
+            "number": "58",
+            "name": "Desk Into Pig",
+            "artist": "Melissa Ferreira",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Transfiguration"
+            ],
+            "cost": "1",
+            "rarity": "Common",
+            "flavorText": "Then she changed her desk into a pig and back again.'",
+            "effect": [
+                "To play this card, discard 1 of your Lessons from play. Search your deck. You may take up to 3 Creature cards from your deck, show them to your opponent and put them into your hand. Then shuffle your deck."
+            ],
+            "image": "assets/images/cards/quidditch_cup/58_Desk into Pig.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 1,
+            "number": "59",
+            "name": "Drowsiness Draught",
+            "artist": "Greg Hildebrandt",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Potions"
+            ],
+            "cost": "8",
+            "rarity": "Common",
+            "effect": [
+                "Do 3 damage to your opponent. During your opponent's next turn, he or she can't use Actions to play Lesson cards."
+            ],
+            "image": "assets/images/cards/quidditch_cup/59_Drowsiness Draught.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 5,
+            "number": "60",
+            "name": "Fouled!",
+            "artist": "James Bernardin",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Quidditch"
+            ],
+            "cost": "4",
+            "rarity": "Common",
+            "flavorText": "'WHAM!' A roar of rage echoed from the Gryffindors below - Marcus Flint had blocked Harry on purpose and Harry's broom span off course, Harry holding on for dear life.'",
+            "effect": [
+                "Do 4 damage to your opponent. During your opponent's next turn, he or she gets 1 fewer Action. (If this would mean your opponent has fewer than 1 Action, he or she still gets 1 Action)."
+            ],
+            "image": "assets/images/cards/quidditch_cup/60_Fouled!.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 1,
+            "number": "61",
+            "name": "Gone!",
+            "artist": "Kevin Dobler",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Charms"
+            ],
+            "cost": "1",
+            "rarity": "Common",
+            "effect": [
+                "Look at your opponent's hand. If there are any Creature cards there, choose one and discard it."
+            ],
+            "image": "assets/images/cards/quidditch_cup/61_Gone!.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 1.5,
+            "number": "62",
+            "name": "Mice to Snuffboxes",
+            "artist": "Monte Michael Moore",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Transfiguration"
+            ],
+            "cost": "5",
+            "rarity": "Common",
+            "effect": [
+                "Choose up to 2 Creatures in play and return them to their owners' hands."
+            ],
+            "image": "assets/images/cards/quidditch_cup/62_Mice to Snuffleboxes.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 2,
+            "number": "63",
+            "name": "Mopsus Potion",
+            "artist": "Greg Hildebrandt",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Potions"
+            ],
+            "cost": "8",
+            "rarity": "Common",
+            "effect": [
+                "Do 3 damage to your opponent or to a Creature of your choice."
+            ],
+            "image": "assets/images/cards/quidditch_cup/63_Mopsus Potion.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 4.5,
+            "number": "64",
+            "name": "Ouch!",
+            "artist": "Patrick Faricy",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Quidditch"
+            ],
+            "cost": "5",
+            "rarity": "Common",
+            "effect": [
+                "Do 5 damage to your opponent. Then, if your opponent has any cards in his or her hand, he or she chooses 1 of them and discards it."
+            ],
+            "image": "assets/images/cards/quidditch_cup/64_Ouch!.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 1.5,
+            "number": "65",
+            "name": "Practice Match",
+            "artist": "Chris Seaman",
+            "type": [
+                "Match"
+            ],
+            "lesson": [
+                "Quidditch"
+            ],
+            "cost": "1",
+            "rarity": "Common",
+            "effect": [
+                "to win: Do 5 damage to your opponent while this card is in play. (That damage doesn't have to be done all at once.)",
+                "prize: The winner may draw 4 cards."
+            ],
+            "toWin": "Do 5 damage to your opponent while this card is in play. (That damage doesn't have to be done all at once.)",
+            "prize": "The winner may draw 4 cards.",
+            "image": "assets/images/cards/quidditch_cup/65_Practice Match.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 3.5,
+            "number": "66",
+            "name": "Pulling Up",
+            "artist": "James Bernardin",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Quidditch"
+            ],
+            "cost": "4",
+            "rarity": "Common",
+            "effect": [
+                "Do 2 damage to your opponent. Then draw 2 cards."
+            ],
+            "image": "assets/images/cards/quidditch_cup/66_Pulling Up.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 4.5,
+            "number": "67",
+            "name": "Research",
+            "artist": "Mark Romanoski",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Transfiguration"
+            ],
+            "cost": "5",
+            "rarity": "Common",
+            "flavorText": "And then, of course, there was the sheer size of the library; tens of thousands of books, thousands of shelves, hundreds of narrow rows.'",
+            "effect": [
+                "To play this card, discard 1 of your Lessons from play. Search your deck. You may put up to 2 Lesson cards from your deck into play. Then shuffle your deck."
+            ],
+            "image": "assets/images/cards/quidditch_cup/67_Research.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 3,
+            "number": "68",
+            "name": "Rope Bind",
+            "artist": "Kevin McCann, Michael Collins",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Charms"
+            ],
+            "cost": "3",
+            "rarity": "Common",
+            "effect": [
+                "Do 2 damage to your opponent or to a Creature of your choice. Then draw a card."
+            ],
+            "image": "assets/images/cards/quidditch_cup/68_Rope Bind.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 4,
+            "number": "69",
+            "name": "Searching for the Snitch",
+            "artist": "James Bernardin",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Quidditch"
+            ],
+            "cost": "2",
+            "rarity": "Common",
+            "flavorText": "Way up above them, Harry was gliding over the game, squinting about for some sign of the Snitch.'",
+            "effect": [
+                "Search you deck. You may take a [Q] Lesson or a card that needs [Q] Power from you deck, show it to your opponent and put it into your hand. Then shuffle your deck."
+            ],
+            "image": "assets/images/cards/quidditch_cup/69_Searching for the Snitch.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 1.5,
+            "number": "70",
+            "name": "Smash!",
+            "artist": "Patrick Faricy",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Quidditch"
+            ],
+            "cost": "2",
+            "rarity": "Common",
+            "effect": [
+                "Choose 1 of your opponent's Items in play and discard it."
+            ],
+            "image": "assets/images/cards/quidditch_cup/70_Smash!.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 4,
+            "number": "71",
+            "name": "Stream of Flames",
+            "artist": "Ken Steacy, Zina Saunders",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Charms"
+            ],
+            "cost": "5",
+            "rarity": "Common",
+            "effect": [
+                "Do 3 damage to your opponent. You may also choose a Creature in play and do 3 damage to it."
+            ],
+            "image": "assets/images/cards/quidditch_cup/71_Stream of Flames.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 4,
+            "number": "72",
+            "name": "Streeler",
+            "artist": "Jeff Laubenstein",
+            "type": [
+                "Creature"
+            ],
+            "subTypes": [
+                "Snail"
+            ],
+            "lesson": [
+                "Care of Magical Creatures"
+            ],
+            "cost": "4",
+            "rarity": "Common",
+            "dmgEachTurn": "1",
+            "health": "2",
+            "effect": [
+                "When you play this card, you may choose another Creature in play. Do 1 Damage to it."
+            ],
+            "image": "assets/images/cards/quidditch_cup/72_Streeler.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 1.5,
+            "number": "73",
+            "name": "Swarm!",
+            "artist": "Monte Michael Moore",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Care of Magical Creatures"
+            ],
+            "cost": "5",
+            "rarity": "Common",
+            "effect": [
+                "Count the number or Creatures in play (yours and your opponent's) Do that much damage to your opponent."
+            ],
+            "image": "assets/images/cards/quidditch_cup/73_Swarm!.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 2,
+            "number": "74",
+            "name": "Time Out",
+            "artist": "Michael Koelsch",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Quidditch"
+            ],
+            "cost": "1",
+            "rarity": "Common",
+            "flavorText": "Shut up, you two,' said Wood. 'This is the best team Gryffindor's had in years. We're going to win. I know it.'",
+            "effect": [
+                "Look at the top 6 cards of your deck and put them back on top in any order. (If there are fewer than 6, look at all of them.)"
+            ],
+            "image": "assets/images/cards/quidditch_cup/74_Time Out.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 1.5,
+            "number": "75",
+            "name": "Vanish",
+            "artist": "Monte Michael Moore",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Transfiguration"
+            ],
+            "cost": "7",
+            "rarity": "Common",
+            "effect": [
+                "Choose 1 of your opponent's Creatures or Characters in play (other than his or her starting Character) and put it on the bottom of his or her deck."
+            ],
+            "image": "assets/images/cards/quidditch_cup/75_Vanish.png"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": "L",
+            "number": "79",
+            "name": "Quidditch",
+            "artist": "Shanth Enjeti, Melissa Ferreira",
+            "type": [
+                "Lesson"
+            ],
+            "rarity": "Common",
+            "effect": [],
+            "provides": [
+                {
+                    "lesson": "Quidditch",
+                    "amount": 1
+                }
+            ],
+            "image": "assets/images/cards/quidditch_cup/80_Quidditch.png"
+        }
+    ]
+}

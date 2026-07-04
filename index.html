@@ -40,6 +40,11 @@
           <button id="btn-delete-deck" class="btn btn-danger btn-small" style="padding: 6px 12px; font-size: 0.85rem;">Delete</button>
           <button id="btn-clear-deck" class="btn btn-danger btn-small" style="padding: 6px 12px; font-size: 0.85rem; background: rgba(139, 0, 0, 0.7) !important; border-color: #8b0000 !important;">Empty</button>
         </div>
+        <div class="deck-file-row" style="display: flex; gap: 8px; margin-top: 12px;">
+          <button id="btn-export-deck" class="btn btn-secondary btn-small" style="flex: 1; padding: 6px 12px; font-size: 0.85rem;">Export JSON</button>
+          <button id="btn-import-deck" class="btn btn-secondary btn-small" style="flex: 1; padding: 6px 12px; font-size: 0.85rem;">Import JSON</button>
+          <input type="file" id="import-deck-file" accept=".json" style="display: none;" />
+        </div>
         <div class="deck-name-row" style="margin-top: 12px;">
           <label for="deck-name-input" style="font-size: 0.85rem; color: var(--text-secondary);">Deck Name:</label>
           <input type="text" id="deck-name-input" class="deck-input" placeholder="Deck Name..." style="width: 100%; padding: 8px; background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 4px; outline: none; margin-top: 4px;" />
@@ -85,6 +90,7 @@
             <button class="btn btn-secondary filter-btn" data-filter="Spell" style="padding: 6px 12px; font-size: 0.85rem;">Spells</button>
             <button class="btn btn-secondary filter-btn" data-filter="Item" style="padding: 6px 12px; font-size: 0.85rem;">Items</button>
             <button class="btn btn-secondary filter-btn" data-filter="Adventure" style="padding: 6px 12px; font-size: 0.85rem;">Adventures</button>
+            <button class="btn btn-secondary filter-btn" data-filter="Match" style="padding: 6px 12px; font-size: 0.85rem;">Matches</button>
           </div>
           <div class="filter-row" style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; align-items: center;">
             <span style="font-size: 0.82rem; color: var(--text-secondary);">Lesson Type:</span>
@@ -95,6 +101,13 @@
               <option value="Transfiguration">Transfiguration</option>
               <option value="Care of Magical Creatures">Care of Magical Creatures</option>
               <option value="Quidditch">Quidditch</option>
+            </select>
+
+            <span style="font-size: 0.82rem; color: var(--text-secondary); margin-left: 12px;">Series:</span>
+            <select id="card-catalog-series-filter" class="deck-input" style="padding: 4px 10px; font-size: 0.82rem; background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px; outline: none; cursor: pointer; height: 32px; width: 160px;">
+              <option value="All">All Series</option>
+              <option value="Base Set">Base Set</option>
+              <option value="Quidditch Cup">Quidditch Cup</option>
             </select>
           </div>
         </div>
@@ -116,6 +129,7 @@
               <option value="Spell">Spells</option>
               <option value="Item">Items</option>
               <option value="Adventure">Adventures</option>
+              <option value="Match">Matches</option>
             </select>
             <select id="deck-lesson-type-filter" class="deck-input" style="padding: 4px 10px; font-size: 0.82rem; background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px; outline: none; cursor: pointer; flex: 1; height: 32px;">
               <option value="All">All Lesson Types</option>
@@ -235,13 +249,18 @@
           <div class="zone-label">Creatures</div>
         </div>
 
-        <!-- Column 4: Items (top) and Adventure (bottom) -->
+        <!-- Column 4: Items (top) and Adventure/Match (bottom) -->
         <div class="playmat-right">
           <div class="items-zone zone-container" id="opponent-items-zone">
             <div class="zone-label">Items</div>
           </div>
-          <div class="adventures-zone zone-container" id="opponent-adventures-zone">
-            <div class="zone-label">Adventure</div>
+          <div class="permanents-bottom-row">
+            <div class="adventures-zone zone-container" id="opponent-adventures-zone">
+              <div class="zone-label">Adventure</div>
+            </div>
+            <div class="matches-zone zone-container" id="opponent-matches-zone">
+              <div class="zone-label">Match</div>
+            </div>
           </div>
         </div>
       </section>
@@ -279,13 +298,18 @@
           <div class="zone-label">Creatures</div>
         </div>
 
-        <!-- Column 4: Items (top) and Adventure (bottom) -->
+        <!-- Column 4: Items (top) and Adventure/Match (bottom) -->
         <div class="playmat-right">
           <div class="items-zone zone-container" id="player-items-zone">
             <div class="zone-label">Items</div>
           </div>
-          <div class="adventures-zone zone-container" id="player-adventures-zone">
-            <div class="zone-label">Adventure</div>
+          <div class="permanents-bottom-row">
+            <div class="adventures-zone zone-container" id="player-adventures-zone">
+              <div class="zone-label">Adventure</div>
+            </div>
+            <div class="matches-zone zone-container" id="player-matches-zone">
+              <div class="zone-label">Match</div>
+            </div>
           </div>
         </div>
       </section>
@@ -354,6 +378,32 @@
         </div>
       </div>
       <button class="btn" id="adventure-solved-ok-btn" style="width: 120px;">Awesome</button>
+    </div>
+  </dialog>
+
+  <!-- Modal Dialog for Match Won -->
+  <dialog id="match-won-modal" closedby="any" aria-label="Match Won">
+    <div class="modal-content" style="max-width: 450px; text-align: center; border-color: var(--accent-gold); box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8), 0 0 30px var(--accent-gold-glow); display: flex; flex-direction: column; align-items: center;">
+      <button class="modal-close-btn" id="match-won-close-btn" aria-label="Close modal" style="color: var(--accent-gold); border-color: var(--accent-gold-glow);">&times;</button>
+      <h2 id="match-won-title" style="color: var(--accent-gold); text-shadow: 0 0 10px var(--accent-gold-glow); margin-bottom: 12px; font-size: 1.8rem; text-align: center; font-family: var(--font-display);">Match Won!</h2>
+      <div id="match-won-subtitle" style="font-size: 1.1rem; color: var(--text-primary); margin-bottom: 16px; text-align: center; font-weight: bold;">
+        Player Won
+      </div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 20px; margin-bottom: 24px; width: 100%;">
+        <div style="width: 180px; height: 130px; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; margin-top: 12px;">
+          <img id="match-won-image" src="" alt="Match Card" style="width: 130px; height: 180px; transform: rotate(90deg); object-fit: contain; position: absolute;" />
+        </div>
+        <div id="match-won-name" style="font-size: 1.3rem; font-weight: bold; color: var(--text-primary); font-family: var(--font-display); text-align: center;">
+          Match Name
+        </div>
+        <div style="border-top: 1px dashed var(--border-color); width: 100%; padding-top: 12px;">
+          <div style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; text-align: center;">Prize</div>
+          <div id="match-won-prize" style="font-size: 1.1rem; color: var(--accent-gold); font-weight: bold; line-height: 1.4; text-align: center;">
+            Prize Description
+          </div>
+        </div>
+      </div>
+      <button class="btn" id="match-won-ok-btn" style="width: 120px;">Awesome</button>
     </div>
   </dialog>
 

@@ -7,108 +7,24 @@ import { GameEngine } from './game-engine.js';
 import { UIManager } from './ui.js';
 import { DeckBuilder, validateDeck } from './deck-builder.js';
 
-// Predefined themed wizarding decks (40 cards each)
-const PRESET_DECKS = {
-  gryffindor: {
-    name: "Gryffindor / Hermione's Deck",
-    lessons: [
-      { type: 'Care of Magical Creatures', count: 12 },
-      { type: 'Transfiguration', count: 8 }
-    ],
-    cards: [
-      { name: 'Avifors', count: 2 },
-      { name: 'Curious Raven', count: 4 },
-      { name: 'Epoximise', count: 2 },
-      { name: 'Forest Troll', count: 3 },
-      { name: 'Hagrid and the Stranger', count: 1 },
-      { name: 'Incarcifors', count: 3 },
-      { name: 'Take Root', count: 2 },
-      { name: 'Vicious Wolf', count: 3 }
-    ]
-  },
-  slytherin: {
-    name: "Slytherin / Draco's Deck",
-    lessons: [
-      { type: 'Care of Magical Creatures', count: 10 },
-      { type: 'Charms', count: 10 }
-    ],
-    cards: [
-      { name: 'Accio', count: 2 },
-      { name: 'Boa Constrictor', count: 2 },
-      { name: 'Curious Raven', count: 3 },
-      { name: 'Hagrid and the Stranger', count: 1 },
-      { name: 'Magical Mishap', count: 4 },
-      { name: 'Stupefy', count: 2 },
-      { name: 'Surly Hound', count: 2 },
-      { name: 'Vermillious', count: 4 }
-    ]
-  },
-  ravenclaw: {
-    name: "Ravenclaw / Flitwick's Deck",
-    lessons: [
-      { type: 'Charms', count: 10 },
-      { type: 'Transfiguration', count: 10 }
-    ],
-    cards: [
-      { name: 'Stupefy', count: 3 },
-      { name: 'Vermillious', count: 3 },
-      { name: 'Magical Mishap', count: 2 },
-      { name: 'Incendio', count: 2 },
-      { name: 'Avifors', count: 2 },
-      { name: 'Epoximise', count: 2 },
-      { name: 'Remembrall', count: 2 },
-      { name: 'Wingardium Leviosa!', count: 2 },
-      { name: 'Baubillious', count: 2 }
-    ]
-  },
-  hufflepuff: {
-    name: "Hufflepuff / Snape's Deck",
-    lessons: [
-      { type: 'Potions', count: 12 },
-      { type: 'Transfiguration', count: 8 }
-    ],
-    cards: [
-      { name: 'Boil Cure', count: 3 },
-      { name: 'Forgetfulness Potion', count: 3 },
-      { name: 'Potion Ingredients', count: 3 },
-      { name: 'Snuffling Potion', count: 2 },
-      { name: 'Dungbomb', count: 3 },
-      { name: 'Foul Brew', count: 2 },
-      { name: 'Lost Notes', count: 2 },
-      { name: 'Incarcifors', count: 2 }
-    ]
-  },
-  creatures: {
-    name: "Hagrid's / Creatures Deck",
-    lessons: [
-      { type: 'Care of Magical Creatures', count: 15 },
-      { type: 'Transfiguration', count: 5 }
-    ],
-    cards: [
-      { name: 'Unicorn', count: 2 },
-      { name: 'Delivery Owl', count: 2 },
-      { name: 'Forest Troll', count: 3 },
-      { name: 'Vicious Wolf', count: 3 },
-      { name: 'Scottish Stag', count: 2 },
-      { name: 'Surly Hound', count: 2 },
-      { name: 'Hagrid and the Stranger', count: 2 },
-      { name: 'Kelpie', count: 2 },
-      { name: 'Guard Dog', count: 2 }
-    ]
-  }
-};
 
 async function bootstrap() {
   try {
     // 1. Fetch JSON databases
-    const cardsResponse = await fetch('./data/base_set/cards.json');
-    const cardsDbRaw = await cardsResponse.json();
-
-    const rulesResponse = await fetch('./data/rules.json');
+    const [baseSetRes, quidditchCupRes, rulesResponse] = await Promise.all([
+      fetch('./data/base_set/cards.json'),
+      fetch('./data/quidditch_cup/cards.json'),
+      fetch('./data/rules.json')
+    ]);
+    const baseSetDb = await baseSetRes.json();
+    const quidditchCupDb = await quidditchCupRes.json();
     const rulesConfig = await rulesResponse.json();
 
     // 2. Normalize raw card data from Downloads format to Engine structure
-    const cardsDb = normalizeCards(cardsDbRaw.cards);
+    const cardsDb = [
+      ...normalizeCards(baseSetDb.cards, 'bs'),
+      ...normalizeCards(quidditchCupDb.cards, 'qc')
+    ];
 
     // 3. Initialize Game Engine
     const engine = new GameEngine(cardsDb, rulesConfig);
@@ -255,20 +171,30 @@ async function bootstrap() {
         }
       }
 
-      // Set up the match
-      engine.setupGame(
-        pDeck.cardIds,
-        oDeck.cardIds,
-        pDeck.characterId,
-        oDeck.characterId,
-        isDebugMatch
-      );
-
-      ui.lastTurnNumber = null;
-      ui.lastActivePlayerId = null;
-
       deckSelectionModal.close();
-      showScreen('game');
+
+      // Trigger the Coin Toss first
+      ui.triggerCoinToss((startingPlayerId) => {
+        // Set up the match with the chosen starting player
+        engine.setupGame(
+          pDeck.cardIds,
+          oDeck.cardIds,
+          pDeck.characterId,
+          oDeck.characterId,
+          isDebugMatch,
+          startingPlayerId
+        );
+
+        ui.lastTurnNumber = null;
+        ui.lastActivePlayerId = null;
+        ui.isInitialTurnAnnouncementDelayed = true;
+
+        showScreen('game');
+        ui.render();
+
+        // Show Game Initialized overlay for 2 seconds
+        ui.triggerGameStartAnnouncement(startingPlayerId);
+      });
     });
 
     // Back to Menu button inside Game
@@ -303,7 +229,7 @@ async function bootstrap() {
     const btnDebugDealTenDmg = document.getElementById('btn-debug-deal-10-damage');
     if (btnDebugDealTenDmg) {
       btnDebugDealTenDmg.addEventListener('click', () => {
-        engine.applyDeckDamage('player', 10);
+        engine.dealDamage('player', 10, 'spell');
       });
     }
 
@@ -351,21 +277,31 @@ async function bootstrap() {
 /**
  * Normalizes card data from the downloaded Base Set JSON format to the format required by the engine.
  */
-function normalizeCards(rawCards) {
+function normalizeCards(rawCards, setPrefix = '') {
+  const series = setPrefix === 'qc' ? 'Quidditch Cup' : 'Base Set';
   return rawCards.map(card => {
     const primaryType = card.type ? card.type[0] : 'Lesson';
     const normalized = {
-      id: card.number,
+      id: setPrefix ? `${setPrefix}_${card.number}` : card.number,
       name: card.name,
       type: primaryType,
       subTypes: card.subTypes || [],
       text: card.effect ? card.effect.join(' ') : (card.flavorText || ''),
       image: card.image || '',
+      series: series,
     };
 
-    const effectText = card.effect ? card.effect.join(' ') : '';
-    // Regex for specific lesson types: Charms, Transfiguration, Potions, Herbology, Care of Magical Creatures
-    const discardLessonTypeMatch = effectText.match(/discard (\d+) of your (Charms|Transfiguration|Potions|Herbology|Care of Magical Creatures?)\s+Lessons?\s+from\s+play/i);
+    let effectText = card.effect ? card.effect.join(' ') : '';
+    // Pre-process bracket symbols to full lesson names
+    effectText = effectText
+      .replace(/\[C\]/g, 'Charms')
+      .replace(/\[P\]/g, 'Potions')
+      .replace(/\[T\]/g, 'Transfiguration')
+      .replace(/\[F\]/g, 'Care of Magical Creatures')
+      .replace(/\[Q\]/g, 'Quidditch');
+
+    // Regex for specific lesson types: Charms, Transfiguration, Potions, Herbology, Care of Magical Creatures, Quidditch
+    const discardLessonTypeMatch = effectText.match(/discard (\d+) of your (Charms|Transfiguration|Potions|Herbology|Care of Magical Creatures?|Quidditch)\s+Lessons?\s+from\s+play/i);
     // Regex for generic lessons: discard X of your Lessons from play
     const discardGenericLessonMatch = effectText.match(/discard (\d+) of your Lessons?\s+from\s+play/i);
 
@@ -390,6 +326,20 @@ function normalizeCards(rawCards) {
       };
     }
 
+    // Regex for returning lessons to hand
+    const returnLessonTypeMatch = effectText.match(/return (\d+) of your (Charms|Transfiguration|Potions|Herbology|Care of Magical Creatures?|Quidditch)\s+Lessons?\s+from\s+play\s+to\s+your\s+hand/i);
+    if (returnLessonTypeMatch) {
+      let type = returnLessonTypeMatch[2];
+      if (type.toLowerCase() === 'care of magical creature') {
+        type = 'Care of Magical Creatures';
+      }
+      normalized.playRequirements = normalized.playRequirements || {};
+      normalized.playRequirements.returnLessonsToHand = {
+        count: parseInt(returnLessonTypeMatch[1], 10),
+        type: type
+      };
+    }
+
     if (card.provides && card.provides.length > 0) {
       normalized.provides = {
         type: card.provides[0].lesson,
@@ -398,7 +348,7 @@ function normalizeCards(rawCards) {
     }
 
     if (primaryType === 'Lesson') {
-      const lessonType = card.lesson ? card.lesson[0] : '';
+      const lessonType = card.lesson ? card.lesson[0] : (card.provides?.[0]?.lesson || '');
       normalized.lessonType = lessonType;
       if (!normalized.provides) {
         normalized.provides = {
@@ -428,6 +378,11 @@ function normalizeCards(rawCards) {
       };
     }
 
+    if (primaryType === 'Match') {
+      normalized.prize = card.prize || '';
+      normalized.toWin = card.toWin || '';
+    }
+
     // Load custom attributes based on character effects
     if (card.name === 'Harry Potter') {
       normalized.effects = { handSizeModifier: 1 };
@@ -439,36 +394,6 @@ function normalizeCards(rawCards) {
   });
 }
 
-/**
- * Helper to construct a custom deck array from a structured testing deck definition.
- */
-function buildCustomDeck(cardsDb, deckDefinition) {
-  const deck = [];
-
-  // Add lessons
-  deckDefinition.lessons.forEach(item => {
-    const lessonCard = cardsDb.find(c => c.type === 'Lesson' && c.lessonType === item.type);
-    if (lessonCard) {
-      for (let i = 0; i < item.count; i++) {
-        deck.push(lessonCard.id);
-      }
-    }
-  });
-
-  // Add card counts
-  deckDefinition.cards.forEach(item => {
-    const matchedCard = cardsDb.find(c => c.name.toLowerCase() === item.name.toLowerCase());
-    if (matchedCard) {
-      for (let i = 0; i < item.count; i++) {
-        deck.push(matchedCard.id);
-      }
-    } else {
-      console.warn(`Could not find card "${item.name}" in database.`);
-    }
-  });
-
-  return deck;
-}
 
 // Start application when DOM is ready
 document.addEventListener('DOMContentLoaded', bootstrap);

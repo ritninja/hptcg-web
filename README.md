@@ -133,3 +133,10 @@ To add a card, append an object to the JSON array. Follow this template dependin
 4. **Attacking**: At the end of your turn, your Creatures automatically deal damage to your opponent.
 5. **Damage**: When a player takes damage, they discard that many cards from the top of their deck.
 6. **Winning**: A player wins when their opponent must draw or discard cards but has an empty deck (deck depletion).
+
+---
+
+## 🌸 Credits & Acknowledgements
+- **Card Images**: Special thanks to [accio.cards](https://accio.cards) for all the card artwork images.
+- **Card Data**: Special thanks to the [Tressley/hpjson](https://github.com/Tressley/hpjson) repository for the card database info JSON files.
+

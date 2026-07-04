@@ -67,6 +67,7 @@ export class DeckBuilder {
     this.currentDeck = null;
     this.activeFilter = 'All';
     this.activeLessonFilter = 'All';
+    this.activeSeriesFilter = 'All';
     this.deckCardTypeFilter = 'All';
     this.deckLessonTypeFilter = 'All';
     this.searchQuery = '';
@@ -91,8 +92,12 @@ export class DeckBuilder {
       filterButtons: document.getElementById('card-catalog-filters'),
       catalogGrid: document.getElementById('card-catalog-grid'),
       inputLessonFilter: document.getElementById('card-catalog-lesson-filter'),
+      inputSeriesFilter: document.getElementById('card-catalog-series-filter'),
       deckCardTypeFilterSelect: document.getElementById('deck-card-type-filter'),
-      deckLessonTypeFilterSelect: document.getElementById('deck-lesson-type-filter')
+      deckLessonTypeFilterSelect: document.getElementById('deck-lesson-type-filter'),
+      btnExport: document.getElementById('btn-export-deck'),
+      btnImport: document.getElementById('btn-import-deck'),
+      inputImportFile: document.getElementById('import-deck-file')
     };
 
     this.initDecks();
@@ -111,6 +116,21 @@ export class DeckBuilder {
         console.error("Error reading custom decks from localStorage", e);
       }
     }
+
+    // Migrate old numeric IDs (without prefixes) in custom decks to 'bs_'
+    loadedDecks.forEach(deck => {
+      if (deck.characterId && !deck.characterId.includes('_')) {
+        deck.characterId = `bs_${deck.characterId}`;
+      }
+      if (deck.cardIds) {
+        deck.cardIds = deck.cardIds.map(id => {
+          if (id && !id.includes('_')) {
+            return `bs_${id}`;
+          }
+          return id;
+        });
+      }
+    });
 
     // Filter out old preset decks, keeping only user-created custom decks
     const customDecks = loadedDecks.filter(d => !d.isPreset);
@@ -295,6 +315,14 @@ export class DeckBuilder {
       });
     }
 
+    // Catalog Series Filter Select
+    if (this.el.inputSeriesFilter) {
+      this.el.inputSeriesFilter.addEventListener('change', (e) => {
+        this.activeSeriesFilter = e.target.value;
+        this.renderCatalog();
+      });
+    }
+
     // Deck Card Type Filter Select
     if (this.el.deckCardTypeFilterSelect) {
       this.el.deckCardTypeFilterSelect.addEventListener('change', (e) => {
@@ -308,6 +336,86 @@ export class DeckBuilder {
       this.el.deckLessonTypeFilterSelect.addEventListener('change', (e) => {
         this.deckLessonTypeFilter = e.target.value;
         this.renderCurrentDeckCards();
+      });
+    }
+
+    // Export Deck
+    if (this.el.btnExport) {
+      this.el.btnExport.addEventListener('click', () => {
+        if (!this.currentDeck) return;
+        const deckData = {
+          name: this.currentDeck.name,
+          characterId: this.currentDeck.characterId,
+          cardIds: this.currentDeck.cardIds
+        };
+        const jsonStr = JSON.stringify(deckData, null, 2);
+        const blob = new Blob([jsonStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const filename = this.currentDeck.name.toLowerCase().replace(/[^a-z0-9]+/g, '_') + '.json';
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      });
+    }
+
+    // Import Deck Trigger
+    if (this.el.btnImport && this.el.inputImportFile) {
+      this.el.btnImport.addEventListener('click', () => {
+        this.el.inputImportFile.value = '';
+        this.el.inputImportFile.click();
+      });
+    }
+
+    // Import Deck File Handler
+    if (this.el.inputImportFile) {
+      this.el.inputImportFile.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          try {
+            const data = JSON.parse(event.target.result);
+            if (!data || typeof data !== 'object') {
+              throw new Error("Invalid JSON structure.");
+            }
+            if (!data.characterId || !Array.isArray(data.cardIds)) {
+              throw new Error("Missing required deck properties: characterId or cardIds.");
+            }
+
+            // Verify character card ID exists (supporting migration)
+            const characterId = data.characterId.includes('_') ? data.characterId : `bs_${data.characterId}`;
+            const characterExists = this.cardsDb.some(c => c.id === characterId && c.type === 'Character');
+            if (!characterExists) {
+              throw new Error(`Starting character with ID "${characterId}" not found in database.`);
+            }
+
+            const cardIds = data.cardIds.map(id => {
+              return id.includes('_') ? id : `bs_${id}`;
+            });
+
+            const importedDeck = {
+              id: `deck-${Date.now()}`,
+              name: data.name || "Imported Custom Deck",
+              characterId: characterId,
+              cardIds: cardIds
+            };
+
+            this.decks.push(importedDeck);
+            this.currentDeck = importedDeck;
+            this.saveDecksToStorage();
+            this.populateDecksDropdown();
+            this.loadCurrentDeckToUI();
+            alert(`Deck "${importedDeck.name}" imported successfully!`);
+          } catch (err) {
+            alert(`Error importing deck: ${err.message}`);
+          }
+        };
+        reader.readAsText(file);
       });
     }
   }
@@ -331,7 +439,7 @@ export class DeckBuilder {
     const newDeck = {
       id: `deck-${Date.now()}`,
       name: name,
-      characterId: "9", 
+      characterId: "bs_9", 
       cardIds: []
     };
     this.decks.push(newDeck);
@@ -572,7 +680,7 @@ export class DeckBuilder {
       btnRow.appendChild(btnMinus);
       btnRow.appendChild(btnPlus);
 
-      // Add "+5" button for Lesson cards in deck view
+      // Add "+5" and "Remove All" buttons for Lesson cards in deck view
       if (group.card.type === 'Lesson') {
         const btnPlusFive = document.createElement('button');
         btnPlusFive.className = 'btn btn-icon btn-small btn-secondary';
@@ -588,6 +696,22 @@ export class DeckBuilder {
           }
         });
         btnRow.appendChild(btnPlusFive);
+
+        const btnRemoveAll = document.createElement('button');
+        btnRemoveAll.className = 'btn btn-icon btn-small btn-danger';
+        btnRemoveAll.innerText = 'All';
+        btnRemoveAll.title = 'Remove all of this lesson card';
+        btnRemoveAll.style.width = '36px';
+        btnRemoveAll.style.height = '28px';
+        btnRemoveAll.style.display = 'flex';
+        btnRemoveAll.style.alignItems = 'center';
+        btnRemoveAll.style.justifyContent = 'center';
+        btnRemoveAll.style.background = '#8b0000';
+        btnRemoveAll.style.borderColor = '#8b0000';
+        btnRemoveAll.addEventListener('click', () => {
+          this.removeAllCardFromDeck(group.card.id);
+        });
+        btnRow.appendChild(btnRemoveAll);
       }
 
       info.appendChild(name);
@@ -641,6 +765,19 @@ export class DeckBuilder {
     }
   }
 
+  removeAllCardFromDeck(cardId) {
+    if (!this.currentDeck) return;
+
+    if (this.currentDeck.isPreset) {
+      this.cloneCurrentPreset();
+    }
+
+    this.currentDeck.cardIds = this.currentDeck.cardIds.filter(id => id !== cardId);
+    this.validateAndRenderStatus();
+    this.renderCurrentDeckCards();
+    this.renderCatalog();
+  }
+
   renderCatalog() {
     if (!this.el.catalogGrid || !this.currentDeck) return;
     this.el.catalogGrid.innerHTML = '';
@@ -658,6 +795,13 @@ export class DeckBuilder {
       if (this.activeLessonFilter && this.activeLessonFilter !== 'All') {
         const cardLessonType = c.type === 'Lesson' ? (c.provides?.type || c.lessonType) : c.lessonCost?.type;
         if (cardLessonType !== this.activeLessonFilter) {
+          return false;
+        }
+      }
+
+      // Apply active series filter
+      if (this.activeSeriesFilter && this.activeSeriesFilter !== 'All') {
+        if (c.series !== this.activeSeriesFilter) {
           return false;
         }
       }
