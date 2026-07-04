@@ -1,3 +1,7 @@
 # Ignore OS generated files
 .DS_Store
 
+# Ignore QA trackers and CSVs
+*.csv
+
+
