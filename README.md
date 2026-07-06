@@ -13,7 +13,7 @@ To run the game, launch a lightweight local web server in the game directory. Be
 ### Option A: Using Python (Mac & Linux - Pre-installed)
 Open your terminal, navigate to the game directory, and run:
 ```bash
-python3 -m http.server 8000
+python3 server.py 8080
 ```
 Then open your web browser and navigate to: **`http://localhost:8000`**
 
