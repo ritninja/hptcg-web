@@ -522,8 +522,8 @@ export class GameEngine {
     }
   }
 
-  // Draw card from deck to hand
-  drawCard(playerId, costAction = false) {
+  canDrawCard(playerId, costAction = false) {
+    if (this.gameOver) return false;
     const player = this.players[playerId];
     
     if (costAction) {
@@ -539,6 +539,18 @@ export class GameEngine {
       }
       if (this.actionsRemaining < 1) {
         this.logActionError(playerId, 'Not enough actions to draw a card.');
+        return false;
+      }
+    }
+    return true;
+  }
+
+  // Draw card from deck to hand
+  drawCard(playerId, costAction = false) {
+    const player = this.players[playerId];
+    
+    if (costAction) {
+      if (!this.canDrawCard(playerId, costAction)) {
         return false;
       }
       this.actionsRemaining--;
@@ -959,7 +971,7 @@ export class GameEngine {
             ...this.players.opponent.creatures.filter(c => c.instanceId !== card.instanceId)
           ];
           if (allOther.length > 0) {
-            if (playerId === 'player') {
+            if (playerId === 'player' || this.isMultiplayer) {
               const choices = allOther.map(c => ({ id: c.instanceId, label: c.name, card: c, ownerId: this.players.player.creatures.includes(c) ? 'player' : 'opponent' }));
               this.promptChoice(playerId, `${card.name}: Choose another Creature to deal ${dmg} damage to`, choices, 1, 1, (selected) => {
                 const sel = selected[0];
@@ -968,7 +980,7 @@ export class GameEngine {
                   this.damageCreature(found.ownerId, found.card.instanceId, dmg);
                   this.notifyStateChange();
                 }
-              });
+              }, card);
             } else {
               const pCreatures = this.players.player.creatures;
               const target = pCreatures.length > 0 ? pCreatures[0] : allOther[0];
@@ -2887,8 +2899,8 @@ export class GameEngine {
       }
       case 'Mice to Snuffboxes': {
         const allCreatures = [
-          ...player.creatures.map(c => ({ id: `creatures-player-${c.instanceId}`, label: `${c.name} (Your Creature)`, card: c, ownerId: 'player' })),
-          ...opponent.creatures.map(c => ({ id: `creatures-opponent-${c.instanceId}`, label: `${c.name} (Opponent's Creature)`, card: c, ownerId: 'opponent' }))
+          ...player.creatures.map(c => ({ id: `creatures-${player.id}-${c.instanceId}`, label: `${c.name} (${player.name}'s Creature)`, card: c, ownerId: player.id })),
+          ...opponent.creatures.map(c => ({ id: `creatures-${opponent.id}-${c.instanceId}`, label: `${c.name} (${opponent.name}'s Creature)`, card: c, ownerId: opponent.id }))
         ];
         if (allCreatures.length === 0) {
           this.log(`Mice to Snuffboxes: No Creatures in play.`);
@@ -2992,7 +3004,7 @@ export class GameEngine {
           break;
         }
         const maxTake = Math.min(2, lessons.length);
-        if (casterId === 'player') {
+        if (casterId === 'player' || this.isMultiplayer) {
           const choices = lessons.map(c => ({ id: c.instanceId, label: c.name, card: c }));
           this.promptChoice(casterId, `Research: Select up to ${maxTake} Lessons to put in play`, choices, 0, maxTake, (selected) => {
             selected.forEach(instId => {
@@ -3005,7 +3017,7 @@ export class GameEngine {
             this.shuffle(player.deck);
             this.log(`Research: Put ${selected.length} Lesson(s) in play.`);
             this.notifyStateChange();
-          });
+          }, card);
         } else {
           const toAdd = lessons.slice(0, maxTake);
           toAdd.forEach(c => {
@@ -3049,7 +3061,7 @@ export class GameEngine {
           this.log(`Searching for the Snitch: No Quidditch cards in deck.`);
           break;
         }
-        if (casterId === 'player') {
+        if (casterId === 'player' || this.isMultiplayer) {
           const choices = matches.map(c => ({ id: c.instanceId, label: c.name, card: c }));
           this.promptChoice(casterId, "Searching for the Snitch: Choose 1 Quidditch card to add to hand", choices, 1, 1, (selected) => {
             const sel = selected[0];
@@ -3061,7 +3073,7 @@ export class GameEngine {
             }
             this.shuffle(player.deck);
             this.notifyStateChange();
-          });
+          }, card);
         } else {
           const [c] = player.deck.splice(player.deck.indexOf(matches[0]), 1);
           player.hand.push(c);
@@ -3077,7 +3089,7 @@ export class GameEngine {
           this.log(`Smash!: Opponent has no Items in play.`);
           break;
         }
-        if (casterId === 'player') {
+        if (casterId === 'player' || this.isMultiplayer) {
           const choices = items.map(c => ({ id: c.instanceId, label: c.name, card: c }));
           this.promptChoice(casterId, "Smash!: Choose 1 opponent's Item to discard", choices, 1, 1, (selected) => {
             const sel = selected[0];
@@ -3088,7 +3100,7 @@ export class GameEngine {
               this.log(`Smash!: Discarded ${c.name} from play.`);
               this.notifyStateChange();
             }
-          });
+          }, card);
         } else {
           const [c] = opponent.items.splice(0, 1);
           opponent.discardPile.push(c);
@@ -3137,7 +3149,7 @@ export class GameEngine {
         for (let i = 0; i < lookCount; i++) {
           topCards.push(player.deck.pop());
         }
-        if (casterId === 'player') {
+        if (casterId === 'player' || this.isMultiplayer) {
           const choices = topCards.map((c, idx) => ({ id: `${idx}`, label: c.name, card: c }));
           this.promptChoice(casterId, `Time Out: Choose the order to return cards to deck (First selected will be on top)`, choices, lookCount, lookCount, (selected) => {
             selected.forEach(idxStr => {
@@ -3146,7 +3158,7 @@ export class GameEngine {
             });
             this.log(`Time Out: Returned ${lookCount} card(s) to top of deck.`);
             this.notifyStateChange();
-          });
+          }, card);
         } else {
           for (let i = lookCount - 1; i >= 0; i--) {
             player.deck.push(topCards[i]);
@@ -3166,7 +3178,7 @@ export class GameEngine {
           break;
         }
 
-        if (casterId === 'player') {
+        if (casterId === 'player' || this.isMultiplayer) {
           this.promptChoice(casterId, "Vanish: Choose 1 Creature or non-starting Character to put on bottom of deck", choices, 1, 1, (selected) => {
             const sel = selected[0];
             if (sel) {
@@ -3181,7 +3193,7 @@ export class GameEngine {
                 }
               }
             }
-          });
+          }, card);
         } else {
           const found = choices[0];
           const idx = opponent[found.type].findIndex(c => c.instanceId === found.card.instanceId);
@@ -3770,7 +3782,7 @@ export class GameEngine {
               this.notifyStateChange();
             }
           }
-        });
+        }, item);
         break;
       }
 
@@ -4271,6 +4283,7 @@ export class GameEngine {
                 player.adventures.splice(idx, 1);
                 opponent.discardPile.push(adventure);
                 this.log(`Pep Talk is solved!`);
+                player.mustDrawFirstAction = false;
                 this.applyAdventureReward(playerId, adventure);
               }
               this.notifyStateChange();
@@ -4282,6 +4295,7 @@ export class GameEngine {
           player.adventures.splice(advIndex, 1);
           opponent.discardPile.push(adventure);
           this.log(`Pep Talk is solved!`);
+          player.mustDrawFirstAction = false;
           this.applyAdventureReward(playerId, adventure);
           this.notifyStateChange();
         }
@@ -4919,8 +4933,7 @@ export class GameEngine {
 
   applyNevilleDamageCap(targetPlayerId, amount) {
     const target = this.players[targetPlayerId];
-    const nevilleActive = target.hasCharacterInPlay('Neville Longbottom')
-      && this.activePlayerId === targetPlayerId;
+    const nevilleActive = target.hasCharacterInPlay('Neville Longbottom');
 
     if (!nevilleActive || amount <= 0) {
       return amount;
@@ -4949,9 +4962,7 @@ export class GameEngine {
       return;
     }
 
-    if (this.activePlayerId === targetPlayerId) {
-      target.damageTakenThisTurn = (target.damageTakenThisTurn || 0) + amount;
-    }
+    target.damageTakenThisTurn = (target.damageTakenThisTurn || 0) + amount;
 
     this.log(`${target.name} takes ${amount} damage! Discarding cards from deck.`, 'damage');
 
@@ -5085,7 +5096,7 @@ export class GameEngine {
         break;
       }
       case 'Slytherin Match': {
-        if (winnerId === 'player') {
+        if (winnerId === 'player' || this.isMultiplayer) {
           const nonHealing = winner.discardPile.filter(c => !c.healing && !c.subTypes?.includes('Healing'));
           if (nonHealing.length === 0) {
             this.log(`No eligible non-Healing cards in discard pile for Slytherin Match prize.`);
@@ -5103,7 +5114,7 @@ export class GameEngine {
             this.shuffle(winner.deck);
             this.log(`Slytherin Match: Shuffled ${selected.length} card(s) into deck.`);
             this.notifyStateChange();
-          });
+          }, matchCard);
         } else {
           const nonHealing = winner.discardPile.filter(c => !c.healing && !c.subTypes?.includes('Healing'));
           const toShuffle = nonHealing.slice(0, 15);
@@ -5119,7 +5130,7 @@ export class GameEngine {
         break;
       }
       case 'Ravenclaw Match': {
-        if (winnerId === 'player') {
+        if (winnerId === 'player' || this.isMultiplayer) {
           const lessons = winner.deck.filter(c => c.type === 'Lesson');
           if (lessons.length === 0) {
             this.log(`No Lessons in deck for Ravenclaw Match prize.`);
@@ -5137,7 +5148,7 @@ export class GameEngine {
             this.shuffle(winner.deck);
             this.log(`Ravenclaw Match: Put ${selected.length} Lesson(s) into play and shuffled deck.`);
             this.notifyStateChange();
-          });
+          }, matchCard);
         } else {
           const lessons = winner.deck.filter(c => c.type === 'Lesson');
           const toPlay = lessons.slice(0, 2);
@@ -5267,8 +5278,9 @@ export class GameEngine {
 
     this.log(`--- Turn ${this.turnNumber}: Start of ${nextPlayer.name}'s Turn ---`, 'turn');
 
-    // Reset Neville damage cap at the start of this player's turn (includes before-turn damage)
-    nextPlayer.damageTakenThisTurn = 0;
+    // Reset Neville damage cap at the start of every turn (includes before-turn damage)
+    this.players.player.damageTakenThisTurn = 0;
+    this.players.opponent.damageTakenThisTurn = 0;
 
     // Resolve start-of-turn Item effects for nextPlayer
     const nextHasBludger = nextPlayer.items.some(i => i.name === 'Bludger');

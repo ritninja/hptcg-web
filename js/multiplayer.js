@@ -156,6 +156,12 @@ export class MultiplayerManager {
       this.broadcastState(engine);
     };
 
+    const originalActivateItemAbility = engine.activateItemAbility.bind(engine);
+    engine.activateItemAbility = (playerId, itemInstanceId) => {
+      originalActivateItemAbility(playerId, itemInstanceId);
+      this.broadcastState(engine);
+    };
+
     const originalCancelPendingSpell = engine.cancelPendingSpell.bind(engine);
     engine.cancelPendingSpell = (playerId) => {
       originalCancelPendingSpell(playerId);
@@ -325,9 +331,12 @@ export class MultiplayerManager {
       return true;
     };
 
-    engine.drawCard = (playerId, log) => {
+    engine.drawCard = (playerId, costAction = false) => {
       if (engine.activePlayerId !== 'player') return false;
-      this.postAction({ type: 'drawCard', playerId: 'player' });
+      if (!engine.canDrawCard('player', costAction)) {
+        return false;
+      }
+      this.postAction({ type: 'drawCard', playerId: 'player', costAction });
       return true;
     };
 
@@ -339,7 +348,25 @@ export class MultiplayerManager {
 
     engine.resolvePendingSpell = (selectedIds) => {
       if (!engine.pendingSpell || engine.pendingSpell.casterId !== 'player') return;
-      this.postAction({ type: 'resolveSpell', selectedIds });
+      
+      let mapped = selectedIds;
+      if (Array.isArray(selectedIds)) {
+        mapped = selectedIds.map(id => {
+          if (id === 'player') return 'opponent';
+          if (id === 'opponent') return 'player';
+          if (typeof id === 'string') {
+            let mId = id;
+            mId = mId.replace(/\bplayer\b/g, '__TEMP_PLAYER__');
+            mId = mId.replace(/\bopponent\b/g, '__TEMP_OPPONENT__');
+            mId = mId.replace(/__TEMP_PLAYER__/g, 'opponent');
+            mId = mId.replace(/__TEMP_OPPONENT__/g, 'player');
+            return mId;
+          }
+          return id;
+        });
+      }
+      
+      this.postAction({ type: 'resolveSpell', selectedIds: mapped });
       engine.pendingSpell = null;
       engine.notifyStateChange();
     };
@@ -353,6 +380,12 @@ export class MultiplayerManager {
     engine.activateCharacterAbility = (playerId, characterInstanceId) => {
       if (engine.activePlayerId !== 'player') return false;
       this.postAction({ type: 'activateCharacterAbility', playerId: 'player', characterInstanceId });
+      return true;
+    };
+
+    engine.activateItemAbility = (playerId, itemInstanceId) => {
+      if (engine.activePlayerId !== 'player') return false;
+      this.postAction({ type: 'activateItemAbility', playerId: 'player', itemInstanceId });
       return true;
     };
 
@@ -469,7 +502,7 @@ export class MultiplayerManager {
     if (action.type === 'playCard') {
       engine.playCard('opponent', action.cardInstanceId);
     } else if (action.type === 'drawCard') {
-      engine.drawCard('opponent', true);
+      engine.drawCard('opponent', action.costAction !== undefined ? action.costAction : true);
     } else if (action.type === 'endTurn') {
       engine.endTurn();
     } else if (action.type === 'resolveSpell') {
@@ -478,6 +511,8 @@ export class MultiplayerManager {
       engine.solveAdventure('opponent', action.instanceId);
     } else if (action.type === 'activateCharacterAbility') {
       engine.activateCharacterAbility('opponent', action.characterInstanceId);
+    } else if (action.type === 'activateItemAbility') {
+      engine.activateItemAbility('opponent', action.itemInstanceId);
     } else if (action.type === 'cancelSpell') {
       engine.cancelPendingSpell('opponent');
     } else if (action.type === 'debugDealCreatureDamage') {
@@ -818,8 +853,21 @@ export function loadEngineState(engine, plainState, isGuest = false) {
           result = result.replace('Hogwarts Rival', 'Your opponent');
         }
         
+        let mappedId = c.id;
+        if (mappedId === 'player') {
+          mappedId = 'opponent';
+        } else if (mappedId === 'opponent') {
+          mappedId = 'player';
+        } else if (typeof mappedId === 'string') {
+          mappedId = mappedId.replace(/\bplayer\b/g, '__TEMP_PLAYER__');
+          mappedId = mappedId.replace(/\bopponent\b/g, '__TEMP_OPPONENT__');
+          mappedId = mappedId.replace(/__TEMP_PLAYER__/g, 'opponent');
+          mappedId = mappedId.replace(/__TEMP_OPPONENT__/g, 'player');
+        }
+        
         return {
           ...c,
+          id: mappedId,
           label: result
         };
       });
