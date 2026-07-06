@@ -6,6 +6,7 @@
 import { GameEngine } from './game-engine.js';
 import { UIManager } from './ui.js';
 import { DeckBuilder, validateDeck } from './deck-builder.js';
+import { MultiplayerManager } from './multiplayer.js';
 
 
 async function bootstrap() {
@@ -32,6 +33,9 @@ async function bootstrap() {
     // 4. Initialize UI Manager
     const ui = new UIManager(engine);
 
+    // Initialize Multiplayer Manager
+    const multiplayer = new MultiplayerManager();
+
     // 5. Connect UI updates to state changes
     engine.onStateChange(() => {
       ui.render();
@@ -44,20 +48,32 @@ async function bootstrap() {
       showScreen('menu');
     });
 
+    document.addEventListener('decks-loaded', () => {
+      populateMatchDecks();
+      populateLanDecks();
+    });
+
     const showScreen = (screenId) => {
       document.getElementById('main-menu-container').classList.add('hidden');
       document.getElementById('deck-builder-container').classList.add('hidden');
       document.getElementById('game-container').classList.add('hidden');
+      document.getElementById('lan-menu-container').classList.add('hidden');
       
       if (screenId === 'menu') {
         document.getElementById('main-menu-container').classList.remove('hidden');
       } else if (screenId === 'builder') {
         deckBuilder.show();
+      } else if (screenId === 'lan') {
+        document.getElementById('lan-menu-container').classList.remove('hidden');
       } else if (screenId === 'game') {
         document.getElementById('game-container').classList.remove('hidden');
         const debugPanel = document.getElementById('debug-menu-panel');
         if (debugPanel) {
           debugPanel.style.display = isDebugMatch ? 'flex' : 'none';
+        }
+        const btnReset = document.getElementById('btn-reset');
+        if (btnReset) {
+          btnReset.style.display = engine.isMultiplayer ? 'none' : 'block';
         }
         ui.render();
       }
@@ -106,7 +122,11 @@ async function bootstrap() {
 
       // Default selections
       if (deckBuilder.decks.length > 0) {
-        playerDeckSelect.value = deckBuilder.decks[0].id;
+        if (deckBuilder.currentDeck && deckBuilder.decks.some(d => d.id === deckBuilder.currentDeck.id)) {
+          playerDeckSelect.value = deckBuilder.currentDeck.id;
+        } else {
+          playerDeckSelect.value = deckBuilder.decks[0].id;
+        }
         if (deckBuilder.decks.length > 1) {
           opponentDeckSelect.value = deckBuilder.decks[1].id;
         } else {
@@ -120,6 +140,7 @@ async function bootstrap() {
     opponentDeckSelect.addEventListener('change', updatePreviews);
 
     let isDebugMatch = false;
+    let isLanDebugMode = false;
 
     btnMenuPlay.addEventListener('click', () => {
       isDebugMatch = false;
@@ -201,6 +222,8 @@ async function bootstrap() {
     const btnBackToMenu = document.getElementById('btn-back-to-menu');
     if (btnBackToMenu) {
       btnBackToMenu.addEventListener('click', () => {
+        multiplayer.cleanup();
+        engine.isMultiplayer = false;
         showScreen('menu');
       });
     }
@@ -217,6 +240,363 @@ async function bootstrap() {
         deckSelectionModal.showModal();
       });
     }
+
+    // Multiplayer (LAN) event binding
+    const btnMenuLan = document.getElementById('btn-menu-lan');
+    const btnLanBack = document.getElementById('btn-lan-back');
+    const btnLanConnectServer = document.getElementById('btn-lan-connect-server');
+    const btnLanHostLobby = document.getElementById('btn-lan-host-lobby');
+    const btnLanRefreshLobbies = document.getElementById('btn-lan-refresh-lobbies');
+    const btnLanStartMatch = document.getElementById('btn-lan-start-match');
+    const btnLanLeaveLobby = document.getElementById('btn-lan-leave-lobby');
+
+    const lanPlayerName = document.getElementById('lan-player-name');
+    const lanServerUrl = document.getElementById('lan-server-url');
+    const lanDeckSelect = document.getElementById('lan-deck-select');
+    const lanCharPreviewImg = document.getElementById('lan-char-preview-img');
+    const serverConnectionStatus = document.getElementById('server-connection-status');
+    const lanActionPanel = document.getElementById('lan-action-panel');
+    const lanWaitingRoom = document.getElementById('lan-waiting-room');
+    const lanLobbyList = document.getElementById('lan-lobby-list');
+    const lobbyHostName = document.getElementById('lobby-host-name');
+    const lobbyGuestName = document.getElementById('lobby-guest-name');
+    const waitingRoomTitle = document.getElementById('waiting-room-title');
+
+    const populateLanDecks = () => {
+      const previousValue = lanDeckSelect.value;
+      lanDeckSelect.innerHTML = '';
+      deckBuilder.decks.forEach(deck => {
+        const opt = document.createElement('option');
+        opt.value = deck.id;
+        opt.innerText = deck.name + (deck.isPreset ? " (Preset)" : "");
+        lanDeckSelect.appendChild(opt);
+      });
+
+      // Try to preserve previous selection, or fallback to deck builder active deck
+      if (previousValue && deckBuilder.decks.some(d => d.id === previousValue)) {
+        lanDeckSelect.value = previousValue;
+      } else if (deckBuilder.currentDeck) {
+        lanDeckSelect.value = deckBuilder.currentDeck.id;
+      }
+
+      updateLanPreview();
+    };
+
+    const updateLanPreview = () => {
+      const deck = deckBuilder.decks.find(d => d.id === lanDeckSelect.value);
+      if (deck) {
+        const charCard = cardsDb.find(c => c.id === deck.characterId);
+        if (charCard) lanCharPreviewImg.src = charCard.image;
+      }
+    };
+
+    const updateLobbyDeck = async () => {
+      if (!multiplayer.gameId) return;
+      const deckId = lanDeckSelect.value;
+      const deck = deckBuilder.decks.find(d => d.id === deckId);
+      if (!deck) return;
+      
+      try {
+        await fetch(`${multiplayer.serverUrl}/api/lobbies/update-deck`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            gameId: multiplayer.gameId,
+            role: multiplayer.role,
+            deck: {
+              id: deck.id,
+              name: deck.name,
+              characterId: deck.characterId,
+              cardIds: deck.cardIds
+            }
+          })
+        });
+      } catch (e) {
+        console.error("Failed to sync lobby deck:", e);
+      }
+    };
+
+    lanDeckSelect.addEventListener('change', () => {
+      updateLanPreview();
+      updateLobbyDeck();
+    });
+
+    if (btnMenuLan) {
+      btnMenuLan.addEventListener('click', () => {
+        isLanDebugMode = false;
+        const lanTitle = document.getElementById('lan-title');
+        if (lanTitle) lanTitle.innerText = "LAN Multiplayer";
+        
+        const checkboxDiv = document.getElementById('lan-debug-checkbox')?.closest('div');
+        if (checkboxDiv) checkboxDiv.style.display = 'none';
+
+        showScreen('lan');
+        populateLanDecks();
+        const currentOrigin = window.location.origin;
+        lanServerUrl.value = currentOrigin;
+        connectToLanServer(currentOrigin);
+      });
+    }
+
+    const btnMenuDebugLan = document.getElementById('btn-menu-debug-lan');
+    if (btnMenuDebugLan) {
+      btnMenuDebugLan.addEventListener('click', () => {
+        isLanDebugMode = true;
+        const lanTitle = document.getElementById('lan-title');
+        if (lanTitle) lanTitle.innerText = "LAN Multiplayer - Debug Mode";
+
+        const checkboxDiv = document.getElementById('lan-debug-checkbox')?.closest('div');
+        if (checkboxDiv) checkboxDiv.style.display = 'flex';
+        const checkbox = document.getElementById('lan-debug-checkbox');
+        if (checkbox) checkbox.checked = true;
+
+        showScreen('lan');
+        populateLanDecks();
+        const currentOrigin = window.location.origin;
+        lanServerUrl.value = currentOrigin;
+        connectToLanServer(currentOrigin);
+      });
+    }
+
+    if (btnLanBack) {
+      btnLanBack.addEventListener('click', () => {
+        multiplayer.cleanup();
+        showScreen('menu');
+      });
+    }
+
+    const connectToLanServer = async (url) => {
+      multiplayer.setServerUrl(url);
+      serverConnectionStatus.className = 'status-indicator';
+      serverConnectionStatus.innerHTML = '<span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #ffd700;"></span> Connecting...';
+      
+      try {
+        await multiplayer.fetchLobbies();
+        serverConnectionStatus.className = 'status-indicator connected';
+        serverConnectionStatus.innerHTML = '<span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%;"></span> Connected to Server';
+        lanActionPanel.classList.remove('hidden');
+        refreshLobbiesList();
+      } catch (err) {
+        console.error("LAN Connection failed:", err);
+        serverConnectionStatus.className = 'status-indicator disconnected';
+        serverConnectionStatus.innerHTML = '<span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%;"></span> Connection Failed';
+        lanActionPanel.classList.add('hidden');
+      }
+    };
+
+    btnLanConnectServer.addEventListener('click', () => {
+      connectToLanServer(lanServerUrl.value);
+    });
+
+    const refreshLobbiesList = async () => {
+      lanLobbyList.innerHTML = '<li style="padding: 16px; text-align: center; color: var(--text-secondary); font-style: italic;">Loading lobbies...</li>';
+      try {
+        const lobbies = await multiplayer.fetchLobbies();
+        lanLobbyList.innerHTML = '';
+        if (lobbies.length === 0) {
+          lanLobbyList.innerHTML = '<li style="padding: 16px; text-align: center; color: var(--text-secondary); font-style: italic;">No active lobbies. Click Host or Refresh!</li>';
+          return;
+        }
+
+        lobbies.forEach(lobby => {
+          const li = document.createElement('li');
+          li.className = 'lobby-item-li';
+          
+          const nameSpan = document.createElement('span');
+          nameSpan.className = 'lobby-item-name';
+          nameSpan.innerText = `${lobby.hostName}'s Match` + (lobby.isDebug ? ' (Debug)' : '');
+
+          const idSpan = document.createElement('span');
+          idSpan.className = 'lobby-item-id';
+          idSpan.innerText = lobby.gameId;
+
+          li.appendChild(nameSpan);
+          li.appendChild(idSpan);
+
+          li.addEventListener('click', () => {
+            joinExistingLobby(lobby.gameId, lobby.isDebug);
+          });
+          lanLobbyList.appendChild(li);
+        });
+      } catch (err) {
+        console.error("Failed to load lobbies:", err);
+        lanLobbyList.innerHTML = '<li style="padding: 16px; text-align: center; color: #ff4d4d; font-style: italic;">Failed to load lobbies.</li>';
+      }
+    };
+
+    btnLanRefreshLobbies.addEventListener('click', refreshLobbiesList);
+
+    btnLanHostLobby.addEventListener('click', async () => {
+      const pName = lanPlayerName.value.trim() || 'Host';
+      const deckId = lanDeckSelect.value;
+      const deck = deckBuilder.decks.find(d => d.id === deckId);
+      if (!deck) {
+        alert("Select a deck first!");
+        return;
+      }
+      
+      const lanDebugCheckbox = document.getElementById('lan-debug-checkbox');
+      const isDebug = lanDebugCheckbox ? lanDebugCheckbox.checked : false;
+
+      if (!isDebug) {
+        const validity = validateDeck(deck, cardsDb);
+        if (!validity.isValid) {
+          alert(`Cannot host: your deck "${deck.name}" is invalid!\n\nErrors:\n- ${validity.errors.join('\n- ')}`);
+          return;
+        }
+      }
+
+      try {
+        const gameId = await multiplayer.createLobby(pName, {
+          id: deck.id,
+          name: deck.name,
+          characterId: deck.characterId,
+          cardIds: deck.cardIds
+        }, isDebug);
+
+        lanActionPanel.classList.add('hidden');
+        lanWaitingRoom.classList.remove('hidden');
+        waitingRoomTitle.innerText = `Match Lobby: ${gameId}`;
+        lobbyHostName.innerText = pName;
+        lobbyHostName.style.fontStyle = 'normal';
+        lobbyGuestName.innerText = "Waiting for guest...";
+        lobbyGuestName.style.fontStyle = 'italic';
+        btnLanStartMatch.classList.add('hidden');
+
+        multiplayer.startLobbyPolling((data) => {
+          if (data.guestName) {
+            lobbyGuestName.innerText = data.guestName;
+            lobbyGuestName.style.fontStyle = 'normal';
+            btnLanStartMatch.classList.remove('hidden');
+          } else {
+            lobbyGuestName.innerText = "Waiting for guest...";
+            lobbyGuestName.style.fontStyle = 'italic';
+            btnLanStartMatch.classList.add('hidden');
+          }
+        });
+      } catch (err) {
+        alert("Failed to create lobby: " + err.message);
+      }
+    });
+
+    const joinExistingLobby = async (gameId, isDebugLobby = false) => {
+      const pName = lanPlayerName.value.trim() || 'Guest';
+      const deckId = lanDeckSelect.value;
+      const deck = deckBuilder.decks.find(d => d.id === deckId);
+      if (!deck) {
+        alert("Select a deck first!");
+        return;
+      }
+
+      let isDebug = isDebugLobby;
+      try {
+        const res = await fetch(`${multiplayer.serverUrl}/api/lobbies/${gameId}/poll`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.isDebug !== undefined) {
+            isDebug = data.isDebug;
+          }
+        }
+      } catch (e) {
+        console.error("Failed to pre-check lobby debug status:", e);
+      }
+
+      if (!isDebug) {
+        const validity = validateDeck(deck, cardsDb);
+        if (!validity.isValid) {
+          alert(`Cannot join: your deck "${deck.name}" is invalid!\n\nErrors:\n- ${validity.errors.join('\n- ')}`);
+          return;
+        }
+      }
+
+      try {
+        console.log("Guest joining lobby with deck:", deck);
+        const hostDeck = await multiplayer.joinLobby(gameId, pName, {
+          id: deck.id,
+          name: deck.name,
+          characterId: deck.characterId,
+          cardIds: deck.cardIds
+        });
+
+        lanActionPanel.classList.add('hidden');
+        lanWaitingRoom.classList.remove('hidden');
+        waitingRoomTitle.innerText = `Match Lobby: ${gameId}`;
+        lobbyHostName.innerText = multiplayer.opponentName;
+        lobbyHostName.style.fontStyle = 'normal';
+        lobbyGuestName.innerText = pName;
+        lobbyGuestName.style.fontStyle = 'normal';
+        btnLanStartMatch.classList.add('hidden');
+
+        multiplayer.startLobbyPolling((data) => {
+          if (data.hasStarted) {
+            multiplayer.stopLobbyPolling();
+            console.log("Guest starting multiplayer game sync...");
+            
+            multiplayer.setupMultiplayerEngine(engine, ui);
+            
+            isDebugMatch = multiplayer.isDebug;
+            showScreen('game');
+            ui.render();
+          }
+        });
+      } catch (err) {
+        alert("Failed to join lobby: " + err.message);
+      }
+    };
+
+    btnLanStartMatch.addEventListener('click', async () => {
+      if (multiplayer.role !== 'host') return;
+      
+      try {
+        const res = await fetch(`${multiplayer.serverUrl}/api/lobbies/${multiplayer.gameId}/poll`);
+        const data = await res.json();
+        
+        if (!data.guestDeck) {
+          alert("Guest deck details missing!");
+          return;
+        }
+
+        const hostDeck = deckBuilder.decks.find(d => d.id === lanDeckSelect.value);
+        const guestDeck = data.guestDeck;
+        console.log("Host starting match. hostDeck:", hostDeck, "guestDeck:", guestDeck);
+
+        ui.triggerCoinToss((startingPlayerId) => {
+          engine.setupGame(
+            hostDeck.cardIds,
+            guestDeck.cardIds,
+            hostDeck.characterId,
+            guestDeck.characterId,
+            multiplayer.isDebug,
+            startingPlayerId
+          );
+
+          ui.lastTurnNumber = null;
+          ui.lastActivePlayerId = null;
+          ui.isInitialTurnAnnouncementDelayed = true;
+
+          isDebugMatch = multiplayer.isDebug;
+
+          multiplayer.startMatch(engine).then(() => {
+            multiplayer.setupMultiplayerEngine(engine, ui);
+
+            showScreen('game');
+            ui.render();
+            ui.triggerGameStartAnnouncement(startingPlayerId);
+          }).catch(err => {
+            alert("Failed to broadcast starting match: " + err.message);
+          });
+        });
+      } catch (err) {
+        alert("Failed to start match: " + err.message);
+      }
+    });
+
+    btnLanLeaveLobby.addEventListener('click', () => {
+      multiplayer.cleanup();
+      lanWaitingRoom.classList.add('hidden');
+      lanActionPanel.classList.remove('hidden');
+      refreshLobbiesList();
+    });
 
     // Debug Menu buttons
     const btnDebugCreatureDmg = document.getElementById('btn-debug-creature-damage');

@@ -8,6 +8,7 @@ export class PlayerState {
     this.id = id;
     this.name = name;
     this.startingCharacter = startingCharacter;
+    this._debug = false;
     
     this._deck = [];
     this._hand = [];
@@ -48,19 +49,30 @@ export class PlayerState {
     this.playedCardsThisTurnCount = 0;
     this.playedCardsLastTurnCount = 0;
     this.lessonsPlayedThisTurn = 0;
+    this.preventStartingLessonsLimitCount = false;
     this.revealHandRestOfGame = false;
     this.preventSpellDamageOnceThisTurn = false;
     this.damageTakenThisTurn = 0;
     this.wingedKeysTargetInstanceId = null;
     this.inDrawingInstance = false;
     this.tookPeevesDamageThisInstance = false;
-    this.usedCometTwoSixtyThisTurn = false;
+    
+    // Quidditch state tracking
     this.playedQuidditchSpellThisTurn = false;
+    this.usedCometTwoSixtyThisTurn = false;
     this._mustDrawFirstAction = false;
   }
 
+  get debug() { return this._debug; }
+  set debug(val) {
+    this._debug = val;
+    if (val && this._hand) {
+      this.sortHandArray(this._hand);
+    }
+  }
+
   get mustDrawFirstAction() {
-    return this._mustDrawFirstAction && this.adventures.some(a => a.name === 'Pep Talk');
+    return this._mustDrawFirstAction;
   }
   set mustDrawFirstAction(val) {
     this._mustDrawFirstAction = val;
@@ -74,8 +86,12 @@ export class PlayerState {
 
   get hand() { return this._hand; }
   set hand(val) {
+    if (val && this.debug) {
+      this.sortHandArray(val);
+    }
     this._hand = val;
     this.resetDamageOnPushOrUnshift(val);
+    this.sortHandOnPushOrUnshift(val);
   }
 
   get discardPile() { return this._discardPile; }
@@ -160,6 +176,59 @@ export class PlayerState {
     };
   }
 
+  sortHandOnPushOrUnshift(arr) {
+    if (!arr) return;
+    const self = this;
+    const originalPush = arr.push;
+    arr.push = function(...items) {
+      const result = originalPush.apply(this, items);
+      if (self.debug) {
+        self.sortHandArray(this);
+      }
+      return result;
+    };
+    const originalUnshift = arr.unshift;
+    arr.unshift = function(...items) {
+      const result = originalUnshift.apply(this, items);
+      if (self.debug) {
+        self.sortHandArray(this);
+      }
+      return result;
+    };
+  }
+
+  sortHandArray(arr) {
+    const LESSON_ORDER = [
+      'Care of Magical Creatures',
+      'Charms',
+      'Potions',
+      'Transfiguration',
+      'Quidditch'
+    ];
+    arr.sort((a, b) => {
+      const typeA = a.lessonCost?.type;
+      const typeB = b.lessonCost?.type;
+      
+      if (typeA === typeB) {
+        return (a.name || '').localeCompare(b.name || '');
+      }
+      
+      if (!typeA) return 1;
+      if (!typeB) return -1;
+      
+      const indexA = LESSON_ORDER.indexOf(typeA);
+      const indexB = LESSON_ORDER.indexOf(typeB);
+      
+      if (indexA !== -1 && indexB !== -1) {
+        return indexA - indexB;
+      }
+      if (indexA !== -1) return -1;
+      if (indexB !== -1) return 1;
+      
+      return typeA.localeCompare(typeB);
+    });
+  }
+
   clearNextTurnFlags() {
     this.preventAllDamageNextTurn = false;
     this.preventAllDamageSource = null;
@@ -239,7 +308,10 @@ export class GameEngine {
     this.onMatchWonCallback = null;
     this.gameOver = false;
     this.winnerMessage = null;
+    this.winnerId = null;
+    this.pendingAnimations = [];
     this.pendingSpell = null;
+    this.isMultiplayer = false;
   }
 
   // Subscribe UI to state changes
@@ -324,9 +396,13 @@ export class GameEngine {
 
     this.players.player = new PlayerState('player', 'You', pChar);
     this.players.opponent = new PlayerState('opponent', 'Hogwarts Rival', oChar);
+    this.players.player.debug = isDebugMode;
+    this.players.opponent.debug = isDebugMode;
 
     this.gameOver = false;
     this.winnerMessage = null;
+    this.winnerId = null;
+    this.pendingAnimations = [];
     this.pendingSpell = null;
 
     // Build Decks (ignoring starting character which is already in play)
@@ -519,8 +595,7 @@ export class GameEngine {
     }
   }
 
-  // Play a card from hand to board
-  playCard(playerId, cardInstanceId) {
+  canPlayCard(playerId, cardInstanceId) {
     if (this.activePlayerId !== playerId) {
       this.logPlayError(playerId, 'It is not your turn!');
       return false;
@@ -690,28 +765,25 @@ export class GameEngine {
       }
     }
 
-    // Check Play Requirements (Lessons and costs)
-    if (card.lessonCost) {
-      const { counts, total } = player.lessonCounts;
-      let requiredTotal = card.lessonCost.total;
-      const requiredType = card.lessonCost.type;
-
-      // Harry Hunting cost modifier (+2)
-      const hasHarryHunting = activeAdventures.some(a => a.name === 'Harry Hunting');
-      if (hasHarryHunting && (card.type === 'Spell' || card.type === 'Creature')) {
-        requiredTotal += 2;
-      }
-
-      // Bravado cost modifier (-5 for Spells, min 1)
-      if (player.bravadoActiveThisTurn && card.type === 'Spell') {
-        requiredTotal = Math.max(1, requiredTotal - 5);
-      }
-
+    // Lesson count requirement check
+    if (card.lessonCost && card.lessonCost.length > 0) {
+      const requiredTotal = card.lessonCost.length;
+      const total = player.lessons.length;
       if (total < requiredTotal) {
         this.logPlayError(playerId, `Cannot play ${card.name}. Requires ${requiredTotal} lessons total (you have ${total}).`);
         return false;
       }
 
+      // Lesson type checking (requires at least one lesson of each type in lessonCost)
+      const counts = {};
+      player.lessons.forEach(l => {
+        const type = l.provides?.type || l.lessonType;
+        if (type) {
+          counts[type] = (counts[type] || 0) + 1;
+        }
+      });
+
+      const requiredType = card.lessonCost[0];
       if (requiredType && (!counts[requiredType] || counts[requiredType] < 1)) {
         this.logPlayError(playerId, `Cannot play ${card.name}. Requires at least 1 ${requiredType} lesson.`);
         return false;
@@ -743,6 +815,30 @@ export class GameEngine {
         this.logPlayError(playerId, `Cannot play ${card.name}. Requires returning ${req.count} of your ${req.type} Lessons from play to your hand (you only have ${matchCount} available).`);
         return false;
       }
+    }
+
+    return true;
+  }
+
+  // Play a card from hand to board
+  playCard(playerId, cardInstanceId) {
+    if (!this.canPlayCard(playerId, cardInstanceId)) {
+      return false;
+    }
+
+    const player = this.players[playerId];
+    const cardIndex = player.hand.findIndex(c => c.instanceId === cardInstanceId);
+    const card = player.hand[cardIndex];
+
+    // Action Cost Calculation
+    let actionCost = 1;
+    if (card.type === 'Character') {
+      const hasRon = player.characters.some(c => c.name === 'Ron Weasley');
+      actionCost = hasRon ? 1 : 2;
+    }
+    if (card.type === 'Adventure') {
+      const hasFredGeorge = player.characters.some(c => c.name === 'Fred & George Weasley');
+      actionCost = hasFredGeorge ? 1 : 2;
     }
 
     // Spend Action and discard lesson cost if any
@@ -887,7 +983,7 @@ export class GameEngine {
         if (card.name === 'Trevor') {
           const lessons = player.discardPile.filter(c => c.type === 'Lesson');
           if (lessons.length > 0) {
-            if (playerId === 'player') {
+            if (playerId === 'player' || this.isMultiplayer) {
               const choices = lessons.map(c => ({ id: c.instanceId, label: c.name, card: c }));
               this.promptChoice(playerId, "Trevor: Choose 1 Lesson card from your discard pile to return to hand", choices, 0, 1, (selected) => {
                 const sel = selected[0];
@@ -935,7 +1031,7 @@ export class GameEngine {
             for (let i = 0; i < lookCount; i++) {
               topCards.push(player.deck.pop());
             }
-            if (playerId === 'player') {
+            if (playerId === 'player' || this.isMultiplayer) {
               const choices = topCards.map((c, idx) => ({ id: `${idx}`, label: c.name, card: c }));
               this.promptChoice(playerId, "Cleansweep Seven: Choose order to return cards to deck (First selected will be on top)", choices, lookCount, lookCount, (selected) => {
                 selected.forEach(idxStr => {
@@ -1035,8 +1131,8 @@ export class GameEngine {
       
       case 'Draught of Living Death': {
         const choices = [{ id: 'opponent', label: `${opponent.name} (12 Damage)` }];
-        player.creatures.forEach(c => choices.push({ id: `creature-player-${c.instanceId}`, label: `${c.name} (Your Creature - 12 Damage)`, card: c }));
-        opponent.creatures.forEach(c => choices.push({ id: `creature-opponent-${c.instanceId}`, label: `${c.name} (Opponent's Creature - 12 Damage)`, card: c }));
+        player.creatures.forEach(c => choices.push({ id: `creature-${player.id}-${c.instanceId}`, label: `${c.name} (Your Creature - 12 Damage)`, card: c }));
+        opponent.creatures.forEach(c => choices.push({ id: `creature-${opponent.id}-${c.instanceId}`, label: `${c.name} (Opponent's Creature - 12 Damage)`, card: c }));
         
         this.promptChoice(casterId, "Choose target for Draught of Living Death (12 damage)", choices, 1, 1, (selected) => {
           const sel = selected[0];
@@ -1045,7 +1141,7 @@ export class GameEngine {
           } else if (sel && sel.startsWith('creature-')) {
             const parts = sel.split('-');
             const owner = parts[1];
-            const instId = parts[2];
+            const instId = parts.slice(2).join('-');
             this.damageCreature(owner, instId, 12);
           }
         });
@@ -1054,7 +1150,7 @@ export class GameEngine {
       
       case 'History of Magic': {
         const advCards = opponent.hand.filter(c => c.type === 'Adventure');
-        if (casterId === 'player') {
+        if (casterId === 'player' || this.isMultiplayer) {
           const choices = opponent.hand.map(c => ({ id: c.instanceId, label: `${c.name} (${c.type})`, card: c, disabled: true }));
           choices.push({ id: 'done', label: `Acknowledge (${advCards.length} Adventure card(s) will be discarded)` });
           this.promptChoice(casterId, `${opponent.name}'s Hand:`, choices, 1, 1, () => {
@@ -1063,7 +1159,7 @@ export class GameEngine {
               opponent.discardPile.push(c);
               this.log(`${opponent.name}'s Adventure card was discarded: ${c.name}`);
             });
-          });
+          }, card);
         } else {
           advCards.forEach(c => {
             opponent.hand = opponent.hand.filter(h => h.instanceId !== c.instanceId);
@@ -1081,8 +1177,8 @@ export class GameEngine {
           break;
         }
         const choices = [];
-        player.creatures.forEach(c => choices.push({ id: `creature-player-${c.instanceId}`, label: `${c.name} (Your Creature - ${charmsCount} Damage)`, card: c }));
-        opponent.creatures.forEach(c => choices.push({ id: `creature-opponent-${c.instanceId}`, label: `${c.name} (Opponent's Creature - ${charmsCount} Damage)`, card: c }));
+        player.creatures.forEach(c => choices.push({ id: `creature-${player.id}-${c.instanceId}`, label: `${c.name} (Your Creature - ${charmsCount} Damage)`, card: c }));
+        opponent.creatures.forEach(c => choices.push({ id: `creature-${opponent.id}-${c.instanceId}`, label: `${c.name} (Opponent's Creature - ${charmsCount} Damage)`, card: c }));
         
         if (choices.length === 0) {
           this.log(`No creatures in play to target with Incendio.`);
@@ -1094,7 +1190,7 @@ export class GameEngine {
           if (sel && sel.startsWith('creature-')) {
             const parts = sel.split('-');
             const owner = parts[1];
-            const instId = parts[2];
+            const instId = parts.slice(2).join('-');
             this.damageCreature(owner, instId, charmsCount);
           }
         });
@@ -1103,8 +1199,8 @@ export class GameEngine {
       
       case 'Malevolent Mixture': {
         const choices = [{ id: 'opponent', label: `${opponent.name} (10 Damage)` }];
-        player.creatures.forEach(c => choices.push({ id: `creature-player-${c.instanceId}`, label: `${c.name} (Your Creature - 10 Damage)`, card: c }));
-        opponent.creatures.forEach(c => choices.push({ id: `creature-opponent-${c.instanceId}`, label: `${c.name} (Opponent's Creature - 10 Damage)`, card: c }));
+        player.creatures.forEach(c => choices.push({ id: `creature-${player.id}-${c.instanceId}`, label: `${c.name} (Your Creature - 10 Damage)`, card: c }));
+        opponent.creatures.forEach(c => choices.push({ id: `creature-${opponent.id}-${c.instanceId}`, label: `${c.name} (Opponent's Creature - 10 Damage)`, card: c }));
         
         this.promptChoice(casterId, "Choose target for Malevolent Mixture (10 damage)", choices, 1, 1, (selected) => {
           const sel = selected[0];
@@ -1113,7 +1209,7 @@ export class GameEngine {
           } else if (sel && sel.startsWith('creature-')) {
             const parts = sel.split('-');
             const owner = parts[1];
-            const instId = parts[2];
+            const instId = parts.slice(2).join('-');
             this.damageCreature(owner, instId, 10);
           }
         });
@@ -1131,11 +1227,11 @@ export class GameEngine {
           this.log(`Opponent has fewer than 2 Creatures; Raven to Writing Desk has no effect.`);
           break;
         }
-        const choices = opponent.creatures.map(c => ({ id: `creature-opponent-${c.instanceId}`, label: c.name, card: c }));
+        const choices = opponent.creatures.map(c => ({ id: `creature-${opponent.id}-${c.instanceId}`, label: c.name, card: c }));
         this.promptChoice(casterId, "Choose 1 of opponent's Creatures to discard", choices, 1, 1, (selected) => {
           const sel = selected[0];
           if (sel && sel.startsWith('creature-')) {
-            const instId = sel.split('-')[2];
+            const instId = sel.split('-').slice(2).join('-');
             this.discardCreature(opponent.id, instId);
           }
         });
@@ -1151,8 +1247,8 @@ export class GameEngine {
       
       case 'Titillando': {
         const choices = [{ id: 'opponent', label: `${opponent.name} (3 Damage)` }];
-        player.creatures.forEach(c => choices.push({ id: `creature-player-${c.instanceId}`, label: `${c.name} (Your Creature - 3 Damage)`, card: c }));
-        opponent.creatures.forEach(c => choices.push({ id: `creature-opponent-${c.instanceId}`, label: `${c.name} (Opponent's Creature - 3 Damage)`, card: c }));
+        player.creatures.forEach(c => choices.push({ id: `creature-${player.id}-${c.instanceId}`, label: `${c.name} (Your Creature - 3 Damage)`, card: c }));
+        opponent.creatures.forEach(c => choices.push({ id: `creature-${opponent.id}-${c.instanceId}`, label: `${c.name} (Opponent's Creature - 3 Damage)`, card: c }));
         
         this.promptChoice(casterId, "Choose target for Titillando (3 damage)", choices, 1, 1, (selected) => {
           const sel = selected[0];
@@ -1161,7 +1257,7 @@ export class GameEngine {
           } else if (sel && sel.startsWith('creature-')) {
             const parts = sel.split('-');
             const owner = parts[1];
-            const instId = parts[2];
+            const instId = parts.slice(2).join('-');
             this.damageCreature(owner, instId, 3);
           }
           
@@ -1204,7 +1300,7 @@ export class GameEngine {
           this.promptChoice(targetPlayer.id, `Choose 1 Creature to KEEP (all others will be discarded)`, choices, 1, 1, (selected) => {
             const keepSel = selected[0];
             if (keepSel) {
-              const keepInstId = keepSel.split('-')[2];
+              const keepInstId = keepSel.split('-').slice(2).join('-');
               const kept = targetPlayer.creatures.find(c => c.instanceId === keepInstId);
               targetPlayer.creatures.forEach(c => {
                 if (c.instanceId !== keepInstId) {
@@ -1234,7 +1330,7 @@ export class GameEngine {
         }
         this.promptChoice(casterId, `Choose up to ${maxTake} Lesson cards from your deck`, choices, 0, maxTake, (selected) => {
           selected.forEach(selId => {
-            const instId = selId.split('-')[2];
+            const instId = selId.split('-').slice(2).join('-');
             const idx = player.deck.findIndex(c => c.instanceId === instId);
             if (idx !== -1) {
               const [c] = player.deck.splice(idx, 1);
@@ -1273,7 +1369,7 @@ export class GameEngine {
           this.promptChoice(casterId, "Search deck for a card needing Potions Power", choices, 0, 1, (selected) => {
             const sel = selected[0];
             if (sel) {
-              const instId = sel.split('-')[2];
+              const instId = sel.split('-').slice(2).join('-');
               const idx = player.deck.findIndex(c => c.instanceId === instId);
               if (idx !== -1) {
                 const [c] = player.deck.splice(idx, 1);
@@ -1288,20 +1384,20 @@ export class GameEngine {
       }
       
       case 'Apparate': {
-        if (opponent.adventures.length > 0) {
-          const adv = opponent.adventures.pop();
+        if (player.adventures.length > 0) {
+          const adv = player.adventures.pop();
           opponent.discardPile.push(adv);
-          this.log(`Apparate: Discarded opponent's Adventure: ${adv.name}.`);
+          this.log(`Apparate: Discarded opponent's Adventure from your side: ${adv.name}.`);
         } else {
-          this.log(`Opponent has no Adventure in play.`);
+          this.log(`You have no active Adventure on your side to discard.`);
         }
         break;
       }
       
       case 'Bluebell Flames': {
         const choices = [{ id: 'opponent', label: `${opponent.name} (4 Damage)` }];
-        player.creatures.forEach(c => choices.push({ id: `creature-player-${c.instanceId}`, label: `${c.name} (Your Creature - 4 Damage)`, card: c }));
-        opponent.creatures.forEach(c => choices.push({ id: `creature-opponent-${c.instanceId}`, label: `${c.name} (Opponent's Creature - 4 Damage)`, card: c }));
+        player.creatures.forEach(c => choices.push({ id: `creature-${player.id}-${c.instanceId}`, label: `${c.name} (Your Creature - 4 Damage)`, card: c }));
+        opponent.creatures.forEach(c => choices.push({ id: `creature-${opponent.id}-${c.instanceId}`, label: `${c.name} (Opponent's Creature - 4 Damage)`, card: c }));
         
         this.promptChoice(casterId, "Choose target for Bluebell Flames (4 damage)", choices, 1, 1, (selected) => {
           const sel = selected[0];
@@ -1310,7 +1406,7 @@ export class GameEngine {
           } else if (sel && sel.startsWith('creature-')) {
             const parts = sel.split('-');
             const owner = parts[1];
-            const instId = parts[2];
+            const instId = parts.slice(2).join('-');
             this.damageCreature(owner, instId, 4);
           }
         });
@@ -1360,8 +1456,8 @@ export class GameEngine {
       
       case 'Dogbreath Potion': {
         const choices = [{ id: 'opponent', label: `${opponent.name} (8 Damage)` }];
-        player.creatures.forEach(c => choices.push({ id: `creature-player-${c.instanceId}`, label: `${c.name} (Your Creature - 8 Damage)`, card: c }));
-        opponent.creatures.forEach(c => choices.push({ id: `creature-opponent-${c.instanceId}`, label: `${c.name} (Opponent's Creature - 8 Damage)`, card: c }));
+        player.creatures.forEach(c => choices.push({ id: `creature-${player.id}-${c.instanceId}`, label: `${c.name} (Your Creature - 8 Damage)`, card: c }));
+        opponent.creatures.forEach(c => choices.push({ id: `creature-${opponent.id}-${c.instanceId}`, label: `${c.name} (Opponent's Creature - 8 Damage)`, card: c }));
         
         this.promptChoice(casterId, "Choose target for Dogbreath Potion (8 damage)", choices, 1, 1, (selected) => {
           const sel = selected[0];
@@ -1370,7 +1466,7 @@ export class GameEngine {
           } else if (sel && sel.startsWith('creature-')) {
             const parts = sel.split('-');
             const owner = parts[1];
-            const instId = parts[2];
+            const instId = parts.slice(2).join('-');
             this.damageCreature(owner, instId, 8);
           }
         });
@@ -1378,13 +1474,13 @@ export class GameEngine {
       }
       
       case "Draco's Trick": {
-        if (player.adventures.length > 0) {
-          const adv = player.adventures.pop();
+        if (opponent.adventures.length > 0) {
+          const adv = opponent.adventures.pop();
           player.discardPile.push(adv);
           this.log(`Discarded own Adventure: ${adv.name}. Resolving reward: Draw 3 cards.`);
           this.drawCards(casterId, 3, false);
         } else {
-          this.log(`You have no active Adventure in play.`);
+          this.log(`Opponent has no active Adventure in play.`);
         }
         break;
       }
@@ -1422,7 +1518,7 @@ export class GameEngine {
         this.promptChoice(casterId, "Search deck for a Creature card", choices, 0, 1, (selected) => {
           const sel = selected[0];
           if (sel) {
-            const instId = sel.split('-')[2];
+            const instId = sel.split('-').slice(2).join('-');
             const idx = player.deck.findIndex(c => c.instanceId === instId);
             if (idx !== -1) {
               const [c] = player.deck.splice(idx, 1);
@@ -1453,7 +1549,7 @@ export class GameEngine {
         this.promptChoice(casterId, "Choose an Item card to retrieve", choices, 1, 1, (selected) => {
           const sel = selected[0];
           if (sel) {
-            const instId = sel.split('-')[2];
+            const instId = sel.split('-').slice(2).join('-');
             const idx = player.discardPile.findIndex(c => c.instanceId === instId);
             if (idx !== -1) {
               const [c] = player.discardPile.splice(idx, 1);
@@ -1530,7 +1626,7 @@ export class GameEngine {
               const playChoices = inPlay.map(c => ({ id: `play-${opponentId}-${c.instanceId}`, label: `${c.name} (${c.type})`, card: c }));
               this.promptChoice(opponentId, `Choose ${maxDiscard} card(s) in play to discard`, playChoices, maxDiscard, maxDiscard, (discards) => {
                 discards.forEach(selId => {
-                  const instId = selId.split('-')[2];
+                  const instId = selId.split('-').slice(2).join('-');
                   let found = false;
                   ['lessons', 'creatures', 'items', 'adventures'].forEach(zone => {
                     if (found) return;
@@ -1562,16 +1658,18 @@ export class GameEngine {
       }
       
       case 'Take Root': {
-        const choices = opponent.creatures.map(c => ({ id: `creature-opponent-${c.instanceId}`, label: c.name, card: c }));
+        const choices = opponent.creatures.map(c => ({ id: `creature-${opponent.id}-${c.instanceId}`, label: c.name, card: c }));
         if (choices.length === 0) {
           this.log(`Opponent has no Creatures in play to discard.`);
           break;
         }
-        this.promptChoice(opponentId, "Choose 1 Creature in play to discard", choices, 1, 1, (selected) => {
+        this.promptChoice(opponentId, "Choose 1 of your Creatures to discard", choices, 1, 1, (selected) => {
           const sel = selected[0];
           if (sel) {
-            const instId = sel.split('-')[2];
-            this.discardCreature(opponent.id, instId);
+            const parts = sel.split('-');
+            const ownerId = parts[1];
+            const instId = parts.slice(2).join('-');
+            this.discardCreature(ownerId, instId);
           }
         });
         break;
@@ -1586,7 +1684,7 @@ export class GameEngine {
         this.promptChoice(casterId, "Choose a Creature in play to discard", creatureChoices, 1, 1, (discarded) => {
           const dSel = discarded[0];
           if (dSel) {
-            const instId = dSel.split('-')[2];
+            const instId = dSel.split('-').slice(2).join('-');
             const idx = player.creatures.findIndex(c => c.instanceId === instId);
             if (idx !== -1) {
               const [c] = player.creatures.splice(idx, 1);
@@ -1605,7 +1703,7 @@ export class GameEngine {
           this.promptChoice(casterId, "Search deck for a Creature card", choices, 0, 1, (selected) => {
             const sel = selected[0];
             if (sel) {
-              const instId = sel.split('-')[2];
+              const instId = sel.split('-').slice(2).join('-');
               const idx = player.deck.findIndex(c => c.instanceId === instId);
               if (idx !== -1) {
                 const [c] = player.deck.splice(idx, 1);
@@ -1628,7 +1726,7 @@ export class GameEngine {
         this.promptChoice(casterId, "Choose opponent's Lesson to discard", lessonChoices, 1, 1, (discarded) => {
           const dSel = discarded[0];
           if (dSel) {
-            const instId = dSel.split('-')[2];
+            const instId = dSel.split('-').slice(2).join('-');
             const idx = opponent.lessons.findIndex(l => l.instanceId === instId);
             if (idx !== -1) {
               const [l] = opponent.lessons.splice(idx, 1);
@@ -1647,7 +1745,7 @@ export class GameEngine {
           this.promptChoice(casterId, "Search deck for a Creature card", choices, 0, 1, (selected) => {
             const sel = selected[0];
             if (sel) {
-              const instId = sel.split('-')[2];
+              const instId = sel.split('-').slice(2).join('-');
               const idx = player.deck.findIndex(c => c.instanceId === instId);
               if (idx !== -1) {
                 const [c] = player.deck.splice(idx, 1);
@@ -1663,7 +1761,7 @@ export class GameEngine {
       
       case 'Accio': {
         const lessons = player.discardPile.filter(c => c.type === 'Lesson');
-        const choices = lessons.map(c => ({ id: `discard-player-${c.instanceId}`, label: `${c.name} (${c.lessonType})`, card: c }));
+        const choices = lessons.map(c => ({ id: `discard-${casterId}-${c.instanceId}`, label: `${c.name} (${c.lessonType})`, card: c }));
         const maxTake = Math.min(2, choices.length);
         if (maxTake === 0) {
           this.log(`No Lessons in discard pile.`);
@@ -1671,7 +1769,7 @@ export class GameEngine {
         }
         this.promptChoice(casterId, `Choose up to ${maxTake} Lesson cards to retrieve`, choices, 0, maxTake, (selected) => {
           selected.forEach(selId => {
-            const instId = selId.split('-')[2];
+            const instId = selId.split('-').slice(2).join('-');
             const idx = player.discardPile.findIndex(c => c.instanceId === instId);
             if (idx !== -1) {
               const [c] = player.discardPile.splice(idx, 1);
@@ -1693,12 +1791,13 @@ export class GameEngine {
         this.promptChoice(casterId, "Choose a Care of Magical Creatures Lesson to discard", choices, 1, 1, (selected) => {
           const sel = selected[0];
           if (sel) {
-            const instId = sel.split('-')[2];
+            const instId = sel.split('-').slice(2).join('-');
             const idx = opponent.lessons.findIndex(l => l.instanceId === instId);
             if (idx !== -1) {
               const [l] = opponent.lessons.splice(idx, 1);
               opponent.discardPile.push(l);
               this.log(`Discarded opponent's Care of Magical Creatures Lesson: ${l.name}`);
+              this.notifyStateChange();
             }
           }
         });
@@ -1707,8 +1806,8 @@ export class GameEngine {
       
       case 'Baubillious': {
         const choices = [{ id: 'opponent', label: `${opponent.name} (1 Damage)` }];
-        player.creatures.forEach(c => choices.push({ id: `creature-player-${c.instanceId}`, label: `${c.name} (Your Creature - 1 Damage)`, card: c }));
-        opponent.creatures.forEach(c => choices.push({ id: `creature-opponent-${c.instanceId}`, label: `${c.name} (Opponent's Creature - 1 Damage)`, card: c }));
+        player.creatures.forEach(c => choices.push({ id: `creature-${player.id}-${c.instanceId}`, label: `${c.name} (Your Creature - 1 Damage)`, card: c }));
+        opponent.creatures.forEach(c => choices.push({ id: `creature-${opponent.id}-${c.instanceId}`, label: `${c.name} (Opponent's Creature - 1 Damage)`, card: c }));
         
         this.promptChoice(casterId, "Choose target for Baubillious (1 damage)", choices, 1, 1, (selected) => {
           const sel = selected[0];
@@ -1717,7 +1816,7 @@ export class GameEngine {
           } else if (sel && sel.startsWith('creature-')) {
             const parts = sel.split('-');
             const owner = parts[1];
-            const instId = parts[2];
+            const instId = parts.slice(2).join('-');
             this.damageCreature(owner, instId, 1);
           }
           this.drawCard(casterId, false);
@@ -1766,7 +1865,7 @@ export class GameEngine {
       
       case 'Cauldron to Sieve': {
         const potLessons = opponent.lessons.filter(l => l.lessonType === 'Potions');
-        const choices = potLessons.map(l => ({ id: `lesson-opponent-${l.instanceId}`, label: l.name, card: l }));
+        const choices = potLessons.map(l => ({ id: `lesson-${opponent.id}-${l.instanceId}`, label: l.name, card: l }));
         if (choices.length === 0) {
           this.log(`Opponent has no Potions Lessons in play.`);
           break;
@@ -1774,7 +1873,7 @@ export class GameEngine {
         this.promptChoice(casterId, "Choose a Potions Lesson to discard", choices, 1, 1, (selected) => {
           const sel = selected[0];
           if (sel) {
-            const instId = sel.split('-')[2];
+            const instId = sel.split('-').slice(2).join('-');
             const idx = opponent.lessons.findIndex(l => l.instanceId === instId);
             if (idx !== -1) {
               const [l] = opponent.lessons.splice(idx, 1);
@@ -1794,7 +1893,7 @@ export class GameEngine {
       
       case 'Epoximise': {
         const chLessons = opponent.lessons.filter(l => l.lessonType === 'Charms');
-        const choices = chLessons.map(l => ({ id: `lesson-opponent-${l.instanceId}`, label: l.name, card: l }));
+        const choices = chLessons.map(l => ({ id: `lesson-${opponent.id}-${l.instanceId}`, label: l.name, card: l }));
         if (choices.length === 0) {
           this.log(`Opponent has no Charms Lessons in play.`);
           break;
@@ -1802,12 +1901,13 @@ export class GameEngine {
         this.promptChoice(casterId, "Choose a Charms Lesson to discard", choices, 1, 1, (selected) => {
           const sel = selected[0];
           if (sel) {
-            const instId = sel.split('-')[2];
+            const instId = sel.split('-').slice(2).join('-');
             const idx = opponent.lessons.findIndex(l => l.instanceId === instId);
             if (idx !== -1) {
               const [l] = opponent.lessons.splice(idx, 1);
               opponent.discardPile.push(l);
               this.log(`Discarded opponent's Charms Lesson: ${l.name}`);
+              this.notifyStateChange();
             }
           }
         });
@@ -1816,8 +1916,8 @@ export class GameEngine {
       
       case 'Erumpent Potion': {
         const choices = [{ id: 'opponent', label: `${opponent.name} (1 Damage)` }];
-        player.creatures.forEach(c => choices.push({ id: `creature-player-${c.instanceId}`, label: `${c.name} (Your Creature - 1 Damage)`, card: c }));
-        opponent.creatures.forEach(c => choices.push({ id: `creature-opponent-${c.instanceId}`, label: `${c.name} (Opponent's Creature - 1 Damage)`, card: c }));
+        player.creatures.forEach(c => choices.push({ id: `creature-${player.id}-${c.instanceId}`, label: `${c.name} (Your Creature - 1 Damage)`, card: c }));
+        opponent.creatures.forEach(c => choices.push({ id: `creature-${opponent.id}-${c.instanceId}`, label: `${c.name} (Opponent's Creature - 1 Damage)`, card: c }));
         
         this.promptChoice(casterId, "Choose target for Erumpent Potion (1 damage)", choices, 1, 1, (selected) => {
           const sel = selected[0];
@@ -1826,7 +1926,7 @@ export class GameEngine {
           } else if (sel && sel.startsWith('creature-')) {
             const parts = sel.split('-');
             const owner = parts[1];
-            const instId = parts[2];
+            const instId = parts.slice(2).join('-');
             this.damageCreature(owner, instId, 1);
           }
         });
@@ -1835,8 +1935,8 @@ export class GameEngine {
       
       case 'Fluffy Falls Asleep': {
         const choices = [];
-        player.creatures.forEach(c => choices.push({ id: `creature-player-${c.instanceId}`, label: `${c.name} (Your Creature)`, card: c }));
-        opponent.creatures.forEach(c => choices.push({ id: `creature-opponent-${c.instanceId}`, label: `${c.name} (Opponent's Creature)`, card: c }));
+        player.creatures.forEach(c => choices.push({ id: `creature-${player.id}-${c.instanceId}`, label: `${c.name} (Your Creature)`, card: c }));
+        opponent.creatures.forEach(c => choices.push({ id: `creature-${opponent.id}-${c.instanceId}`, label: `${c.name} (Opponent's Creature)`, card: c }));
         
         if (choices.length === 0) {
           this.log(`No creatures in play.`);
@@ -1847,7 +1947,7 @@ export class GameEngine {
           if (sel) {
             const parts = sel.split('-');
             const owner = parts[1];
-            const instId = parts[2];
+            const instId = parts.slice(2).join('-');
             const targetPlayer = this.players[owner];
             const idx = targetPlayer.creatures.findIndex(c => c.instanceId === instId);
             if (idx !== -1) {
@@ -1868,8 +1968,8 @@ export class GameEngine {
       
       case 'Foul Brew': {
         const choices = [{ id: 'opponent', label: `${opponent.name} (2 Damage)` }];
-        player.creatures.forEach(c => choices.push({ id: `creature-player-${c.instanceId}`, label: `${c.name} (Your Creature - 2 Damage)`, card: c }));
-        opponent.creatures.forEach(c => choices.push({ id: `creature-opponent-${c.instanceId}`, label: `${c.name} (Opponent's Creature - 2 Damage)`, card: c }));
+        player.creatures.forEach(c => choices.push({ id: `creature-${player.id}-${c.instanceId}`, label: `${c.name} (Your Creature - 2 Damage)`, card: c }));
+        opponent.creatures.forEach(c => choices.push({ id: `creature-${opponent.id}-${c.instanceId}`, label: `${c.name} (Opponent's Creature - 2 Damage)`, card: c }));
         
         this.promptChoice(casterId, "Choose target for Foul Brew (2 damage)", choices, 1, 1, (selected) => {
           const sel = selected[0];
@@ -1878,7 +1978,7 @@ export class GameEngine {
           } else if (sel && sel.startsWith('creature-')) {
             const parts = sel.split('-');
             const owner = parts[1];
-            const instId = parts[2];
+            const instId = parts.slice(2).join('-');
             this.damageCreature(owner, instId, 2);
           }
         });
@@ -1895,7 +1995,7 @@ export class GameEngine {
         this.promptChoice(casterId, "Choose a Creature card to retrieve", choices, 1, 1, (selected) => {
           const sel = selected[0];
           if (sel) {
-            const instId = sel.split('-')[2];
+            const instId = sel.split('-').slice(2).join('-');
             const idx = player.discardPile.findIndex(c => c.instanceId === instId);
             if (idx !== -1) {
               const [c] = player.discardPile.splice(idx, 1);
@@ -1917,7 +2017,7 @@ export class GameEngine {
         }
         this.promptChoice(casterId, `Choose up to ${maxTake} Lesson card(s) to put in play`, choices, 0, maxTake, (selected) => {
           selected.forEach(selId => {
-            const instId = selId.split('-')[2];
+            const instId = selId.split('-').slice(2).join('-');
             const idx = player.hand.findIndex(c => c.instanceId === instId);
             if (idx !== -1) {
               const [c] = player.hand.splice(idx, 1);
@@ -1961,7 +2061,7 @@ export class GameEngine {
         this.promptChoice(casterId, "Choose 1 card in opponent's hand to discard", choices, 1, 1, (selected) => {
           const sel = selected[0];
           if (sel) {
-            const instId = sel.split('-')[2];
+            const instId = sel.split('-').slice(2).join('-');
             const idx = opponent.hand.findIndex(c => c.instanceId === instId);
             if (idx !== -1) {
               const [c] = opponent.hand.splice(idx, 1);
@@ -1974,7 +2074,7 @@ export class GameEngine {
       }
       
       case 'Incarcifors': {
-        const choices = opponent.creatures.map(c => ({ id: `creature-opponent-${c.instanceId}`, label: c.name, card: c }));
+        const choices = opponent.creatures.map(c => ({ id: `creature-${opponent.id}-${c.instanceId}`, label: c.name, card: c }));
         if (choices.length === 0) {
           this.log(`Opponent has no Creatures in play to discard.`);
           break;
@@ -1982,7 +2082,7 @@ export class GameEngine {
         this.promptChoice(casterId, "Choose opponent's Creature to discard", choices, 1, 1, (selected) => {
           const sel = selected[0];
           if (sel) {
-            const instId = sel.split('-')[2];
+            const instId = sel.split('-').slice(2).join('-');
             this.discardCreature(opponent.id, instId);
           }
         });
@@ -1991,7 +2091,7 @@ export class GameEngine {
       
       case 'Lost Notes': {
         const inPlay = [...opponent.items, ...opponent.lessons];
-        const choices = inPlay.map(c => ({ id: `${c.type.toLowerCase()}-opponent-${c.instanceId}`, label: `${c.name} (${c.type})`, card: c }));
+        const choices = inPlay.map(c => ({ id: `${c.type.toLowerCase()}-${opponent.id}-${c.instanceId}`, label: `${c.name} (${c.type})`, card: c }));
         if (choices.length === 0) {
           this.log(`Opponent has no Items or Lessons in play.`);
           break;
@@ -2020,8 +2120,8 @@ export class GameEngine {
       
       case 'Noxious Poison': {
         const choices = [{ id: 'opponent', label: `${opponent.name} (5 Damage)` }];
-        player.creatures.forEach(c => choices.push({ id: `creature-player-${c.instanceId}`, label: `${c.name} (Your Creature - 5 Damage)`, card: c }));
-        opponent.creatures.forEach(c => choices.push({ id: `creature-opponent-${c.instanceId}`, label: `${c.name} (Opponent's Creature - 5 Damage)`, card: c }));
+        player.creatures.forEach(c => choices.push({ id: `creature-${player.id}-${c.instanceId}`, label: `${c.name} (Your Creature - 5 Damage)`, card: c }));
+        opponent.creatures.forEach(c => choices.push({ id: `creature-${opponent.id}-${c.instanceId}`, label: `${c.name} (Opponent's Creature - 5 Damage)`, card: c }));
         
         this.promptChoice(casterId, "Choose target for Noxious Poison (5 damage)", choices, 1, 1, (selected) => {
           const sel = selected[0];
@@ -2030,7 +2130,7 @@ export class GameEngine {
           } else if (sel && sel.startsWith('creature-')) {
             const parts = sel.split('-');
             const owner = parts[1];
-            const instId = parts[2];
+            const instId = parts.slice(2).join('-');
             this.damageCreature(owner, instId, 5);
           }
         });
@@ -2039,7 +2139,7 @@ export class GameEngine {
       
       case 'Out of the Woods': {
         const creatures = opponent.hand.filter(c => c.type === 'Creature');
-        if (casterId === 'player') {
+        if (casterId === 'player' || this.isMultiplayer) {
           const choices = opponent.hand.map(c => ({ id: c.instanceId, label: `${c.name} (${c.type})`, card: c, disabled: true }));
           choices.push({ id: 'done', label: `Acknowledge (${creatures.length} Creature card(s) will be discarded)` });
           this.promptChoice(casterId, `${opponent.name}'s Hand:`, choices, 1, 1, () => {
@@ -2048,7 +2148,7 @@ export class GameEngine {
               opponent.discardPile.push(c);
               this.log(`${opponent.name}'s Creature was discarded from hand: ${c.name}`);
             });
-          });
+          }, card);
         } else {
           creatures.forEach(c => {
             opponent.hand = opponent.hand.filter(h => h.instanceId !== c.instanceId);
@@ -2061,7 +2161,7 @@ export class GameEngine {
       
       case 'Potions Mistake': {
         const inPlay = [...opponent.creatures, ...opponent.items];
-        const choices = inPlay.map(c => ({ id: `${c.type.toLowerCase()}-opponent-${c.instanceId}`, label: `${c.name} (${c.type})`, card: c }));
+        const choices = inPlay.map(c => ({ id: `${c.type.toLowerCase()}-${opponent.id}-${c.instanceId}`, label: `${c.name} (${c.type})`, card: c }));
         if (choices.length === 0) {
           this.log(`Opponent has no Creatures or Items in play.`);
           break;
@@ -2085,7 +2185,7 @@ export class GameEngine {
       
       case 'Restricted Section': {
         const transLessons = opponent.lessons.filter(l => l.lessonType === 'Transfiguration');
-        const choices = transLessons.map(l => ({ id: `lesson-opponent-${l.instanceId}`, label: l.name, card: l }));
+        const choices = transLessons.map(l => ({ id: `lesson-${opponent.id}-${l.instanceId}`, label: l.name, card: l }));
         if (choices.length === 0) {
           this.log(`Opponent has no Transfiguration Lessons in play.`);
           break;
@@ -2093,7 +2193,7 @@ export class GameEngine {
         this.promptChoice(casterId, "Choose a Transfiguration Lesson to discard", choices, 1, 1, (selected) => {
           const sel = selected[0];
           if (sel) {
-            const instId = sel.split('-')[2];
+            const instId = sel.split('-').slice(2).join('-');
             const idx = opponent.lessons.findIndex(l => l.instanceId === instId);
             if (idx !== -1) {
               const [l] = opponent.lessons.splice(idx, 1);
@@ -2126,7 +2226,7 @@ export class GameEngine {
       }
       
       case 'Squiggle Quill': {
-        const choices = opponent.items.map(c => ({ id: `item-opponent-${c.instanceId}`, label: c.name, card: c }));
+        const choices = opponent.items.map(c => ({ id: `item-${opponent.id}-${c.instanceId}`, label: c.name, card: c }));
         if (choices.length === 0) {
           this.log(`Opponent has no Items in play.`);
           break;
@@ -2134,7 +2234,7 @@ export class GameEngine {
         this.promptChoice(casterId, "Choose opponent's Item to discard", choices, 1, 1, (selected) => {
           const sel = selected[0];
           if (sel) {
-            const instId = sel.split('-')[2];
+            const instId = sel.split('-').slice(2).join('-');
             const idx = opponent.items.findIndex(c => c.instanceId === instId);
             if (idx !== -1) {
               const [c] = opponent.items.splice(idx, 1);
@@ -2162,8 +2262,8 @@ export class GameEngine {
       case 'Toe Biter': {
         this.dealDamage(opponentId, 2, 'spell');
         const choices = [];
-        player.creatures.forEach(c => choices.push({ id: `creature-player-${c.instanceId}`, label: `${c.name} (Your Creature - 2 Damage)`, card: c }));
-        opponent.creatures.forEach(c => choices.push({ id: `creature-opponent-${c.instanceId}`, label: `${c.name} (Opponent's Creature - 2 Damage)`, card: c }));
+        player.creatures.forEach(c => choices.push({ id: `creature-${player.id}-${c.instanceId}`, label: `${c.name} (Your Creature - 2 Damage)`, card: c }));
+        opponent.creatures.forEach(c => choices.push({ id: `creature-${opponent.id}-${c.instanceId}`, label: `${c.name} (Opponent's Creature - 2 Damage)`, card: c }));
         
         if (choices.length > 0) {
           this.promptChoice(casterId, "Choose a Creature to deal 2 damage to (Optional)", choices, 0, 1, (selected) => {
@@ -2171,7 +2271,7 @@ export class GameEngine {
             if (sel) {
               const parts = sel.split('-');
               const owner = parts[1];
-              const instId = parts[2];
+              const instId = parts.slice(2).join('-');
               this.damageCreature(owner, instId, 2);
             }
           });
@@ -2181,8 +2281,8 @@ export class GameEngine {
       
       case 'Vermillious': {
         const choices = [{ id: 'opponent', label: `${opponent.name} (3 Damage)` }];
-        player.creatures.forEach(c => choices.push({ id: `creature-player-${c.instanceId}`, label: `${c.name} (Your Creature - 3 Damage)`, card: c }));
-        opponent.creatures.forEach(c => choices.push({ id: `creature-opponent-${c.instanceId}`, label: `${c.name} (Opponent's Creature - 3 Damage)`, card: c }));
+        player.creatures.forEach(c => choices.push({ id: `creature-${player.id}-${c.instanceId}`, label: `${c.name} (Your Creature - 3 Damage)`, card: c }));
+        opponent.creatures.forEach(c => choices.push({ id: `creature-${opponent.id}-${c.instanceId}`, label: `${c.name} (Opponent's Creature - 3 Damage)`, card: c }));
         
         this.promptChoice(casterId, "Choose target for Vermillious (3 damage)", choices, 1, 1, (selected) => {
           const sel = selected[0];
@@ -2191,7 +2291,7 @@ export class GameEngine {
           } else if (sel && sel.startsWith('creature-')) {
             const parts = sel.split('-');
             const owner = parts[1];
-            const instId = parts[2];
+            const instId = parts.slice(2).join('-');
             this.damageCreature(owner, instId, 3);
           }
         });
@@ -2222,7 +2322,7 @@ export class GameEngine {
           opponent.hand = [];
           this.log(`Charms Exam: Discarded ${opponent.name}'s entire hand of ${discardedCount} card(s).`);
           
-          if (opponentId === 'player') {
+          if (opponentId === 'player' || this.isMultiplayer) {
             const choices = [];
             for (let i = 1; i <= discardedCount; i++) {
               choices.push({ id: `draw-${i}`, label: `Draw ${i} card(s)` });
@@ -2257,7 +2357,7 @@ export class GameEngine {
           break;
         }
         const maxRetrieves = Math.min(4, creatures.length);
-        if (casterId === 'player') {
+        if (casterId === 'player' || this.isMultiplayer) {
           const choices = creatures.map(c => ({ id: c.instanceId, label: c.name, card: c }));
           this.promptChoice(casterId, `Halloween Feast: Choose up to ${maxRetrieves} Creatures to put into hand`, choices, 0, maxRetrieves, (selected) => {
             selected.forEach(instId => {
@@ -2309,7 +2409,7 @@ export class GameEngine {
         const count = opponent.hand.length;
         if (count > 0) {
           const discardCount = Math.min(4, count);
-          if (opponentId === 'player') {
+          if (opponentId === 'player' || this.isMultiplayer) {
             const choices = opponent.hand.map(c => ({ id: c.instanceId, label: c.name, card: c }));
             this.promptChoice(opponentId, `Out of Control: Select ${discardCount} card(s) to discard`, choices, discardCount, discardCount, (selected) => {
               selected.forEach(instId => {
@@ -2352,7 +2452,7 @@ export class GameEngine {
           break;
         }
 
-        if (opponentId === 'player') {
+        if (opponentId === 'player' || this.isMultiplayer) {
           this.promptChoice(opponentId, `Potions Class Disaster: Choose ${maxDiscard} card(s) to discard`, eligible, maxDiscard, maxDiscard, (selected) => {
             selected.forEach(selId => {
               const parts = selId.split('-');
@@ -2393,7 +2493,7 @@ export class GameEngine {
           this.log(`Chocolate Frogs: No Character cards found in deck.`);
           break;
         }
-        if (casterId === 'player') {
+        if (casterId === 'player' || this.isMultiplayer) {
           const choices = chars.map(c => ({ id: c.instanceId, label: c.name, card: c }));
           this.promptChoice(casterId, "Chocolate Frogs: Select a Character card to add to hand", choices, 1, 1, (selected) => {
             const sel = selected[0];
@@ -2436,7 +2536,7 @@ export class GameEngine {
           this.log(`Diffindo: Opponent has no cards in play.`);
           break;
         }
-        if (casterId === 'player') {
+        if (casterId === 'player' || this.isMultiplayer) {
           this.promptChoice(casterId, "Diffindo: Choose 1 opponent's card in play to discard", eligible, 1, 1, (selected) => {
             const sel = selected[0];
             if (sel) {
@@ -2476,7 +2576,7 @@ export class GameEngine {
           this.log(`Missing Parchment: No Spell cards in opponent's hand.`);
           break;
         }
-        if (casterId === 'player') {
+        if (casterId === 'player' || this.isMultiplayer) {
           const choices = spells.map(c => ({ id: c.instanceId, label: c.name, card: c }));
           this.promptChoice(casterId, "Missing Parchment: Choose 1 spell to discard from opponent's hand", choices, 1, 1, (selected) => {
             const sel = selected[0];
@@ -2514,7 +2614,7 @@ export class GameEngine {
           this.discardCreature(ownerId, selCreature.instanceId);
           const lessons = ownerState.discardPile.filter(c => c.type === 'Lesson');
           if (lessons.length > 0) {
-            if (casterId === 'player') {
+            if (casterId === 'player' || this.isMultiplayer) {
               const choices = lessons.map(c => ({ id: c.instanceId, label: c.name, card: c }));
               this.promptChoice(casterId, `Petrificus Totalus: Select a Lesson card from ${ownerState.name}'s discard pile to put in play`, choices, 1, 1, (selected) => {
                 const selLessonId = selected[0];
@@ -2538,7 +2638,7 @@ export class GameEngine {
           }
         };
 
-        if (casterId === 'player') {
+        if (casterId === 'player' || this.isMultiplayer) {
           this.promptChoice(casterId, "Petrificus Totalus: Choose a Creature to discard", targets, 1, 1, (selected) => {
             const sel = selected[0];
             const found = targets.find(t => t.id === sel);
@@ -2610,8 +2710,8 @@ export class GameEngine {
       }
       case 'Bloodroot Poison': {
         const choices = [{ id: 'opponent', label: `${opponent.name} (4 Damage)` }];
-        player.creatures.forEach(c => choices.push({ id: `creature-player-${c.instanceId}`, label: `${c.name} (Your Creature - 4 Damage)`, card: c }));
-        opponent.creatures.forEach(c => choices.push({ id: `creature-opponent-${c.instanceId}`, label: `${c.name} (Opponent's Creature - 4 Damage)`, card: c }));
+        player.creatures.forEach(c => choices.push({ id: `creature-${player.id}-${c.instanceId}`, label: `${c.name} (Your Creature - 4 Damage)`, card: c }));
+        opponent.creatures.forEach(c => choices.push({ id: `creature-${opponent.id}-${c.instanceId}`, label: `${c.name} (Opponent's Creature - 4 Damage)`, card: c }));
         
         this.promptChoice(casterId, "Bloodroot Poison: Choose target (deals 4 damage)", choices, 1, 1, (selected) => {
           const sel = selected[0];
@@ -2620,7 +2720,7 @@ export class GameEngine {
           } else if (sel && sel.startsWith('creature-')) {
             const parts = sel.split('-');
             const owner = parts[1];
-            const instId = parts[2];
+            const instId = parts.slice(2).join('-');
             this.damageCreature(owner, instId, 4);
           }
         });
@@ -2638,7 +2738,7 @@ export class GameEngine {
           break;
         }
         const maxShuffle = Math.min(5, nonHealing.length);
-        if (casterId === 'player') {
+        if (casterId === 'player' || this.isMultiplayer) {
           const choices = nonHealing.map(c => ({ id: c.instanceId, label: c.name, card: c }));
           this.promptChoice(casterId, `Bruisewort Balm: Select up to ${maxShuffle} non-Healing cards to shuffle into deck`, choices, 0, maxShuffle, (selected) => {
             selected.forEach(instId => {
@@ -2685,7 +2785,7 @@ export class GameEngine {
           this.log(`Cobbing: Opponent has no cards in play to discard.`);
           break;
         }
-        if (opponentId === 'player') {
+        if (opponentId === 'player' || this.isMultiplayer) {
           this.promptChoice(opponentId, "Cobbing: Choose 1 card in play to discard", eligible, 1, 1, (selected) => {
             const sel = selected[0];
             if (sel) {
@@ -2720,7 +2820,7 @@ export class GameEngine {
           break;
         }
         const maxTake = Math.min(3, creatures.length);
-        if (casterId === 'player') {
+        if (casterId === 'player' || this.isMultiplayer) {
           const choices = creatures.map(c => ({ id: c.instanceId, label: c.name, card: c }));
           this.promptChoice(casterId, `Desk Into Pig: Select up to ${maxTake} Creatures to put in hand`, choices, 0, maxTake, (selected) => {
             selected.forEach(instId => {
@@ -2765,7 +2865,7 @@ export class GameEngine {
           this.log(`Gone!: No Creatures in opponent's hand.`);
           break;
         }
-        if (casterId === 'player') {
+        if (casterId === 'player' || this.isMultiplayer) {
           const choices = creatures.map(c => ({ id: c.instanceId, label: c.name, card: c }));
           this.promptChoice(casterId, "Gone!: Choose 1 Creature to discard from opponent's hand", choices, 1, 1, (selected) => {
             const sel = selected[0];
@@ -2795,7 +2895,7 @@ export class GameEngine {
           break;
         }
         const maxReturn = Math.min(2, allCreatures.length);
-        if (casterId === 'player') {
+        if (casterId === 'player' || this.isMultiplayer) {
           this.promptChoice(casterId, `Mice to Snuffboxes: Choose up to ${maxReturn} Creatures to return to hand`, allCreatures, 0, maxReturn, (selected) => {
             selected.forEach(sel => {
               const found = allCreatures.find(t => t.id === sel);
@@ -2828,8 +2928,8 @@ export class GameEngine {
       }
       case 'Mopsus Potion': {
         const choices = [{ id: 'opponent', label: `${opponent.name} (3 Damage)` }];
-        player.creatures.forEach(c => choices.push({ id: `creature-player-${c.instanceId}`, label: `${c.name} (Your Creature - 3 Damage)`, card: c }));
-        opponent.creatures.forEach(c => choices.push({ id: `creature-opponent-${c.instanceId}`, label: `${c.name} (Opponent's Creature - 3 Damage)`, card: c }));
+        player.creatures.forEach(c => choices.push({ id: `creature-${player.id}-${c.instanceId}`, label: `${c.name} (Your Creature - 3 Damage)`, card: c }));
+        opponent.creatures.forEach(c => choices.push({ id: `creature-${opponent.id}-${c.instanceId}`, label: `${c.name} (Opponent's Creature - 3 Damage)`, card: c }));
         
         this.promptChoice(casterId, "Mopsus Potion: Choose target (deals 3 damage)", choices, 1, 1, (selected) => {
           const sel = selected[0];
@@ -2838,7 +2938,7 @@ export class GameEngine {
           } else if (sel && sel.startsWith('creature-')) {
             const parts = sel.split('-');
             const owner = parts[1];
-            const instId = parts[2];
+            const instId = parts.slice(2).join('-');
             this.damageCreature(owner, instId, 3);
           }
         });
@@ -2848,7 +2948,7 @@ export class GameEngine {
         this.dealDamage(opponentId, 5, 'spell', card);
         const count = opponent.hand.length;
         if (count > 0) {
-          if (opponentId === 'player') {
+          if (opponentId === 'player' || this.isMultiplayer) {
             const choices = opponent.hand.map(c => ({ id: c.instanceId, label: c.name, card: c }));
             this.promptChoice(opponentId, "Ouch!: Select 1 card to discard from hand", choices, 1, 1, (selected) => {
               const sel = selected[0];
@@ -2921,8 +3021,8 @@ export class GameEngine {
       }
       case 'Rope Bind': {
         const choices = [{ id: 'opponent', label: `${opponent.name} (2 Damage)` }];
-        player.creatures.forEach(c => choices.push({ id: `creature-player-${c.instanceId}`, label: `${c.name} (Your Creature - 2 Damage)`, card: c }));
-        opponent.creatures.forEach(c => choices.push({ id: `creature-opponent-${c.instanceId}`, label: `${c.name} (Opponent's Creature - 2 Damage)`, card: c }));
+        player.creatures.forEach(c => choices.push({ id: `creature-${player.id}-${c.instanceId}`, label: `${c.name} (Your Creature - 2 Damage)`, card: c }));
+        opponent.creatures.forEach(c => choices.push({ id: `creature-${opponent.id}-${c.instanceId}`, label: `${c.name} (Opponent's Creature - 2 Damage)`, card: c }));
         
         this.promptChoice(casterId, "Rope Bind: Choose target (deals 2 damage)", choices, 1, 1, (selected) => {
           const sel = selected[0];
@@ -2931,7 +3031,7 @@ export class GameEngine {
           } else if (sel && sel.startsWith('creature-')) {
             const parts = sel.split('-');
             const owner = parts[1];
-            const instId = parts[2];
+            const instId = parts.slice(2).join('-');
             this.damageCreature(owner, instId, 2);
           }
           this.drawCard(casterId, false);
@@ -3005,15 +3105,15 @@ export class GameEngine {
           break;
         }
         const choices = [];
-        player.creatures.forEach(c => choices.push({ id: `creature-player-${c.instanceId}`, label: `${c.name} (Your Creature - 3 Damage)`, card: c }));
-        opponent.creatures.forEach(c => choices.push({ id: `creature-opponent-${c.instanceId}`, label: `${c.name} (Opponent's Creature - 3 Damage)`, card: c }));
+        player.creatures.forEach(c => choices.push({ id: `creature-${player.id}-${c.instanceId}`, label: `${c.name} (Your Creature - 3 Damage)`, card: c }));
+        opponent.creatures.forEach(c => choices.push({ id: `creature-${opponent.id}-${c.instanceId}`, label: `${c.name} (Opponent's Creature - 3 Damage)`, card: c }));
         
         this.promptChoice(casterId, "Stream of Flames: Choose creature target (deals 3 damage)", choices, 1, 1, (selected) => {
           const sel = selected[0];
           if (sel) {
             const parts = sel.split('-');
             const owner = parts[1];
-            const instId = parts[2];
+            const instId = parts.slice(2).join('-');
             this.damageCreature(owner, instId, 3);
           }
         });
@@ -3153,7 +3253,7 @@ export class GameEngine {
 
   // Set pending spell for targeting choice
   promptChoice(casterId, title, choices, minChoices, maxChoices, callback, card = null) {
-    if (casterId === 'player') {
+    if (casterId === 'player' || (this.isMultiplayer && casterId === 'opponent')) {
       this.pendingSpell = {
         casterId,
         title,
@@ -3227,6 +3327,20 @@ export class GameEngine {
     const { callback } = this.pendingSpell;
     this.pendingSpell = null;
     callback(selectedIds);
+    this.notifyStateChange();
+  }
+
+  cancelPendingSpell(playerId) {
+    if (!this.pendingSpell) return;
+    const { casterId, card } = this.pendingSpell;
+    if (casterId === playerId && card) {
+      const player = this.players[playerId];
+      player.discardPile = player.discardPile.filter(c => c.instanceId !== card.instanceId);
+      player.hand.push(card);
+      this.actionsRemaining++;
+      this.log(`Canceled casting ${card.name}. Card and action refunded.`);
+    }
+    this.pendingSpell = null;
     this.notifyStateChange();
   }
 
@@ -3462,7 +3576,7 @@ export class GameEngine {
         const count = opponent.hand.length;
         const maxDiscard = Math.min(3, count);
         if (maxDiscard > 0) {
-          if (opponentId === 'player') {
+          if (opponentId === 'player' || this.isMultiplayer) {
             const choices = opponent.hand.map(c => ({ id: c.instanceId, label: c.name, card: c }));
             this.promptChoice(opponentId, `Marcus Flint: Choose ${maxDiscard} cards to discard`, choices, maxDiscard, maxDiscard, (selected) => {
               selected.forEach(instId => {
@@ -3498,7 +3612,7 @@ export class GameEngine {
           this.shuffle(player.deck);
           break;
         }
-        if (playerId === 'player') {
+        if (playerId === 'player' || this.isMultiplayer) {
           const choices = brooms.map(c => ({ id: c.instanceId, label: c.name, card: c }));
           this.promptChoice(playerId, "Madam Rolanda Hooch: Choose a Broom card to add to hand", choices, 1, 1, (selected) => {
             const sel = selected[0];
@@ -3536,7 +3650,7 @@ export class GameEngine {
         player.usedOncePerTurnAbilities = player.usedOncePerTurnAbilities || {};
         player.usedOncePerTurnAbilities[charCard.name] = true;
         this.log(`${player.name} activated Seamus Finnigan.`);
-        if (playerId === 'player') {
+        if (playerId === 'player' || this.isMultiplayer) {
           const choices = player.hand.map(c => ({ id: c.instanceId, label: c.name, card: c }));
           this.promptChoice(playerId, "Seamus Finnigan: Select 2 cards to discard to gain 1 Action", choices, 2, 2, (selected) => {
             selected.forEach(instId => {
@@ -3607,8 +3721,8 @@ export class GameEngine {
     switch (item.name) {
       case 'Cage': {
         const choices = [];
-        player.creatures.forEach(c => choices.push({ id: `creature-player-${c.instanceId}`, label: `${c.name} (Your Creature)`, card: c }));
-        opponent.creatures.forEach(c => choices.push({ id: `creature-opponent-${c.instanceId}`, label: `${c.name} (Opponent's Creature)`, card: c }));
+        player.creatures.forEach(c => choices.push({ id: `creature-${player.id}-${c.instanceId}`, label: `${c.name} (Your Creature)`, card: c }));
+        opponent.creatures.forEach(c => choices.push({ id: `creature-${opponent.id}-${c.instanceId}`, label: `${c.name} (Opponent's Creature)`, card: c }));
 
         this.promptChoice(playerId, "Cage: Choose a Creature to return to its owner's hand", choices, 1, 1, (selected) => {
           const sel = selected[0];
@@ -3700,7 +3814,7 @@ export class GameEngine {
           this.log(`Hospital Bed: No healing cards found in deck.`);
           break;
         }
-        if (playerId === 'player') {
+        if (playerId === 'player' || this.isMultiplayer) {
           const choices = heals.map(c => ({ id: c.instanceId, label: c.name, card: c }));
           this.promptChoice(playerId, "Hospital Bed: Choose a healing card to add to hand", choices, 1, 1, (selected) => {
             const sel = selected[0];
@@ -3742,7 +3856,7 @@ export class GameEngine {
           this.log(`Put-Outer: Opponent has no cards in play.`);
           break;
         }
-        if (playerId === 'player') {
+        if (playerId === 'player' || this.isMultiplayer) {
           this.promptChoice(playerId, "Put-Outer: Choose 1 card of opponent's in play to return to hand", eligible, 1, 1, (selected) => {
             const sel = selected[0];
             if (sel) {
@@ -4054,7 +4168,7 @@ export class GameEngine {
 
       case "Gaze into the Mirror": {
         const spellChoices = player.hand.filter(c => c.type === 'Spell').map(c => ({ id: c.instanceId, label: c.name, card: c }));
-        if (playerId === 'player') {
+        if (playerId === 'player' || this.isMultiplayer) {
           this.promptChoice(playerId, "Gaze into the Mirror: Choose 5 Spell cards from hand to discard", spellChoices, 5, 5, (selected) => {
             if (selected.length === 5) {
               selected.forEach(instId => {
@@ -4106,7 +4220,7 @@ export class GameEngine {
 
       case "In the Stands": {
         const creatureChoices = player.hand.filter(c => c.type === 'Creature').map(c => ({ id: c.instanceId, label: c.name, card: c }));
-        if (playerId === 'player') {
+        if (playerId === 'player' || this.isMultiplayer) {
           this.promptChoice(playerId, "In the Stands: Choose 4 Creature cards from hand to discard", creatureChoices, 4, 4, (selected) => {
             if (selected.length === 4) {
               selected.forEach(instId => {
@@ -4145,7 +4259,7 @@ export class GameEngine {
 
       case "Pep Talk": {
         const eligible = player.hand.filter(c => this.getPrintedPower(c) >= 8);
-        if (playerId === 'player') {
+        if (playerId === 'player' || this.isMultiplayer) {
           const choices = eligible.map(c => ({ id: c.instanceId, label: `${c.name} (Power: ${this.getPrintedPower(c)})`, card: c }));
           this.promptChoice(playerId, "Pep Talk: Select 1 card in hand with power 8+ to show opponent", choices, 1, 1, (selected) => {
             const sel = selected[0];
@@ -4577,7 +4691,7 @@ export class GameEngine {
           this.notifyStateChange();
           break;
         }
-        if (playerId === 'player') {
+        if (playerId === 'player' || this.isMultiplayer) {
           const choices = nonHealing.map(c => ({ id: c.instanceId, label: c.name, card: c }));
           this.promptChoice(playerId, `Sticking Up for Neville Reward: Select up to ${maxReturn} cards to put at bottom of deck`, choices, 0, maxReturn, (selected) => {
             selected.forEach(instId => {
@@ -4743,7 +4857,7 @@ export class GameEngine {
     const usedOliver = dealer.usedOncePerGameAbilities?.['Oliver Wood'];
 
     if (amount > 0 && isQuidditchSpell && hasOliver && !usedOliver) {
-      if (dealerId === 'player') {
+      if (dealerId === 'player' || this.isMultiplayer) {
         const choices = [
           { id: 'no-oliver', label: `Deal original ${amount} damage` },
           { id: 'use-oliver', label: `Use Oliver Wood once-per-game ability (+8 damage, deal ${amount + 8} total)` }
@@ -5100,8 +5214,10 @@ export class GameEngine {
       const oDeck = this.players.opponent.deck.length;
       this.gameOver = true;
       if (oDeck >= pDeck + 10) {
+        this.winnerId = 'opponent';
         this.winnerMessage = 'Golden Snitch: Opponent wins because their deck has 10+ more cards!';
       } else {
+        this.winnerId = 'player';
         this.winnerMessage = 'Golden Snitch: You win the game!';
       }
       this.log(this.winnerMessage, 'victory');
@@ -5113,8 +5229,10 @@ export class GameEngine {
       const oDeck = this.players.opponent.deck.length;
       this.gameOver = true;
       if (pDeck >= oDeck + 10) {
+        this.winnerId = 'player';
         this.winnerMessage = 'Golden Snitch: You win because your deck has 10+ more cards!';
       } else {
+        this.winnerId = 'opponent';
         this.winnerMessage = 'Golden Snitch: Opponent wins the game!';
       }
       this.log(this.winnerMessage, 'victory');
@@ -5253,22 +5371,26 @@ export class GameEngine {
 
     if (pDeckEmpty && oDeckEmpty) {
       this.gameOver = true;
+      this.winnerId = 'tie';
       this.winnerMessage = 'Both players ran out of cards! It is a Tie!';
       this.log(this.winnerMessage, 'turn');
     } else if (pDeckEmpty) {
       this.gameOver = true;
+      this.winnerId = 'opponent';
       this.winnerMessage = 'You ran out of cards! Hogwarts Rival wins!';
       this.log(this.winnerMessage, 'turn');
     } else if (oDeckEmpty) {
       this.gameOver = true;
+      this.winnerId = 'player';
       this.winnerMessage = 'Opponent ran out of cards! You win!';
       this.log(this.winnerMessage, 'turn');
     }
   }
 
   // Debug menu command to deal player's creature damage instantly to opponent
-  debugDealCreatureDamage() {
-    const player = this.players.player;
+  debugDealCreatureDamage(playerId = 'player') {
+    const player = this.players[playerId];
+    const targetId = playerId === 'player' ? 'opponent' : 'player';
     let totalDmg = 0;
     player.creatures.forEach(creature => {
       let dmg = creature.damagePerTurn || 0;
@@ -5281,11 +5403,11 @@ export class GameEngine {
       }
     });
     if (totalDmg > 0) {
-      this.log(`Debug Menu: Instantly dealing ${totalDmg} creature damage to opponent.`, 'damage');
-      this.dealDamage('opponent', totalDmg, 'creature');
+      this.log(`Debug Menu: Instantly dealing ${totalDmg} creature damage from ${player.name} to ${this.players[targetId].name}.`, 'damage');
+      this.dealDamage(targetId, totalDmg, 'creature');
       this.notifyStateChange();
     } else {
-      this.log(`Debug Menu: No creatures in play to deal damage.`, 'error');
+      this.log(`Debug Menu: No creatures in play to deal damage for ${player.name}.`, 'error');
     }
   }
 
@@ -5432,9 +5554,9 @@ export class GameEngine {
     this.notifyStateChange();
   }
 
-  debugShuffleDeck() {
-    this.shuffle(this.players.player.deck);
-    this.log("Debug Mode: Shuffled player's deck.", "action");
+  debugShuffleDeck(playerId = 'player') {
+    this.shuffle(this.players[playerId].deck);
+    this.log(`Debug Mode: Shuffled ${this.players[playerId].name}'s deck.`, "action");
     this.notifyStateChange();
   }
 

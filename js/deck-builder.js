@@ -87,6 +87,8 @@ export class DeckBuilder {
       validationErrors: document.getElementById('deck-validation-errors'),
       cardsList: document.getElementById('deck-builder-cards-grid'),
       btnSave: document.getElementById('btn-save-deck'),
+      btnAddAllFiltered: document.getElementById('btn-add-all-filtered'),
+      legalNotice: document.getElementById('deck-stats-legal-notice'),
       btnBack: document.getElementById('btn-deck-builder-back'),
       inputSearch: document.getElementById('card-catalog-search'),
       filterButtons: document.getElementById('card-catalog-filters'),
@@ -105,8 +107,8 @@ export class DeckBuilder {
     this.populateCharactersDropdown();
   }
 
-  // Load custom decks from LocalStorage
-  initDecks() {
+  // Load custom decks from server (migrating legacy LocalStorage custom decks if present)
+  async initDecks() {
     const raw = localStorage.getItem('hptcg_custom_decks');
     let loadedDecks = [];
     if (raw) {
@@ -117,40 +119,76 @@ export class DeckBuilder {
       }
     }
 
-    // Migrate old numeric IDs (without prefixes) in custom decks to 'bs_'
-    loadedDecks.forEach(deck => {
-      if (deck.characterId && !deck.characterId.includes('_')) {
-        deck.characterId = `bs_${deck.characterId}`;
-      }
-      if (deck.cardIds) {
-        deck.cardIds = deck.cardIds.map(id => {
-          if (id && !id.includes('_')) {
-            return `bs_${id}`;
-          }
-          return id;
-        });
-      }
-    });
+    if (loadedDecks && loadedDecks.length > 0) {
+      // Migrate old numeric IDs (without prefixes) in custom decks to 'bs_'
+      loadedDecks.forEach(deck => {
+        if (deck.characterId && !deck.characterId.includes('_')) {
+          deck.characterId = `bs_${deck.characterId}`;
+        }
+        if (deck.cardIds) {
+          deck.cardIds = deck.cardIds.map(id => {
+            if (id && !id.includes('_')) {
+              return `bs_${id}`;
+            }
+            return id;
+          });
+        }
+      });
 
-    // Filter out old preset decks, keeping only user-created custom decks
-    const customDecks = loadedDecks.filter(d => !d.isPreset);
-    // Get fresh preset decks
-    const presets = getPresetDecks(this.cardsDb);
-    // Combine custom decks and presets
-    this.decks = [...presets, ...customDecks];
-    
-    // Save to storage to ensure changes to presets are persisted
-    this.saveDecksToStorage();
+      // Filter out old preset decks, keeping only user-created custom decks
+      const customDecks = loadedDecks.filter(d => !d.isPreset);
+      
+      // Upload custom decks to server to migrate them
+      for (const deck of customDecks) {
+        try {
+          await fetch('/api/decks/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(deck)
+          });
+        } catch (e) {
+          console.error("Failed to migrate legacy deck to server:", deck, e);
+        }
+      }
+      
+      // Clear legacy key to avoid future migrations
+      localStorage.removeItem('hptcg_custom_decks');
+      console.log("Successfully migrated legacy custom decks from localStorage to server.");
+    }
+
+    // Load decks from server
+    try {
+      const res = await fetch('/api/decks');
+      if (res.ok) {
+        this.decks = await res.json();
+      }
+    } catch (e) {
+      console.error("Error fetching decks from server", e);
+    }
 
     if (this.decks.length > 0) {
       this.currentDeck = this.decks[0];
+      this.populateDecksDropdown();
+      this.loadCurrentDeckToUI();
     } else {
-      this.createNewDeck("My Custom Deck");
+      await this.createNewDeck("My Custom Deck");
     }
+
+    // Notify other components that decks are loaded
+    document.dispatchEvent(new CustomEvent('decks-loaded'));
   }
 
-  saveDecksToStorage() {
-    localStorage.setItem('hptcg_custom_decks', JSON.stringify(this.decks));
+  async saveDeckToServer(deck) {
+    if (!deck) return;
+    try {
+      await fetch('/api/decks/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(deck)
+      });
+    } catch (e) {
+      console.error("Error saving deck to server", e);
+    }
   }
 
   populateCharactersDropdown() {
@@ -221,11 +259,24 @@ export class DeckBuilder {
         }
 
         if (confirm(`Are you sure you want to delete "${this.currentDeck.name}"?`)) {
-          this.decks = this.decks.filter(d => d.id !== this.currentDeck.id);
-          this.saveDecksToStorage();
-          this.initDecks();
-          this.populateDecksDropdown();
-          this.loadCurrentDeckToUI();
+          const deckId = this.currentDeck.id;
+          fetch('/api/decks/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: deckId })
+          }).then(() => {
+            this.decks = this.decks.filter(d => d.id !== deckId);
+            if (this.decks.length > 0) {
+              this.currentDeck = this.decks[0];
+              this.populateDecksDropdown();
+              this.loadCurrentDeckToUI();
+            } else {
+              this.createNewDeck("My Custom Deck");
+            }
+            document.dispatchEvent(new CustomEvent('decks-loaded'));
+          }).catch(err => {
+            console.error("Failed to delete deck from server", err);
+          });
         }
       });
     }
@@ -240,7 +291,7 @@ export class DeckBuilder {
 
         if (confirm(`Are you sure you want to empty all cards in "${this.currentDeck.name}"?`)) {
           this.currentDeck.cardIds = [];
-          this.saveDecksToStorage();
+          this.saveDeckToServer(this.currentDeck);
           this.loadCurrentDeckToUI();
         }
       });
@@ -276,12 +327,13 @@ export class DeckBuilder {
 
     // Save Deck
     if (this.el.btnSave) {
-      this.el.btnSave.addEventListener('click', () => {
+      this.el.btnSave.addEventListener('click', async () => {
         if (!this.currentDeck) return;
         
-        this.saveDecksToStorage();
+        await this.saveDeckToServer(this.currentDeck);
         this.populateDecksDropdown();
         alert(`Deck "${this.currentDeck.name}" saved successfully!`);
+        document.dispatchEvent(new CustomEvent('decks-loaded'));
       });
     }
 
@@ -336,6 +388,13 @@ export class DeckBuilder {
       this.el.deckLessonTypeFilterSelect.addEventListener('change', (e) => {
         this.deckLessonTypeFilter = e.target.value;
         this.renderCurrentDeckCards();
+      });
+    }
+
+    // Add All Filtered Cards Button
+    if (this.el.btnAddAllFiltered) {
+      this.el.btnAddAllFiltered.addEventListener('click', () => {
+        this.addAllFilteredCards();
       });
     }
 
@@ -407,10 +466,12 @@ export class DeckBuilder {
 
             this.decks.push(importedDeck);
             this.currentDeck = importedDeck;
-            this.saveDecksToStorage();
-            this.populateDecksDropdown();
-            this.loadCurrentDeckToUI();
-            alert(`Deck "${importedDeck.name}" imported successfully!`);
+            this.saveDeckToServer(importedDeck).then(() => {
+              this.populateDecksDropdown();
+              this.loadCurrentDeckToUI();
+              document.dispatchEvent(new CustomEvent('decks-loaded'));
+              alert(`Deck "${importedDeck.name}" imported successfully!`);
+            });
           } catch (err) {
             alert(`Error importing deck: ${err.message}`);
           }
@@ -430,12 +491,14 @@ export class DeckBuilder {
     };
     this.decks.push(copy);
     this.currentDeck = copy;
-    this.saveDecksToStorage();
-    this.populateDecksDropdown();
-    this.loadCurrentDeckToUI();
+    this.saveDeckToServer(copy).then(() => {
+      this.populateDecksDropdown();
+      this.loadCurrentDeckToUI();
+      document.dispatchEvent(new CustomEvent('decks-loaded'));
+    });
   }
 
-  createNewDeck(name) {
+  async createNewDeck(name) {
     const newDeck = {
       id: `deck-${Date.now()}`,
       name: name,
@@ -444,9 +507,10 @@ export class DeckBuilder {
     };
     this.decks.push(newDeck);
     this.currentDeck = newDeck;
-    this.saveDecksToStorage();
+    await this.saveDeckToServer(newDeck);
     this.populateDecksDropdown();
     this.loadCurrentDeckToUI();
+    document.dispatchEvent(new CustomEvent('decks-loaded'));
   }
 
   populateDecksDropdown() {
@@ -528,6 +592,10 @@ export class DeckBuilder {
         this.el.statsValidity.innerText = "INVALID DECK";
         this.el.statsValidity.className = "validity-indicator invalid";
       }
+    }
+
+    if (this.el.legalNotice) {
+      this.el.legalNotice.style.display = this.currentDeck.cardIds.length !== 60 ? 'block' : 'none';
     }
 
     // Render error messages
@@ -723,6 +791,54 @@ export class DeckBuilder {
       cardEl.appendChild(info);
       this.el.cardsList.appendChild(cardEl);
     });
+  }
+
+  addAllFilteredCards() {
+    if (!this.currentDeck) return;
+
+    // Filter available cards using the exact same filters as renderCatalog
+    const filtered = this.cardsDb.filter(c => {
+      if (this.activeFilter !== 'All' && c.type !== this.activeFilter) return false;
+      if (this.searchQuery && !c.name.toLowerCase().includes(this.searchQuery)) return false;
+      
+      if (this.activeLessonFilter && this.activeLessonFilter !== 'All') {
+        const cardLessonType = c.type === 'Lesson' ? (c.provides?.type || c.lessonType) : c.lessonCost?.type;
+        if (cardLessonType !== this.activeLessonFilter) return false;
+      }
+      
+      if (this.activeSeriesFilter && this.activeSeriesFilter !== 'All') {
+        if (c.series !== this.activeSeriesFilter) return false;
+      }
+      
+      return true;
+    });
+
+    if (filtered.length === 0) return;
+
+    if (this.currentDeck.isPreset) {
+      this.cloneCurrentPreset();
+    }
+
+    let addedCount = 0;
+    filtered.forEach(card => {
+      if (card.type !== 'Lesson') {
+        const currentCount = this.currentDeck.cardIds.filter(id => id === card.id).length;
+        if (currentCount < 4) {
+          this.currentDeck.cardIds.push(card.id);
+          addedCount++;
+        }
+      } else {
+        this.currentDeck.cardIds.push(card.id);
+        addedCount++;
+      }
+    });
+
+    if (addedCount > 0) {
+      this.validateAndRenderStatus();
+      this.renderCurrentDeckCards();
+      this.renderCatalog();
+      this.saveDeckToServer(this.currentDeck);
+    }
   }
 
   addCardToDeck(cardId) {

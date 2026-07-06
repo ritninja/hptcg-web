@@ -2215,3 +2215,54 @@ dialog#match-won-modal::backdrop {
   0% { text-shadow: 0 0 10px var(--accent-gold-glow); }
   100% { text-shadow: 0 0 35px var(--accent-gold-glow), 0 0 50px rgba(212,175,55,0.6); }
 }
+
+/* LAN Multiplayer UI Styles */
+.status-indicator.connected {
+  color: #2ecc71 !important;
+}
+.status-indicator.connected span {
+  background: #2ecc71 !important;
+  box-shadow: 0 0 8px #2ecc71;
+}
+.status-indicator.disconnected {
+  color: #ff4d4d !important;
+}
+.status-indicator.disconnected span {
+  background: #ff4d4d !important;
+  box-shadow: 0 0 8px #ff4d4d;
+}
+
+.lobby-item-li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border-color);
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+  font-family: var(--font-body);
+}
+
+.lobby-item-li:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--accent-gold-glow);
+}
+
+.lobby-item-li:last-child {
+  border-bottom: none;
+}
+
+.lobby-item-name {
+  font-weight: bold;
+  color: var(--text-primary);
+}
+
+.lobby-item-id {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  background: var(--bg-secondary);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  text-transform: uppercase;
+}

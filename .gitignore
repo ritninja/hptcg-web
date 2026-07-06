@@ -4,4 +4,5 @@
 # Ignore QA trackers and CSVs
 *.csv
 
-
+# Ignore scratch scripts and temporary files
+scratch/

@@ -128,7 +128,7 @@ export class UIManager {
 
     // Listen for play error events
     this.engine.onPlayError((message, playerId) => {
-      if (playerId === 'player' || this.engine.isDebugMode) {
+      if (playerId === 'player' || (this.engine.isDebugMode && !this.engine.isMultiplayer)) {
         this.showPlayErrorModal(message);
       }
     });
@@ -145,7 +145,7 @@ export class UIManager {
 
     // Listen for action error events
     this.engine.onActionError((message, playerId) => {
-      if (playerId === 'player' || this.engine.isDebugMode) {
+      if (playerId === 'player' || (this.engine.isDebugMode && !this.engine.isMultiplayer)) {
         this.showActionErrorModal(message);
       }
     });
@@ -204,7 +204,7 @@ export class UIManager {
           
           // Simple AI Opponent Simulation for local play:
           // Wait 1.5s, then let opponent run their turn automatically.
-          if (!this.engine.isDebugMode) {
+          if (!this.engine.isDebugMode && !this.engine.isMultiplayer) {
             setTimeout(() => this.runOpponentTurnSimulation(), 1200);
           }
         } else if (this.engine.isDebugMode && activeId === 'opponent') {
@@ -363,6 +363,7 @@ export class UIManager {
 
   // Very simple opponent play script to keep offline local play interactive
   runOpponentTurnSimulation() {
+    if (this.engine.isMultiplayer) return;
     if (this.engine.activePlayerId !== 'opponent') return;
 
     this.engine.log("--- Rival is planning actions... ---", "turn");
@@ -738,7 +739,7 @@ export class UIManager {
         this.triggerTurnAnnouncement(startingPlayerId);
         
         // If opponent goes first and NOT in debug mode, start AI simulation
-        if (startingPlayerId === 'opponent' && !this.engine.isDebugMode) {
+        if (startingPlayerId === 'opponent' && !this.engine.isDebugMode && !this.engine.isMultiplayer) {
           setTimeout(() => this.runOpponentTurnSimulation(), 1200);
         }
       }, 500);
@@ -790,6 +791,20 @@ export class UIManager {
   }
 
   triggerDeckDamageAnimation(playerId, amount) {
+    // Defer playing the animation if screen-blocking overlays/modals are active
+    if (document.querySelector('.turn-announcement-overlay')) {
+      setTimeout(() => this.triggerDeckDamageAnimation(playerId, amount), 1100);
+      return;
+    }
+    if (document.querySelector('.coin-toss-overlay')) {
+      setTimeout(() => this.triggerDeckDamageAnimation(playerId, amount), 1000);
+      return;
+    }
+    if (this.el.adventureSolvedModal && this.el.adventureSolvedModal.open) {
+      setTimeout(() => this.triggerDeckDamageAnimation(playerId, amount), 500);
+      return;
+    }
+
     const deckEl = playerId === 'player' ? this.el.playerDeckPile : this.el.opponentDeckPile;
     if (!deckEl) return;
 
@@ -826,23 +841,6 @@ export class UIManager {
     container.innerHTML = '';
 
     let handToRender = [...hand];
-    if (this.engine.isDebugMode) {
-      const typePriority = {
-        'Spell': 1,
-        'Adventure': 2,
-        'Creature': 3,
-        'Item': 4,
-        'Match': 5,
-        'Character': 6,
-        'Lesson': 7
-      };
-      handToRender.sort((a, b) => {
-        const pA = typePriority[a.type] || 99;
-        const pB = typePriority[b.type] || 99;
-        if (pA !== pB) return pA - pB;
-        return a.name.localeCompare(b.name);
-      });
-    }
 
     handToRender.forEach(card => {
       const cardEl = this.createCardElement(card, true);
@@ -1432,21 +1430,6 @@ export class UIManager {
         ownButtonsRow.style.width = '100%';
         debugContainer.appendChild(ownButtonsRow);
 
-        // Opponent target row
-        const oppLabel = document.createElement('div');
-        oppLabel.innerText = "To Opponent's:";
-        oppLabel.style.color = 'var(--text-secondary)';
-        oppLabel.style.fontSize = '0.75rem';
-        debugContainer.appendChild(oppLabel);
-
-        const oppButtonsRow = document.createElement('div');
-        oppButtonsRow.style.display = 'flex';
-        oppButtonsRow.style.gap = '8px';
-        oppButtonsRow.style.justifyContent = 'center';
-        oppButtonsRow.style.flexWrap = 'wrap';
-        oppButtonsRow.style.width = '100%';
-        debugContainer.appendChild(oppButtonsRow);
-
         const addDebugMoveButton = (label, targetZone, containerRow) => {
           const btn = document.createElement('button');
           btn.className = 'btn btn-secondary';
@@ -1526,6 +1509,21 @@ export class UIManager {
           });
           ownButtonsRow.appendChild(btnDeductHealth);
         }
+
+        // Opponent target row
+        const oppLabel = document.createElement('div');
+        oppLabel.innerText = "To Opponent's:";
+        oppLabel.style.color = 'var(--text-secondary)';
+        oppLabel.style.fontSize = '0.75rem';
+        debugContainer.appendChild(oppLabel);
+
+        const oppButtonsRow = document.createElement('div');
+        oppButtonsRow.style.display = 'flex';
+        oppButtonsRow.style.gap = '8px';
+        oppButtonsRow.style.justifyContent = 'center';
+        oppButtonsRow.style.flexWrap = 'wrap';
+        oppButtonsRow.style.width = '100%';
+        debugContainer.appendChild(oppButtonsRow);
 
         // Populate Opponent target buttons (always show all 4)
         addDebugMoveButton('Field', 'opp_field', oppButtonsRow);
@@ -1728,8 +1726,41 @@ export class UIManager {
 
   showGameOverModal(message) {
     if (!this.el.gameOverModal) return;
+
+    let localizedMessage = message;
+    if (this.engine.winnerId) {
+      if (this.engine.winnerId === 'player') {
+        if (message.includes('ran out of cards')) {
+          localizedMessage = 'Opponent ran out of cards! You win!';
+        } else if (message.includes('Golden Snitch')) {
+          if (message.includes('10+ more cards')) {
+            localizedMessage = 'Golden Snitch: You win because your deck has 10+ more cards!';
+          } else {
+            localizedMessage = 'Golden Snitch: You win the game!';
+          }
+        } else {
+          localizedMessage = 'You Win!';
+        }
+      } else if (this.engine.winnerId === 'opponent') {
+        const oppName = this.engine.players.opponent.name || 'Hogwarts Rival';
+        if (message.includes('ran out of cards')) {
+          localizedMessage = `You ran out of cards! ${oppName} wins!`;
+        } else if (message.includes('Golden Snitch')) {
+          if (message.includes('10+ more cards')) {
+            localizedMessage = `Golden Snitch: ${oppName} wins because their deck has 10+ more cards!`;
+          } else {
+            localizedMessage = `Golden Snitch: ${oppName} wins the game!`;
+          }
+        } else {
+          localizedMessage = `${oppName} Wins!`;
+        }
+      } else if (this.engine.winnerId === 'tie') {
+        localizedMessage = 'Both players ran out of cards! It is a Tie!';
+      }
+    }
+
     if (this.el.gameOverMessage) {
-      this.el.gameOverMessage.innerText = message;
+      this.el.gameOverMessage.innerText = localizedMessage;
     }
     if (!this.el.gameOverModal.open) {
       this.el.gameOverModal.showModal();
@@ -1808,7 +1839,7 @@ export class UIManager {
           labelEl = document.createElement('div');
           labelEl.className = 'creature-owner-label';
           
-          const isPlayer = choice.id.includes('player');
+          const isPlayer = choice.id.includes(this.engine.players.player.id);
           let labelText = isPlayer ? 'Your Creature' : "Opponent's Creature";
           
           if (choice.label && choice.label.includes('Damage)')) {
@@ -1838,7 +1869,7 @@ export class UIManager {
         cardWrapper.addEventListener('mouseenter', () => {
           cardWrapper.style.transform = 'translateY(-4px) scale(1.03)';
           if (isCreatureInPlay && labelEl) {
-            const isPlayer = choice.id.includes('player');
+            const isPlayer = choice.id.includes(this.engine.players.player.id);
             labelEl.style.border = `1px solid ${isPlayer ? 'var(--accent-gold, #ffd700)' : '#ff4d4d'}`;
             labelEl.style.boxShadow = `0 0 10px ${isPlayer ? 'rgba(255, 215, 0, 0.25)' : 'rgba(255, 107, 107, 0.25)'}`;
           }
@@ -1846,7 +1877,7 @@ export class UIManager {
         cardWrapper.addEventListener('mouseleave', () => {
           cardWrapper.style.transform = 'none';
           if (isCreatureInPlay && labelEl) {
-            const isPlayer = choice.id.includes('player');
+            const isPlayer = choice.id.includes(this.engine.players.player.id);
             labelEl.style.border = `1px solid ${isPlayer ? 'rgba(255, 215, 0, 0.35)' : 'rgba(255, 107, 107, 0.35)'}`;
             labelEl.style.boxShadow = '0 2px 5px rgba(0,0,0,0.3)';
           }
