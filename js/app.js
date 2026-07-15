@@ -12,20 +12,32 @@ import { MultiplayerManager } from './multiplayer.js';
 async function bootstrap() {
   try {
     // 1. Fetch JSON databases
-    const [baseSetRes, quidditchCupRes, rulesResponse] = await Promise.all([
+    const [baseSetRes, quidditchCupRes, diagonAlleyRes, rulesResponse] = await Promise.all([
       fetch('./data/base_set/cards.json'),
       fetch('./data/quidditch_cup/cards.json'),
+      fetch('./data/diagon_alley/cards.json'),
       fetch('./data/rules.json')
     ]);
     const baseSetDb = await baseSetRes.json();
     const quidditchCupDb = await quidditchCupRes.json();
+    const diagonAlleyDb = await diagonAlleyRes.json();
     const rulesConfig = await rulesResponse.json();
 
     // 2. Normalize raw card data from Downloads format to Engine structure
     const cardsDb = [
       ...normalizeCards(baseSetDb.cards, 'bs'),
-      ...normalizeCards(quidditchCupDb.cards, 'qc')
+      ...normalizeCards(quidditchCupDb.cards, 'qc'),
+      ...normalizeCards(diagonAlleyDb.cards, 'da')
     ];
+
+    // Redirect all card images to use the cards_v2 directory with a cache-buster query parameter
+    const cacheBuster = Date.now();
+    cardsDb.forEach(card => {
+      if (card.image) {
+        const v2Path = card.image.replace('assets/images/cards/', 'assets/images/cards_v2/');
+        card.image = `${v2Path}?v=${cacheBuster}`;
+      }
+    });
 
     // 3. Initialize Game Engine
     const engine = new GameEngine(cardsDb, rulesConfig);
@@ -634,6 +646,13 @@ async function bootstrap() {
       });
     }
 
+    const btnDebugReturnHandToDeck = document.getElementById('btn-debug-return-hand-to-deck');
+    if (btnDebugReturnHandToDeck) {
+      btnDebugReturnHandToDeck.addEventListener('click', () => {
+        engine.debugReturnHandToDeck();
+      });
+    }
+
     const btnDebugEnableLessons = document.getElementById('btn-debug-enable-lessons');
     if (btnDebugEnableLessons) {
       btnDebugEnableLessons.addEventListener('click', () => {
@@ -658,16 +677,20 @@ async function bootstrap() {
  * Normalizes card data from the downloaded Base Set JSON format to the format required by the engine.
  */
 function normalizeCards(rawCards, setPrefix = '') {
-  const series = setPrefix === 'qc' ? 'Quidditch Cup' : 'Base Set';
+  const series = setPrefix === 'qc' ? 'Quidditch Cup' : (setPrefix === 'da' ? 'Diagon Alley' : 'Base Set');
   return rawCards.map(card => {
     const primaryType = card.type ? card.type[0] : 'Lesson';
+    let image = card.image || '';
+    if (!image && setPrefix === 'da') {
+      image = `assets/images/cards/diagon_alley/${card.number}_${card.name.replace(/'/g, '_')}.png`;
+    }
     const normalized = {
       id: setPrefix ? `${setPrefix}_${card.number}` : card.number,
       name: card.name,
       type: primaryType,
       subTypes: card.subTypes || [],
       text: card.effect ? card.effect.join(' ') : (card.flavorText || ''),
-      image: card.image || '',
+      image: image,
       series: series,
     };
 
@@ -681,9 +704,9 @@ function normalizeCards(rawCards, setPrefix = '') {
       .replace(/\[Q\]/g, 'Quidditch');
 
     // Regex for specific lesson types: Charms, Transfiguration, Potions, Herbology, Care of Magical Creatures, Quidditch
-    const discardLessonTypeMatch = effectText.match(/discard (\d+) of your (Charms|Transfiguration|Potions|Herbology|Care of Magical Creatures?|Quidditch)\s+Lessons?\s+from\s+play/i);
+    const discardLessonTypeMatch = effectText.match(/to play this card,\s+discard\s+(\d+)\s+of\s+your\s+(Charms|Transfiguration|Potions|Herbology|Care of Magical Creatures?|Quidditch)\s+Lessons?\s+from\s+play/i);
     // Regex for generic lessons: discard X of your Lessons from play
-    const discardGenericLessonMatch = effectText.match(/discard (\d+) of your Lessons?\s+from\s+play/i);
+    const discardGenericLessonMatch = effectText.match(/to play this card,\s+discard\s+(\d+)\s+of\s+your\s+Lessons?\s+from\s+play/i);
 
     if (discardLessonTypeMatch) {
       let type = discardLessonTypeMatch[2];
@@ -707,7 +730,7 @@ function normalizeCards(rawCards, setPrefix = '') {
     }
 
     // Regex for returning lessons to hand
-    const returnLessonTypeMatch = effectText.match(/return (\d+) of your (Charms|Transfiguration|Potions|Herbology|Care of Magical Creatures?|Quidditch)\s+Lessons?\s+from\s+play\s+to\s+your\s+hand/i);
+    const returnLessonTypeMatch = effectText.match(/to play this card,\s+return\s+(\d+)\s+of\s+your\s+(Charms|Transfiguration|Potions|Herbology|Care of Magical Creatures?|Quidditch)\s+Lessons?\s+from\s+play\s+to\s+your\s+hand/i);
     if (returnLessonTypeMatch) {
       let type = returnLessonTypeMatch[2];
       if (type.toLowerCase() === 'care of magical creature') {
@@ -748,6 +771,24 @@ function normalizeCards(rawCards, setPrefix = '') {
     if (primaryType === 'Creature') {
       normalized.damagePerTurn = card.dmgEachTurn ? parseInt(card.dmgEachTurn, 10) : 0;
       normalized.health = card.health ? parseInt(card.health, 10) : 1;
+
+      if (normalized.name === 'Hebridean Black Dragon' || normalized.name === 'River Troll') {
+        normalized.playRequirements = { discardLessons: { count: 1, type: 'Care of Magical Creatures' } };
+      } else if (normalized.name === 'Wild Boar') {
+        normalized.playRequirements = { discardLessons: { count: 2, type: 'Care of Magical Creatures' } };
+      }
+    }
+
+    if (primaryType === 'Item') {
+      if (normalized.name === 'Self-Stirring Cauldron') {
+        normalized.playRequirements = { discardLessons: { count: 2, type: 'Potions' } };
+      }
+    }
+
+    if (primaryType === 'Spell') {
+      if (normalized.name === 'Butterfly Weed Balm') {
+        normalized.playRequirements = { discardLessons: { count: 1, type: 'Potions' } };
+      }
     }
 
     if (primaryType === 'Adventure') {

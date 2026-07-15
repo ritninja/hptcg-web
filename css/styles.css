@@ -149,16 +149,23 @@ header {
 #play-area {
   grid-area: play-area;
   display: grid;
-  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: 1fr 180px; /* Playmats container on left, right column on right (increased width for horizontal cards) */
   padding: 16px;
   gap: 16px;
-  overflow-y: auto;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.playmats-container {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
   min-height: 0;
 }
 
 .playmat {
   display: grid;
-  grid-template-columns: 220px 0.8fr 1.2fr 1fr;
+  grid-template-columns: 220px 160px 1fr; /* Decoupled right column */
   grid-template-rows: 100%;
   gap: 12px;
   padding: 10px;
@@ -213,56 +220,189 @@ header {
   border: 2px dashed var(--accent-gold-glow);
   background: rgba(212, 175, 55, 0.03);
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
+  padding: 24px 8px 8px 8px !important; /* pad at top for the absolute positioned label */
+  gap: 12px;
   min-height: 0;
 }
 
 .character-slot.zone-container .card {
   --card-width: 100px;
   --card-height: 140px;
-  margin: -18px 0;
-  flex-shrink: 0; /* Prevent vertical shrinking so visual width remains at 140px */
+  margin: 0;
+  flex-shrink: 0;
 }
 
-.playmat-middle, .playmat-creatures {
+/* Column 2: Lessons Summary Tally */
+.lessons-summary-zone {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  padding: 10px !important;
+  position: relative;
+  height: 100%;
+  min-height: 0;
+  gap: 6px;
+}
+
+.lessons-summary-title {
+  width: 100%;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  color: var(--accent-gold);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 2px;
+}
+
+.lessons-view-btn {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--text-primary);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 4px;
+}
+
+.lessons-view-btn:hover {
+  background: var(--accent-gold);
+  color: #0c0e12;
+  border-color: var(--accent-gold);
+  box-shadow: 0 0 8px var(--accent-gold-glow);
+}
+
+.lessons-tally-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  overflow-y: auto;
+  flex: 1;
+  scrollbar-width: thin;
+}
+
+.lessons-tally-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+.lessons-tally-icon-name {
+  display: flex;
+  align-items: center;
+}
+
+.lessons-tally-count {
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+}
+
+/* Column 3: Creatures & Items Unified Zone */
+.playmat-creatures-items {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100%;
+  min-height: 0;
+  padding: 10px !important;
+  position: relative;
+}
+
+.creatures-items-zone {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  align-items: flex-start;
+  align-content: flex-start;
+  justify-content: safe center;
+  scrollbar-width: thin;
+  padding: 28px 12px 12px 12px !important; /* pad at top for absolute label */
+}
+
+/* Column 4: Symmetrical stacked columns (Adventure, Location, Match) */
+.playmat-right-column {
+  display: grid;
+  grid-template-rows: repeat(4, minmax(120px, 1fr));
+  gap: 12px;
   height: 100%;
   min-height: 0;
 }
 
-.playmat-right {
-  display: grid;
-  grid-template-rows: 1fr 110px;
-  gap: 10px;
-  min-height: 0;
+.playmat-right-column .card {
+  --card-width: 100px;
+  --card-height: 140px;
+  --card-border-radius: 8px;
+  margin: 0;
 }
 
-.permanents-bottom-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
+.locations-zone-wrapper, .matches-zone-wrapper {
+  position: relative;
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100%;
   min-height: 0;
+  padding: 0 !important;
 }
 
-.items-zone {
+.locations-stacked-container, .matches-stacked-container {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
+  place-items: center;
+  position: relative;
+  overflow: hidden;
   height: 100%;
   min-height: 0;
 }
 
-.adventures-zone, .matches-zone {
+.locations-stacked-container > div, .matches-stacked-container > div {
+  grid-column: 1;
+  grid-row: 1;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 8px !important;
+  pointer-events: none; /* Let clicks pass through empty layers */
+}
+
+.locations-stacked-container .card, .matches-stacked-container .card {
+  pointer-events: auto; /* Re-enable clicks on the actual cards */
+}
+
+.adventures-zone {
   height: 100%;
   min-height: 0;
   display: flex !important;
   justify-content: center !important;
   align-items: center !important;
-  overflow: hidden !important;
-  padding: 32px 12px 12px 12px !important;
+  padding: 8px !important;
 }
 
 /* Playmat Cards Scaling */
 .playmat .card {
-  --card-width: 80px;
-  --card-height: 112px;
+  --card-width: 100px;
+  --card-height: 140px;
   --card-border-radius: 8px;
   margin: 0;
 }
@@ -274,29 +414,7 @@ header {
   z-index: 5;
 }
 
-/* Opponent Field Rotations (Counter-Clockwise) */
-#opponent-playmat .card,
-#opponent-character-zone .card {
-  transform: rotate(-90deg);
-}
-#opponent-playmat .card:hover {
-  transform: translateY(-4px) scale(1.15) rotate(-90deg) !important;
-}
-#opponent-character-zone .card:hover {
-  transform: scale(1.05) rotate(-90deg) !important;
-}
 
-/* Player Field Rotations (Clockwise) */
-#player-playmat .card,
-#player-character-zone .card {
-  transform: rotate(90deg);
-}
-#player-playmat .card:hover {
-  transform: translateY(-4px) scale(1.15) rotate(90deg) !important;
-}
-#player-character-zone .card:hover {
-  transform: scale(1.05) rotate(90deg) !important;
-}
 
 .playmat .card .card-name {
   font-size: 0.6rem;
@@ -377,7 +495,7 @@ header {
   border-top: 1px solid var(--border-color);
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: safe center;
   padding: 10px 24px;
   overflow-x: auto;
   gap: 12px;
@@ -399,6 +517,19 @@ header {
   user-select: none;
   transition: var(--transition-smooth);
   box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+  flex-shrink: 0;
+}
+
+/* Horizontal card types by nature */
+.card-type-character,
+.card-type-adventure,
+.card-type-match,
+.card-type-location,
+.card-type-creature,
+.card-type-item,
+.card-type-lesson {
+  width: var(--card-height) !important;
+  height: var(--card-width) !important;
 }
 
 .card:hover {
@@ -413,16 +544,7 @@ header {
   cursor: grabbing;
 }
 
-/* Horizontal Cards (Adventures) */
-.card-horizontal {
-  transform: rotate(-90deg);
-  margin: 0 24px; /* offset rotation overlap in flex rows */
-}
 
-.card-horizontal:hover {
-  transform: translateY(-8px) scale(1.05) rotate(-90deg) !important;
-  z-index: 5;
-}
 
 
 
@@ -787,6 +909,7 @@ dialog#card-preview-modal::backdrop {
 #modal-card-image {
   max-height: 70vh;
   height: 520px;
+  width: auto !important;
   border-radius: 12px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
   object-fit: contain;
@@ -801,7 +924,10 @@ dialog#card-preview-modal::backdrop {
 }
 
 /* Discard Viewer Modal */
-dialog#discard-viewer-modal {
+/* Discard, Deck, and Lessons Viewer Modals */
+dialog#discard-viewer-modal,
+dialog#deck-viewer-modal,
+dialog#lessons-viewer-modal {
   border: none;
   background: transparent;
   padding: 0;
@@ -812,7 +938,9 @@ dialog#discard-viewer-modal {
   margin: auto;
 }
 
-dialog#discard-viewer-modal[open] {
+dialog#discard-viewer-modal[open],
+dialog#deck-viewer-modal[open],
+dialog#lessons-viewer-modal[open] {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -831,9 +959,13 @@ dialog#discard-viewer-modal[open] {
   font-family: var(--font-display);
 }
 
-#discard-viewer-grid {
+#discard-viewer-grid,
+#deck-viewer-grid,
+#lessons-viewer-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  justify-items: center;
+  align-items: center;
   gap: 16px;
   width: 100%;
   padding: 8px;
@@ -841,7 +973,9 @@ dialog#discard-viewer-modal[open] {
   overflow-y: auto;
 }
 
-#discard-viewer-grid .card {
+#discard-viewer-grid .card,
+#deck-viewer-grid .card,
+#lessons-viewer-grid .card {
   --card-width: 100px;
   --card-height: 140px;
   cursor: pointer;
@@ -849,7 +983,9 @@ dialog#discard-viewer-modal[open] {
   transform: none !important;
 }
 
-#discard-viewer-grid .card:hover {
+#discard-viewer-grid .card:hover,
+#deck-viewer-grid .card:hover,
+#lessons-viewer-grid .card:hover {
   transform: translateY(-6px) scale(1.05) !important;
   box-shadow: 0 8px 16px rgba(0,0,0,0.6), 0 0 10px var(--border-glow);
 }
@@ -981,7 +1117,7 @@ dialog#spell-targeting-modal::backdrop {
   border-bottom: 1px solid var(--border-color);
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: safe center;
   padding: 10px 24px;
   overflow-x: auto;
   gap: 12px;
@@ -989,12 +1125,26 @@ dialog#spell-targeting-modal::backdrop {
   height: var(--hand-height);
 }
 
-#opponent-hand-area .card {
-  --card-width: 100px;
-  --card-height: 140px;
+#opponent-hand-area .card,
+#hand-area .card {
+  --card-width: 71px;
+  --card-height: 100px;
 }
 
-#hand-area .card {
+#opponent-hand-area .card-type-character,
+#opponent-hand-area .card-type-adventure,
+#opponent-hand-area .card-type-match,
+#opponent-hand-area .card-type-location,
+#opponent-hand-area .card-type-creature,
+#opponent-hand-area .card-type-item,
+#opponent-hand-area .card-type-lesson,
+#hand-area .card-type-character,
+#hand-area .card-type-adventure,
+#hand-area .card-type-match,
+#hand-area .card-type-location,
+#hand-area .card-type-creature,
+#hand-area .card-type-item,
+#hand-area .card-type-lesson {
   --card-width: 100px;
   --card-height: 140px;
 }
@@ -2265,4 +2415,54 @@ dialog#match-won-modal::backdrop {
   border-radius: 4px;
   border: 1px solid var(--border-color);
   text-transform: uppercase;
+}
+
+/* Match Scoreboard Styles */
+.matches-zone-wrapper .zone-label {
+  position: static !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  font-family: var(--font-display) !important;
+  color: var(--text-muted) !important;
+  width: 100% !important;
+  padding: 6px 10px 4px 10px !important;
+  box-sizing: border-box !important;
+  background: rgba(12, 14, 18, 0.6) !important;
+  border-bottom: 1px solid var(--border-color) !important;
+  z-index: 10 !important;
+}
+
+.match-scoreboard-title {
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-primary) !important;
+  font-size: 0.72rem !important;
+  margin-bottom: 2px;
+}
+
+.match-scoreboard-row {
+  display: flex !important;
+  justify-content: space-between !important;
+  width: 100% !important;
+  max-width: 110px !important;
+  font-size: 0.68rem !important;
+  line-height: 1.2 !important;
+}
+
+.match-scoreboard-label {
+  color: var(--text-muted) !important;
+}
+
+.match-scoreboard-value {
+  color: var(--accent-gold) !important;
+  font-weight: bold !important;
+}
+
+.matches-stacked-container .card {
+  --card-width: 60px !important;
+  --card-height: 84px !important;
 }

@@ -6,3 +6,7 @@
 
 # Ignore scratch scripts and temporary files
 scratch/
+
+# Ignore Python cache
+__pycache__/
+

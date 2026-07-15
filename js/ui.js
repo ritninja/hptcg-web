@@ -16,6 +16,7 @@ export class UIManager {
       playerCreatures: document.getElementById('player-creatures-zone'),
       playerItems: document.getElementById('player-items-zone'),
       playerAdventures: document.getElementById('player-adventures-zone'),
+      playerLocations: document.getElementById('player-locations-zone'),
       playerMatches: document.getElementById('player-matches-zone'),
       playerCharacter: document.getElementById('player-character-zone'),
       
@@ -23,6 +24,7 @@ export class UIManager {
       opponentCreatures: document.getElementById('opponent-creatures-zone'),
       opponentItems: document.getElementById('opponent-items-zone'),
       opponentAdventures: document.getElementById('opponent-adventures-zone'),
+      opponentLocations: document.getElementById('opponent-locations-zone'),
       opponentMatches: document.getElementById('opponent-matches-zone'),
       opponentCharacter: document.getElementById('opponent-character-zone'),
       opponentHand: document.getElementById('opponent-hand-area'),
@@ -51,6 +53,15 @@ export class UIManager {
       discardViewerCloseBtn: document.getElementById('discard-viewer-close-btn'),
       discardViewerTitle: document.getElementById('discard-viewer-title'),
       discardViewerGrid: document.getElementById('discard-viewer-grid'),
+      
+      lessonsViewerModal: document.getElementById('lessons-viewer-modal'),
+      lessonsViewerCloseBtn: document.getElementById('lessons-viewer-close-btn'),
+      lessonsViewerTitle: document.getElementById('lessons-viewer-title'),
+      lessonsViewerGrid: document.getElementById('lessons-viewer-grid'),
+      opponentLessonsTallyList: document.getElementById('opponent-lessons-tally-list'),
+      playerLessonsTallyList: document.getElementById('player-lessons-tally-list'),
+      opponentLessonsViewBtn: document.getElementById('opponent-lessons-view-btn'),
+      playerLessonsViewBtn: document.getElementById('player-lessons-view-btn'),
       
       playerDeckPile: document.getElementById('player-deck-pile'),
       opponentDeckPile: document.getElementById('opponent-deck-pile'),
@@ -274,6 +285,41 @@ export class UIManager {
       });
     }
 
+    // Lessons View Buttons Click to View
+    if (this.el.playerLessonsViewBtn) {
+      this.el.playerLessonsViewBtn.addEventListener('click', () => {
+        this.showLessonsViewer('player');
+      });
+    }
+    if (this.el.opponentLessonsViewBtn) {
+      this.el.opponentLessonsViewBtn.addEventListener('click', () => {
+        this.showLessonsViewer('opponent');
+      });
+    }
+
+    // Lessons Viewer Close Button
+    if (this.el.lessonsViewerCloseBtn) {
+      this.el.lessonsViewerCloseBtn.addEventListener('click', () => {
+        this.closeLessonsViewer();
+      });
+    }
+
+    // Lessons Viewer click outside to dismiss
+    if (this.el.lessonsViewerModal) {
+      this.el.lessonsViewerModal.addEventListener('click', (event) => {
+        if (event.target !== this.el.lessonsViewerModal) return;
+        const rect = this.el.lessonsViewerModal.getBoundingClientRect();
+        const isDialogContent = (
+          rect.top <= event.clientY &&
+          event.clientY <= rect.top + rect.height &&
+          rect.left <= event.clientX &&
+          event.clientX <= rect.left + rect.width
+        );
+        if (isDialogContent) return;
+        this.closeLessonsViewer();
+      });
+    }
+
     // Deck Pile Click to View (Debug Mode only)
     if (this.el.playerDeckPile) {
       this.el.playerDeckPile.addEventListener('click', () => {
@@ -358,6 +404,26 @@ export class UIManager {
         this.closeSpellTargetingModal();
         this.engine.notifyStateChange();
       });
+    }
+
+    // Redirect scroll wheel in Hand Areas to horizontal scroll
+    // Scroll down (deltaY > 0) -> scroll right (increase scrollLeft)
+    // Scroll up (deltaY < 0) -> scroll left (decrease scrollLeft)
+    const handleHandWheel = (event) => {
+      event.preventDefault();
+      const container = event.currentTarget;
+      if (event.deltaY > 0) {
+        container.scrollLeft += Math.abs(event.deltaY);
+      } else {
+        container.scrollLeft -= Math.abs(event.deltaY);
+      }
+    };
+
+    if (this.el.playerHand) {
+      this.el.playerHand.addEventListener('wheel', handleHandWheel, { passive: false });
+    }
+    if (this.el.opponentHand) {
+      this.el.opponentHand.addEventListener('wheel', handleHandWheel, { passive: false });
     }
   }
 
@@ -473,24 +539,16 @@ export class UIManager {
     
     // Render Board Zones
     this.renderZone(this.el.playerCharacter, player.characters);
-    if (this.engine.isDebugMode) {
-      this.renderLessonsSummary(this.el.playerLessons, player);
-    } else {
-      this.renderZone(this.el.playerLessons, player.lessons);
-    }
-    this.renderZone(this.el.playerCreatures, player.creatures);
-    this.renderZone(this.el.playerItems, player.items);
+    this.renderLessonsTally(this.el.playerLessons, player);
+    this.renderZone(this.el.playerCreatures, [...player.creatures, ...player.items]);
+    this.renderZone(this.el.playerLocations, player.locations);
     this.renderZone(this.el.playerAdventures, player.adventures);
     this.renderZone(this.el.playerMatches, player.matches);
     
     this.renderZone(this.el.opponentCharacter, opponent.characters);
-    if (this.engine.isDebugMode) {
-      this.renderLessonsSummary(this.el.opponentLessons, opponent);
-    } else {
-      this.renderZone(this.el.opponentLessons, opponent.lessons);
-    }
-    this.renderZone(this.el.opponentCreatures, opponent.creatures);
-    this.renderZone(this.el.opponentItems, opponent.items);
+    this.renderLessonsTally(this.el.opponentLessons, opponent);
+    this.renderZone(this.el.opponentCreatures, [...opponent.creatures, ...opponent.items]);
+    this.renderZone(this.el.opponentLocations, opponent.locations);
     this.renderZone(this.el.opponentAdventures, opponent.adventures);
     this.renderZone(this.el.opponentMatches, opponent.matches);
 
@@ -548,6 +606,11 @@ export class UIManager {
       if (this.el.discardViewerModal && this.el.discardViewerModal.open) {
         this.showDiscardViewer(this.activeViewerPlayerId, true);
       }
+    }
+    
+    // Update lessons viewer reactively if it is open
+    if (this.activeLessonsViewerPlayerId && this.el.lessonsViewerModal && this.el.lessonsViewerModal.open) {
+      this.showLessonsViewer(this.activeLessonsViewerPlayerId, true);
     }
   }
 
@@ -908,21 +971,20 @@ export class UIManager {
     const opponent = this.engine.players[opponentId];
     if (!player || !opponent) return 0;
 
+    const isMadamMalkinActive = this.engine.players.player.locations.some(l => l.name === "Madam Malkin's Robes") ||
+                                 this.engine.players.opponent.locations.some(l => l.name === "Madam Malkin's Robes");
+
     let totalDmg = 0;
-    const hasHagrid = player.characters.some(c => c.name === 'Rubeus Hagrid');
-    
     player.creatures.forEach(creature => {
-      let dmg = creature.damagePerTurn || 0;
+      let dmg = this.engine.getCreatureDamage ? this.engine.getCreatureDamage(playerId, creature) : (creature.damagePerTurn || 0);
       // Check Winged Keys prevention
       if (opponent.wingedKeysTargetInstanceId === creature.instanceId) {
         dmg = 0;
       }
-      if (dmg > 0) {
-        if (hasHagrid && dmg >= 3) {
-          dmg += 2;
-        }
-        totalDmg += dmg;
+      if (dmg > 0 && isMadamMalkinActive) {
+        dmg = Math.max(0, dmg - 1);
       }
+      totalDmg += dmg;
     });
     
     return totalDmg;
@@ -931,7 +993,7 @@ export class UIManager {
   getLessonsTallyString(playerId) {
     const player = this.engine.players[playerId];
     if (!player) return '';
-    const counts = player.lessonCounts.counts;
+    const { counts, total } = player.lessonCounts;
     
     const abbreviationMap = {
       'Care of Magical Creatures': 'CoM',
@@ -954,7 +1016,7 @@ export class UIManager {
     });
 
     if (parts.length === 0) return '';
-    return `[${parts.join(', ')}]`;
+    return `[Total: ${total}, ${parts.join(', ')}]`;
   }
 
   // Render cards in board zones
@@ -973,14 +1035,28 @@ export class UIManager {
     const isOpponentCreatures = container === this.el.opponentCreatures;
     const isCreaturesZone = isPlayerCreatures || isOpponentCreatures;
     
-    // Retain the zone-label if present
-    const label = container.querySelector('.zone-label');
+    // Retain the zone-label if present (or search parent container for shared stacked zones)
+    let label = container.querySelector('.zone-label');
+    let labelInParent = false;
+    if (!label) {
+      let current = container.parentElement;
+      while (current) {
+        label = current.querySelector(':scope > .zone-label');
+        if (label) {
+          labelInParent = true;
+          break;
+        }
+        if (current.id === 'game-container' || current.tagName === 'BODY') break;
+        current = current.parentElement;
+      }
+    }
+
     container.innerHTML = '';
     if (label) {
       if (isCreaturesZone) {
         const playerId = isPlayerCreatures ? 'player' : 'opponent';
         const totalDmg = this.getCreatureNextTurnDamage(playerId);
-        label.innerHTML = `Creatures <span class="creature-total-damage" style="color: var(--accent-gold); font-weight: bold; margin-left: 8px;">(Next Turn Dmg: ${totalDmg})</span>`;
+        label.innerHTML = `Creatures & Items <span class="creature-total-damage" style="color: var(--accent-gold); font-weight: bold; margin-left: 8px;">(Next Turn Dmg: ${totalDmg})</span>`;
       } else {
         // Reset label for other zones to their default
         if (container === this.el.playerLessons || container === this.el.opponentLessons) {
@@ -993,20 +1069,36 @@ export class UIManager {
           label.innerHTML = 'Items';
         } else if (container === this.el.playerAdventures || container === this.el.opponentAdventures) {
           label.innerHTML = 'Adventure';
+        } else if (container === this.el.playerLocations || container === this.el.opponentLocations) {
+          label.innerHTML = 'Location';
         } else if (container === this.el.playerMatches || container === this.el.opponentMatches) {
           const activeMatch = this.engine.players.player.matches[0] || this.engine.players.opponent.matches[0];
           if (activeMatch) {
+            const playerProgress = this.engine.players.player.matchDamageDealt || 0;
+            const oppProgress = this.engine.players.opponent.matchDamageDealt || 0;
+            let targetDamage = 12; // default
             const toWinMatch = activeMatch.text.match(/Do (\d+) damage/i);
-            const targetDamage = toWinMatch ? parseInt(toWinMatch[1], 10) : 10;
-            const sidePlayerId = container === this.el.playerMatches ? 'player' : 'opponent';
-            const progress = this.engine.players[sidePlayerId].matchDamageDealt || 0;
-            label.innerHTML = `Match <span style="color: var(--accent-gold); font-weight: bold; margin-left: 8px;">(${progress}/${targetDamage} DMG)</span>`;
+            if (toWinMatch) targetDamage = parseInt(toWinMatch[1], 10);
+            
+            label.innerHTML = `
+              <div class="match-scoreboard-title">Match</div>
+              <div class="match-scoreboard-row">
+                <span class="match-scoreboard-label">You:</span>
+                <span class="match-scoreboard-value">(${playerProgress}/${targetDamage} DMG)</span>
+              </div>
+              <div class="match-scoreboard-row">
+                <span class="match-scoreboard-label">Opp:</span>
+                <span class="match-scoreboard-value">(${oppProgress}/${targetDamage} DMG)</span>
+              </div>
+            `;
           } else {
             label.innerHTML = 'Match';
           }
         }
       }
-      container.appendChild(label);
+      if (!labelInParent) {
+        container.appendChild(label);
+      }
     }
 
     cards.forEach(card => {
@@ -1025,7 +1117,8 @@ export class UIManager {
         wrapper.style.alignItems = 'center';
         wrapper.style.gap = '6px';
 
-        const healthVal = card.health - (card.damage || 0);
+        const maxHealth = this.engine.getCreatureHealth ? this.engine.getCreatureHealth(card) : card.health;
+        const healthVal = maxHealth - (card.damage || 0);
         const healthEl = document.createElement('div');
         healthEl.className = 'creature-health-indicator';
         healthEl.style.fontSize = '0.72rem';
@@ -1036,7 +1129,7 @@ export class UIManager {
         healthEl.style.borderRadius = '4px';
         healthEl.style.padding = '2px 6px';
         healthEl.style.whiteSpace = 'nowrap';
-        healthEl.innerText = `HP: ${healthVal} / ${card.health}`;
+        healthEl.innerText = `HP: ${healthVal} / ${maxHealth}`;
 
         wrapper.appendChild(cardEl);
         wrapper.appendChild(healthEl);
@@ -1047,104 +1140,111 @@ export class UIManager {
     });
   }
 
-  // Render a summary of lessons by type and quantity in play in Debug Mode
-  renderLessonsSummary(container, player) {
+  // Render vertical lessons tallies on the board
+  renderLessonsTally(container, player) {
     if (!container) return;
+    const tallyList = container.querySelector('.lessons-tally-list');
+    if (!tallyList) return;
+
+    tallyList.innerHTML = '';
+    const counts = player.lessonCounts.counts || {};
     
-    container.style.display = 'flex';
-    container.style.flexDirection = 'row';
-    container.style.flexWrap = 'wrap';
-    container.style.justifyContent = 'center';
-    container.style.alignItems = 'center';
-    container.style.padding = '8px';
+    // Fixed order of all lesson types
+    const order = [
+      'Care of Magical Creatures',
+      'Charms',
+      'Transfiguration',
+      'Potions',
+      'Quidditch'
+    ];
+    
+    const colorMap = {
+      'Care of Magical Creatures': '#ff8c00', // Orange
+      'Charms': '#00bfff',                  // Blue
+      'Transfiguration': '#e066ff',         // Purple
+      'Potions': '#32cd32',                 // Green
+      'Quidditch': '#ffd700'                // Gold
+    };
 
-    const label = container.querySelector('.zone-label');
-    container.innerHTML = '';
-    if (label) {
-      const tallyStr = this.getLessonsTallyString(player.id);
-      label.innerHTML = `Lessons <span class="lessons-tally" style="color: var(--accent-gold); font-weight: bold; margin-left: 8px;">${tallyStr}</span>`;
-      container.appendChild(label);
+    order.forEach(type => {
+      const count = counts[type] || 0;
+
+      const row = document.createElement('div');
+      row.className = 'lessons-tally-item';
+      if (count === 0) {
+        row.style.opacity = '0.35'; // Dim if 0 count
+      }
+      
+      const iconName = document.createElement('div');
+      iconName.className = 'lessons-tally-icon-name';
+      
+      const nameSpan = document.createElement('span');
+      const abbrMap = {
+        'Care of Magical Creatures': 'Creatures',
+        'Charms': 'Charms',
+        'Transfiguration': 'Transfig',
+        'Potions': 'Potions',
+        'Quidditch': 'Quidditch'
+      };
+      nameSpan.innerText = abbrMap[type] || type;
+      nameSpan.style.color = colorMap[type] || 'var(--text-primary)';
+      
+      iconName.appendChild(nameSpan);
+      
+      const countSpan = document.createElement('span');
+      countSpan.className = 'lessons-tally-count';
+      countSpan.innerText = `x${count}`;
+      countSpan.style.color = colorMap[type] || 'var(--text-primary)';
+      
+      row.appendChild(iconName);
+      row.appendChild(countSpan);
+      tallyList.appendChild(row);
+    });
+
+    // Update total count in title label if present
+    const header = container.querySelector('.lessons-summary-title');
+    if (header) {
+      header.innerText = `Lessons (${player.lessonCounts.total})`;
     }
+  }
 
-    const counts = player.lessonCounts.counts;
+  // Show lessons viewer modal
+  showLessonsViewer(playerId, isUpdateOnly = false) {
+    const player = this.engine.players[playerId];
+    if (!player || !this.el.lessonsViewerModal || !this.el.lessonsViewerGrid || !this.el.lessonsViewerTitle) return;
 
-    const summaryWrapper = document.createElement('div');
-    summaryWrapper.className = 'debug-lessons-summary';
-    summaryWrapper.style.display = 'flex';
-    summaryWrapper.style.gap = '12px';
-    summaryWrapper.style.padding = '6px';
-    summaryWrapper.style.flexWrap = 'wrap';
-    summaryWrapper.style.alignItems = 'center';
-    summaryWrapper.style.justifyContent = 'center';
+    this.activeLessonsViewerPlayerId = playerId;
+    this.el.lessonsViewerTitle.innerText = `${player.name === 'You' ? 'Your' : player.name + "'s"} Lessons (${player.lessons.length})`;
+    this.el.lessonsViewerGrid.innerHTML = '';
 
-    const types = Object.keys(counts).sort();
-    if (types.length === 0) {
-      const emptyMsg = document.createElement('span');
-      emptyMsg.innerText = 'No lessons in play';
-      emptyMsg.style.color = 'var(--text-muted)';
-      emptyMsg.style.fontStyle = 'italic';
-      emptyMsg.style.fontSize = '0.9rem';
-      summaryWrapper.appendChild(emptyMsg);
+    if (player.lessons.length === 0) {
+      this.el.lessonsViewerGrid.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); font-style: italic; padding: 20px;">No lessons in play.</div>`;
     } else {
-      types.forEach(type => {
-        const count = counts[type];
-        const badge = document.createElement('div');
-        badge.className = 'debug-lesson-badge';
+      player.lessons.forEach(card => {
+        const cardEl = this.createCardElement(card, false);
+        cardEl.classList.remove('card-horizontal');
+        cardEl.style.transform = 'none';
+        cardEl.style.margin = '0';
         
-        let color = 'var(--accent-gold)';
-        let glow = 'var(--accent-gold-glow)';
-        let bg = 'rgba(218, 165, 32, 0.15)';
+        cardEl.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.showPreviewModal(card, false, cardEl);
+        });
         
-        if (type === 'Care of Magical Creatures') {
-          color = '#ff8c00';
-          bg = 'rgba(255, 140, 0, 0.15)';
-          glow = 'rgba(255, 140, 0, 0.4)';
-        } else if (type === 'Potions') {
-          color = '#32cd32';
-          bg = 'rgba(50, 205, 50, 0.15)';
-          glow = 'rgba(50, 205, 50, 0.4)';
-        } else if (type === 'Transfiguration') {
-          color = '#e066ff';
-          bg = 'rgba(224, 102, 255, 0.15)';
-          glow = 'rgba(224, 102, 255, 0.4)';
-        } else if (type === 'Charms') {
-          color = '#00bfff';
-          bg = 'rgba(0, 191, 255, 0.15)';
-          glow = 'rgba(0, 191, 255, 0.4)';
-        } else if (type === 'Herbology') {
-          color = '#228b22';
-          bg = 'rgba(34, 139, 34, 0.15)';
-          glow = 'rgba(34, 139, 34, 0.4)';
-        }
-
-        badge.style.display = 'flex';
-        badge.style.alignItems = 'center';
-        badge.style.gap = '8px';
-        badge.style.padding = '4px 12px';
-        badge.style.borderRadius = '6px';
-        badge.style.border = `1px solid ${color}`;
-        badge.style.backgroundColor = bg;
-        badge.style.color = '#fff';
-        badge.style.fontFamily = 'var(--font-display)';
-        badge.style.boxShadow = `0 0 8px ${glow}`;
-        badge.style.fontSize = '0.9rem';
-        badge.style.fontWeight = 'bold';
-        
-        const labelSpan = document.createElement('span');
-        labelSpan.innerText = type;
-        labelSpan.style.color = color;
-        
-        const countSpan = document.createElement('span');
-        countSpan.innerText = `x${count}`;
-        countSpan.style.fontSize = '1.05rem';
-        
-        badge.appendChild(labelSpan);
-        badge.appendChild(countSpan);
-        summaryWrapper.appendChild(badge);
+        this.el.lessonsViewerGrid.appendChild(cardEl);
       });
     }
 
-    container.appendChild(summaryWrapper);
+    if (!isUpdateOnly) {
+      this.el.lessonsViewerModal.showModal();
+    }
+  }
+
+  // Close lessons viewer modal
+  closeLessonsViewer() {
+    if (this.el.lessonsViewerModal) {
+      this.el.lessonsViewerModal.close();
+    }
   }
 
   // Create Card DOM element
@@ -1164,9 +1264,7 @@ export class UIManager {
       el.setAttribute('data-lesson-type', lessonType);
     }
 
-    if ((card.type === 'Adventure' || card.type === 'Match') && !isHand) {
-      el.classList.add('card-horizontal');
-    }
+
 
     if (card.image) {
       el.style.backgroundImage = `url('${card.image}')`;
@@ -1249,6 +1347,7 @@ export class UIManager {
              engine.players.player.characters.some(c => c.instanceId === card.instanceId) ||
              engine.players.player.items.some(c => c.instanceId === card.instanceId) ||
              engine.players.player.adventures.some(c => c.instanceId === card.instanceId) ||
+             engine.players.player.locations.some(c => c.instanceId === card.instanceId) ||
              engine.players.player.matches.some(c => c.instanceId === card.instanceId)) { cardOwner = 'player'; cardZone = 'field'; }
              
     if (!cardZone) {
@@ -1260,6 +1359,7 @@ export class UIManager {
                engine.players.opponent.characters.some(c => c.instanceId === card.instanceId) ||
                engine.players.opponent.items.some(c => c.instanceId === card.instanceId) ||
                engine.players.opponent.adventures.some(c => c.instanceId === card.instanceId) ||
+               engine.players.opponent.locations.some(c => c.instanceId === card.instanceId) ||
                engine.players.opponent.matches.some(c => c.instanceId === card.instanceId)) { cardOwner = 'opponent'; cardZone = 'field'; }
     }
 
@@ -1267,33 +1367,11 @@ export class UIManager {
     this.el.modalCardImage.alt = card.name || 'Card Preview';
 
     // Determine orientation based on card type or field state
-    let isHorizontal = false;
-    if (card.type === 'Lesson' || card.type === 'Adventure' || card.type === 'Character' || card.type === 'Creature' || card.type === 'Match') {
-      isHorizontal = true;
-    }
-    if (cardEl) {
-      const isOpponentMat = cardEl.closest('#opponent-playmat') || cardEl.closest('#opponent-character-zone');
-      const isPlayerMat = cardEl.closest('#player-playmat') || cardEl.closest('#player-character-zone');
-      const isHorizontalInHand = cardEl.classList.contains('card-horizontal');
-      const isFromHand = cardEl.closest('#hand-area') || cardEl.closest('#opponent-hand-area');
-      if (isOpponentMat || isPlayerMat || isHorizontalInHand) {
-        isHorizontal = true;
-      }
-      if (card.type === 'Item' && isFromHand) {
-        isHorizontal = true;
-      }
-    }
-
-    let rotation = isHorizontal ? 90 : 0;
+    let rotation = 0;
 
     // Apply rotation transforms
-    this.el.modalCardImage.style.transform = rotation ? `rotate(${rotation}deg)` : 'none';
-    if (rotation !== 0) {
-      // Swapping horizontal dimensions requires layout margin
-      this.el.modalCardImage.style.margin = '40px 0';
-    } else {
-      this.el.modalCardImage.style.margin = '0';
-    }
+    this.el.modalCardImage.style.transform = 'none';
+    this.el.modalCardImage.style.margin = '0';
 
     if (this.el.modalActions) {
       this.el.modalActions.innerHTML = '';
@@ -1304,9 +1382,9 @@ export class UIManager {
 
       // Adventure progress display (field multi-turn adventures)
       if (cardZone === 'field' && card.type === 'Adventure') {
-        const isSkipAdventure = card.name === "Gringotts' Cart Ride" || card.name === "Diagon Alley" || card.name === "Peeves Causes Trouble" || card.name === "Into the Forbidden Forest";
+        const isSkipAdventure = card.name === "Gringotts' Cart Ride" || card.name === "Diagon Alley" || card.name === "Peeves Causes Trouble" || card.name === "Into the Forbidden Forest" || card.name === "Through the Arch";
         if (isSkipAdventure) {
-          const targetSkips = card.name === "Diagon Alley" ? 7 : 5;
+          const targetSkips = card.name === "Diagon Alley" ? 7 : (card.name === "Through the Arch" ? 4 : 5);
           const currentSkips = card.skipCount || 0;
           
           const progressDiv = document.createElement('div');
@@ -1378,7 +1456,7 @@ export class UIManager {
         if (card.type === 'Adventure' && this.engine.canSolveAdventure(ownerId, card)) {
           const btnSolve = document.createElement('button');
           btnSolve.className = 'btn';
-          const isSkipAdventure = card.name === "Gringotts' Cart Ride" || card.name === "Diagon Alley" || card.name === "Peeves Causes Trouble" || card.name === "Into the Forbidden Forest";
+          const isSkipAdventure = card.name === "Gringotts' Cart Ride" || card.name === "Diagon Alley" || card.name === "Peeves Causes Trouble" || card.name === "Into the Forbidden Forest" || card.name === "Through the Arch";
           btnSolve.innerText = isSkipAdventure ? 'Work on Adventure' : 'Solve Adventure';
           btnSolve.style.width = '200px';
           btnSolve.addEventListener('click', () => {
@@ -1387,6 +1465,19 @@ export class UIManager {
           });
           mainActionsRow.appendChild(btnSolve);
         }
+      }
+
+      // Location active ability trigger
+      if (cardZone === 'field' && this.engine.actionsRemaining > 0 && card.type === 'Location' && this.engine.canActivateLocationAbility && this.engine.canActivateLocationAbility(activeId, card)) {
+        const btnActivateLocation = document.createElement('button');
+        btnActivateLocation.className = 'btn';
+        btnActivateLocation.innerText = 'Activate Ability';
+        btnActivateLocation.style.width = '200px';
+        btnActivateLocation.addEventListener('click', () => {
+          this.engine.activateLocationAbility(activeId, card.instanceId);
+          this.closePreviewModal();
+        });
+        mainActionsRow.appendChild(btnActivateLocation);
       }
 
       if (this.engine.isDebugMode && cardOwner && cardZone) {
@@ -1399,14 +1490,15 @@ export class UIManager {
         debugContainer.style.borderTop = '1px dashed var(--border-color)';
         debugContainer.style.paddingTop = '12px';
         debugContainer.style.marginTop = '12px';
-
+ 
         const debugLabel = document.createElement('div');
         let labelText = `Debug Move (${cardOwner}'s ${cardZone}):`;
         if (cardZone === 'field' && card.type === 'Creature') {
           const targetPlayer = this.engine.players[cardOwner];
           const creature = targetPlayer.creatures.find(c => c.instanceId === card.instanceId);
           if (creature) {
-            labelText += ` [Health: ${creature.health - (creature.damage || 0)}/${creature.health}]`;
+            const maxHealth = this.engine.getCreatureHealth ? this.engine.getCreatureHealth(creature) : creature.health;
+            labelText += ` [Health: ${maxHealth - (creature.damage || 0)}/${maxHealth}]`;
           }
         }
         debugLabel.innerText = labelText;
@@ -1568,8 +1660,8 @@ export class UIManager {
       }
       this.el.adventureSolvedImage.src = adventure.image || '';
       this.el.adventureSolvedImage.alt = adventure.name;
-      this.el.adventureSolvedImage.style.transform = 'rotate(90deg)';
-      this.el.adventureSolvedImage.style.margin = '40px 0';
+      this.el.adventureSolvedImage.style.transform = 'none';
+      this.el.adventureSolvedImage.style.margin = '0';
       this.el.adventureSolvedName.innerText = adventure.name;
       this.el.adventureSolvedReward.innerText = rewardDescription;
       this.el.adventureSolvedModal.showModal();

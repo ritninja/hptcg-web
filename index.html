@@ -102,7 +102,7 @@
             <select id="lan-deck-select" class="deck-select-dropdown" style="width: 100%; padding: 10px;"></select>
           </div>
           <div style="width: 100px; height: 75px; border-radius: 4px; border: 1px solid var(--border-color); overflow: hidden; display: flex; align-items: center; justify-content: center; position: relative; background: var(--bg-primary);">
-            <img id="lan-char-preview-img" src="" alt="Lobby Preview" style="width: 75px; height: 100px; transform: rotate(90deg); object-fit: contain; position: absolute;" />
+            <img id="lan-char-preview-img" src="" alt="Lobby Preview" style="width: 100%; height: 100%; object-fit: contain; position: absolute;" />
           </div>
         </div>
 
@@ -146,7 +146,7 @@
             <select id="deck-char-select" class="deck-select-dropdown" style="width: 100%; margin-top: 4px; padding: 8px;"></select>
           </div>
           <div class="deck-char-thumbnail" style="margin-top: 18px; width: 70px; height: 50px; border-radius: 4px; border: 1px solid var(--border-color); overflow: hidden; display: flex; align-items: center; justify-content: center; position: relative; background: var(--bg-primary);">
-            <img id="deck-char-preview-img" src="" alt="Char Thumbnail" style="width: 50px; height: 70px; transform: rotate(90deg); object-fit: contain; position: absolute;" />
+            <img id="deck-char-preview-img" src="" alt="Char Thumbnail" style="width: 100%; height: 100%; object-fit: contain; position: absolute;" />
           </div>
         </div>
       </div>
@@ -183,6 +183,7 @@
             <button class="btn btn-secondary filter-btn" data-filter="Item" style="padding: 6px 12px; font-size: 0.85rem;">Items</button>
             <button class="btn btn-secondary filter-btn" data-filter="Adventure" style="padding: 6px 12px; font-size: 0.85rem;">Adventures</button>
             <button class="btn btn-secondary filter-btn" data-filter="Match" style="padding: 6px 12px; font-size: 0.85rem;">Matches</button>
+            <button class="btn btn-secondary filter-btn" data-filter="Location" style="padding: 6px 12px; font-size: 0.85rem;">Locations</button>
           </div>
           <div class="filter-row" style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; align-items: center;">
             <span style="font-size: 0.82rem; color: var(--text-secondary);">Lesson Type:</span>
@@ -200,6 +201,7 @@
               <option value="All">All Series</option>
               <option value="Base Set">Base Set</option>
               <option value="Quidditch Cup">Quidditch Cup</option>
+              <option value="Diagon Alley">Diagon Alley</option>
             </select>
           </div>
           <!-- Button to add all filtered cards -->
@@ -226,6 +228,7 @@
               <option value="Item">Items</option>
               <option value="Adventure">Adventures</option>
               <option value="Match">Matches</option>
+              <option value="Location">Locations</option>
             </select>
             <select id="deck-lesson-type-filter" class="deck-input" style="padding: 4px 10px; font-size: 0.82rem; background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px; outline: none; cursor: pointer; flex: 1; height: 32px;">
               <option value="All">All Lesson Types</option>
@@ -301,6 +304,7 @@
           <button id="btn-debug-enable-actions" class="btn btn-secondary" style="width: 100%;">Enable 99 Actions</button>
           <button id="btn-debug-disable-actions" class="btn btn-secondary" style="width: 100%;">Disable 99 Actions</button>
           <button id="btn-debug-shuffle-deck" class="btn btn-secondary" style="width: 100%;">Shuffle Your Deck</button>
+          <button id="btn-debug-return-hand-to-deck" class="btn btn-secondary" style="width: 100%;">Return Hand to Deck</button>
           <button id="btn-debug-enable-lessons" class="btn btn-secondary" style="width: 100%;">Enable 10 Lessons Each</button>
           <button id="btn-debug-disable-lessons" class="btn btn-secondary" style="width: 100%;">Disable Lessons</button>
         </div>
@@ -312,103 +316,117 @@
 
     <!-- Center Play Area (Board) -->
     <main id="play-area">
-      <!-- Opponent Playmat -->
-      <section class="playmat" id="opponent-playmat" aria-label="Opponent Playmat">
-        <!-- Column 1: Piles and Wizard/Witch -->
-        <div class="playmat-left">
-          <div class="deck-discard-row">
-            <div class="mat-deck-slot">
-              <div class="mat-deck-placeholder" id="opponent-deck-pile" style="cursor: pointer;">
-                <span class="pile-title">Deck</span>
-                <span class="pile-count" id="opponent-deck-count">33</span>
+      <!-- Playmats Container (Left/Middle columns of board) -->
+      <div class="playmats-container">
+        <!-- Opponent Playmat -->
+        <section class="playmat" id="opponent-playmat" aria-label="Opponent Playmat">
+          <!-- Column 1: Piles and Wizard/Witch -->
+          <div class="playmat-left">
+            <div class="deck-discard-row">
+              <div class="mat-deck-slot">
+                <div class="mat-deck-placeholder" id="opponent-deck-pile" style="cursor: pointer;">
+                  <span class="pile-title">Deck</span>
+                  <span class="pile-count" id="opponent-deck-count">33</span>
+                </div>
+              </div>
+              <div class="mat-discard-slot">
+                <div class="mat-discard-placeholder" id="opponent-discard-pile">
+                  <span class="pile-title">Discard</span>
+                  <span class="pile-count" id="opponent-discard-count">0</span>
+                </div>
               </div>
             </div>
-            <div class="mat-discard-slot">
-              <div class="mat-discard-placeholder" id="opponent-discard-pile">
-                <span class="pile-title">Discard</span>
-                <span class="pile-count" id="opponent-discard-count">0</span>
+            <div class="character-slot zone-container" id="opponent-character-zone">
+              <div class="zone-label">Wizard / Witch</div>
+            </div>
+          </div>
+
+          <!-- Column 2: Lessons Summary -->
+          <div class="playmat-middle zone-container lessons-summary-zone" id="opponent-lessons-zone">
+            <div class="lessons-summary-title" id="opponent-lessons-title">Lessons (0)</div>
+            <button class="lessons-view-btn" id="opponent-lessons-view-btn">View</button>
+            <div class="lessons-tally-list" id="opponent-lessons-tally-list">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
+
+          <!-- Column 3: Creatures & Items -->
+          <div class="playmat-creatures-items zone-container" id="opponent-creatures-items-container">
+            <div class="zone-label">Creatures & Items</div>
+            <div class="creatures-items-zone" id="opponent-creatures-zone"></div>
+          </div>
+        </section>
+
+        <!-- Player Playmat -->
+        <section class="playmat" id="player-playmat" aria-label="Your Playmat">
+          <!-- Column 1: Piles and Wizard/Witch -->
+          <div class="playmat-left">
+            <div class="deck-discard-row">
+              <div class="mat-deck-slot">
+                <div class="mat-deck-placeholder" id="player-deck-pile" style="cursor: pointer;">
+                  <span class="pile-title">Deck</span>
+                  <span class="pile-count" id="player-deck-count">33</span>
+                </div>
+              </div>
+              <div class="mat-discard-slot">
+                <div class="mat-discard-placeholder" id="player-discard-pile">
+                  <span class="pile-title">Discard</span>
+                  <span class="pile-count" id="player-discard-count">0</span>
+                </div>
               </div>
             </div>
-          </div>
-          <div class="character-slot zone-container" id="opponent-character-zone">
-            <div class="zone-label">Wizard / Witch</div>
-          </div>
-        </div>
-
-        <!-- Column 2: Lessons -->
-        <div class="playmat-middle zone-container" id="opponent-lessons-zone">
-          <div class="zone-label">Lessons</div>
-        </div>
-
-        <!-- Column 3: Creatures -->
-        <div class="playmat-creatures zone-container" id="opponent-creatures-zone">
-          <div class="zone-label">Creatures</div>
-        </div>
-
-        <!-- Column 4: Items (top) and Adventure/Match (bottom) -->
-        <div class="playmat-right">
-          <div class="items-zone zone-container" id="opponent-items-zone">
-            <div class="zone-label">Items</div>
-          </div>
-          <div class="permanents-bottom-row">
-            <div class="adventures-zone zone-container" id="opponent-adventures-zone">
-              <div class="zone-label">Adventure</div>
-            </div>
-            <div class="matches-zone zone-container" id="opponent-matches-zone">
-              <div class="zone-label">Match</div>
+            <div class="character-slot zone-container" id="player-character-zone">
+              <div class="zone-label">Wizard / Witch</div>
             </div>
           </div>
-        </div>
-      </section>
 
-      <!-- Player Playmat -->
-      <section class="playmat" id="player-playmat" aria-label="Your Playmat">
-        <!-- Column 1: Piles and Wizard/Witch -->
-        <div class="playmat-left">
-          <div class="deck-discard-row">
-            <div class="mat-deck-slot">
-              <div class="mat-deck-placeholder" id="player-deck-pile" style="cursor: pointer;">
-                <span class="pile-title">Deck</span>
-                <span class="pile-count" id="player-deck-count">33</span>
-              </div>
-            </div>
-            <div class="mat-discard-slot">
-              <div class="mat-discard-placeholder" id="player-discard-pile">
-                <span class="pile-title">Discard</span>
-                <span class="pile-count" id="player-discard-count">0</span>
-              </div>
+          <!-- Column 2: Lessons Summary -->
+          <div class="playmat-middle zone-container lessons-summary-zone" id="player-lessons-zone">
+            <div class="lessons-summary-title" id="player-lessons-title">Lessons (0)</div>
+            <button class="lessons-view-btn" id="player-lessons-view-btn">View</button>
+            <div class="lessons-tally-list" id="player-lessons-tally-list">
+              <!-- Rendered dynamically -->
             </div>
           </div>
-          <div class="character-slot zone-container" id="player-character-zone">
-            <div class="zone-label">Wizard / Witch</div>
+
+          <!-- Column 3: Creatures & Items -->
+          <div class="playmat-creatures-items zone-container" id="player-creatures-items-container">
+            <div class="zone-label">Creatures & Items</div>
+            <div class="creatures-items-zone" id="player-creatures-zone"></div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Right Column: Symmetrical Stacked Board Sections (Adventure, Location, Match) -->
+      <div class="playmat-right-column">
+        <!-- Opponent Adventure -->
+        <div class="adventures-zone zone-container" id="opponent-adventures-zone">
+          <div class="zone-label">Adventure</div>
+        </div>
+        
+        <!-- Location Slot (Shared) -->
+        <div class="locations-zone-wrapper zone-container">
+          <div class="zone-label">Location</div>
+          <div class="locations-stacked-container">
+            <div id="opponent-locations-zone" class="locations-zone"></div>
+            <div id="player-locations-zone" class="locations-zone"></div>
           </div>
         </div>
-
-        <!-- Column 2: Lessons -->
-        <div class="playmat-middle zone-container" id="player-lessons-zone">
-          <div class="zone-label">Lessons</div>
-        </div>
-
-        <!-- Column 3: Creatures -->
-        <div class="playmat-creatures zone-container" id="player-creatures-zone">
-          <div class="zone-label">Creatures</div>
-        </div>
-
-        <!-- Column 4: Items (top) and Adventure/Match (bottom) -->
-        <div class="playmat-right">
-          <div class="items-zone zone-container" id="player-items-zone">
-            <div class="zone-label">Items</div>
-          </div>
-          <div class="permanents-bottom-row">
-            <div class="adventures-zone zone-container" id="player-adventures-zone">
-              <div class="zone-label">Adventure</div>
-            </div>
-            <div class="matches-zone zone-container" id="player-matches-zone">
-              <div class="zone-label">Match</div>
-            </div>
+        
+        <!-- Match Slot (Shared) -->
+        <div class="matches-zone-wrapper zone-container">
+          <div class="zone-label">Match</div>
+          <div class="matches-stacked-container">
+            <div id="opponent-matches-zone" class="matches-zone"></div>
+            <div id="player-matches-zone" class="matches-zone"></div>
           </div>
         </div>
-      </section>
+        
+        <!-- Player Adventure -->
+        <div class="adventures-zone zone-container" id="player-adventures-zone">
+          <div class="zone-label">Adventure</div>
+        </div>
+      </div>
     </main>
 
     <!-- Bottom Player Hand Tray -->
@@ -487,7 +505,7 @@
       </div>
       <div style="display: flex; flex-direction: column; align-items: center; gap: 20px; margin-bottom: 24px; width: 100%;">
         <div style="width: 180px; height: 130px; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; margin-top: 12px;">
-          <img id="match-won-image" src="" alt="Match Card" style="width: 130px; height: 180px; transform: rotate(90deg); object-fit: contain; position: absolute;" />
+          <img id="match-won-image" src="" alt="Match Card" style="width: 100%; height: 100%; object-fit: contain; position: absolute;" />
         </div>
         <div id="match-won-name" style="font-size: 1.3rem; font-weight: bold; color: var(--text-primary); font-family: var(--font-display); text-align: center;">
           Match Name
@@ -529,6 +547,17 @@
       <button class="modal-close-btn" id="deck-viewer-close-btn" aria-label="Close modal">&times;</button>
       <h2 id="deck-viewer-title">Deck Cards</h2>
       <div id="deck-viewer-grid">
+        <!-- Cards rendered dynamically as a grid -->
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Modal Dialog for Lessons Viewer -->
+  <dialog id="lessons-viewer-modal" closedby="any" aria-label="Lessons Viewer">
+    <div class="modal-content discard-viewer-content">
+      <button class="modal-close-btn" id="lessons-viewer-close-btn" aria-label="Close modal">&times;</button>
+      <h2 id="lessons-viewer-title">Lessons in Play</h2>
+      <div id="lessons-viewer-grid">
         <!-- Cards rendered dynamically as a grid -->
       </div>
     </div>
@@ -620,7 +649,7 @@
           </div>
 
           <div style="margin-top: 12px; height: 120px; display: flex; align-items: center; justify-content: center; width: 168px; border-radius: 8px; overflow: hidden; border: 2px solid var(--accent-gold-glow); box-shadow: 0 4px 12px rgba(0,0,0,0.5); position: relative; background: var(--bg-primary);">
-            <img id="player-char-preview" src="" alt="Player Character" style="width: 120px; height: 168px; transform: rotate(90deg); object-fit: contain; position: absolute;" />
+            <img id="player-char-preview" src="" alt="Player Character" style="width: 100%; height: 100%; object-fit: contain; position: absolute;" />
           </div>
         </div>
 
@@ -634,7 +663,7 @@
           </div>
 
           <div style="margin-top: 12px; height: 120px; display: flex; align-items: center; justify-content: center; width: 168px; border-radius: 8px; overflow: hidden; border: 2px solid var(--accent-gold-glow); box-shadow: 0 4px 12px rgba(0,0,0,0.5); position: relative; background: var(--bg-primary);">
-            <img id="opponent-char-preview" src="" alt="Opponent Character" style="width: 120px; height: 168px; transform: rotate(90deg); object-fit: contain; position: absolute;" />
+            <img id="opponent-char-preview" src="" alt="Opponent Character" style="width: 100%; height: 100%; object-fit: contain; position: absolute;" />
           </div>
         </div>
 

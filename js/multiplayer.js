@@ -181,8 +181,8 @@ export class MultiplayerManager {
     };
 
     const originalDealDamage = engine.dealDamage.bind(engine);
-    engine.dealDamage = (playerId, amount, source) => {
-      originalDealDamage(playerId, amount, source);
+    engine.dealDamage = (playerId, amount, source, card) => {
+      originalDealDamage(playerId, amount, source, card);
       this.broadcastState(engine);
     };
 
@@ -201,6 +201,12 @@ export class MultiplayerManager {
     const originalDebugShuffleDeck = engine.debugShuffleDeck.bind(engine);
     engine.debugShuffleDeck = (playerId = 'player') => {
       originalDebugShuffleDeck(playerId);
+      this.broadcastState(engine);
+    };
+
+    const originalDebugReturnHandToDeck = engine.debugReturnHandToDeck.bind(engine);
+    engine.debugReturnHandToDeck = (playerId = 'player') => {
+      originalDebugReturnHandToDeck(playerId);
       this.broadcastState(engine);
     };
 
@@ -316,6 +322,12 @@ export class MultiplayerManager {
         orig(winnerId, matchCard);
       };
     }
+
+    const originalNotifyStateChange = engine.notifyStateChange.bind(engine);
+    engine.notifyStateChange = () => {
+      originalNotifyStateChange();
+      this.broadcastState(engine);
+    };
   }
 
   // Wrapper for Guest: intercepts actions, forwards to server, skips local execution
@@ -418,6 +430,11 @@ export class MultiplayerManager {
       this.postAction({ type: 'debugShuffleDeck', playerId: mappedPlayerId });
     };
 
+    engine.debugReturnHandToDeck = (playerId = 'player') => {
+      const mappedPlayerId = playerId === 'player' ? 'opponent' : 'player';
+      this.postAction({ type: 'debugReturnHandToDeck', playerId: mappedPlayerId });
+    };
+
     engine.debugEnableLessons = () => {
       this.postAction({ type: 'debugEnableLessons' });
     };
@@ -473,8 +490,13 @@ export class MultiplayerManager {
   }
 
   broadcastState(engine) {
-    const state = serializeEngine(engine);
-    this.postState(state);
+    if (this._pendingBroadcast) return;
+    this._pendingBroadcast = true;
+    Promise.resolve().then(() => {
+      this._pendingBroadcast = false;
+      const state = serializeEngine(engine);
+      this.postState(state);
+    });
   }
 
   // Polling loops
@@ -525,6 +547,8 @@ export class MultiplayerManager {
       engine.disableUnlimitedActions();
     } else if (action.type === 'debugShuffleDeck') {
       engine.debugShuffleDeck(action.playerId);
+    } else if (action.type === 'debugReturnHandToDeck') {
+      engine.debugReturnHandToDeck(action.playerId);
     } else if (action.type === 'debugEnableLessons') {
       engine.debugEnableLessons();
     } else if (action.type === 'debugDisableLessons') {

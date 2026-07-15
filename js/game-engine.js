@@ -26,8 +26,10 @@ export class PlayerState {
     // Zones in play
     this.lessons = [];
     this.items = [];
+    this.locations = [];
     this.adventures = [];
     this.matches = [];
+    this.engine = null;
 
     this.matchDamageDealt = 0;
 
@@ -253,13 +255,23 @@ export class PlayerState {
       ...this.lessons,
       ...this.characters,
       ...this.items,
+      ...this.locations,
       ...this.adventures
     ];
     
+    let hasWandShop = false;
+    if (this.engine) {
+      hasWandShop = this.engine.players.player.locations.some(l => l.name === 'Wand Shop') ||
+                    this.engine.players.opponent.locations.some(l => l.name === 'Wand Shop');
+    }
+    
     allInPlay.forEach(card => {
       const type = card.provides?.type;
-      const amount = card.provides?.amount || 1;
+      let amount = card.provides?.amount || 1;
       if (type) {
+        if (hasWandShop && type === 'Charms' && card.type === 'Lesson') {
+          amount *= 2;
+        }
         counts[type] = (counts[type] || 0) + amount;
         total += amount;
       }
@@ -395,7 +407,9 @@ export class GameEngine {
     const oChar = oCharRaw ? { ...oCharRaw, instanceId: 'opponent-starting-char' } : null;
 
     this.players.player = new PlayerState('player', 'You', pChar);
+    this.players.player.engine = this;
     this.players.opponent = new PlayerState('opponent', 'Hogwarts Rival', oChar);
+    this.players.opponent.engine = this;
     this.players.player.debug = isDebugMode;
     this.players.opponent.debug = isDebugMode;
 
@@ -618,10 +632,20 @@ export class GameEngine {
       this.logPlayError(playerId, `Cannot play cards this turn (Forgetfulness Potion is active)!`);
       return false;
     }
+    // Letters From No One restriction: solver can only use actions to draw cards
+    if (player.adventures.some(a => a.name === 'Letters From No One')) {
+      this.logPlayError(playerId, `Cannot play cards: Letters From No One is active! You can only use actions to draw cards.`);
+      return false;
+    }
     const cardIndex = player.hand.findIndex(c => c.instanceId === cardInstanceId);
     
     if (cardIndex === -1) return false;
     const card = player.hand[cardIndex];
+
+    if (player.cantPlayItemsNextTurn && (card.type === 'Item' || card.type?.includes('Item'))) {
+      this.logPlayError(playerId, `Cannot play Item cards this turn (Swelling Potion is active)!`);
+      return false;
+    }
 
     // Uniqueness rule check for characters and creatures
     const isUnique = card.subTypes && card.subTypes.includes('Unique');
@@ -647,7 +671,9 @@ export class GameEngine {
         return false;
       }
       const hasRon = player.characters.some(c => c.name === 'Ron Weasley');
-      actionCost = hasRon ? 1 : 2;
+      const isLeakyCauldronActive = this.players.player.locations.some(l => l.name === 'The Leaky Cauldron') ||
+                                    this.players.opponent.locations.some(l => l.name === 'The Leaky Cauldron');
+      actionCost = (hasRon || isLeakyCauldronActive) ? 1 : 2;
     }
     if (card.type === 'Adventure') {
       const hasFredGeorge = player.characters.some(c => c.name === 'Fred & George Weasley');
@@ -679,6 +705,13 @@ export class GameEngine {
     const hasPrivetDrive = activeAdventures.some(a => a.name === '4 Privet Drive');
     if (hasPrivetDrive && card.type === 'Spell') {
       this.logPlayError(playerId, `Cannot play Spell cards while 4 Privet Drive is active!`);
+      return false;
+    }
+
+    // Through the Arch: Can't play Spell cards
+    const hasThroughArch = activeAdventures.some(a => a.name === 'Through the Arch');
+    if (hasThroughArch && card.type === 'Spell') {
+      this.logPlayError(playerId, `Cannot play Spell cards while Through the Arch is active!`);
       return false;
     }
 
@@ -778,24 +811,18 @@ export class GameEngine {
     }
 
     // Lesson count requirement check
-    if (card.lessonCost && card.lessonCost.length > 0) {
-      const requiredTotal = card.lessonCost.length;
-      const total = player.lessons.length;
+    if (card.lessonCost && card.lessonCost.total > 0) {
+      const requiredTotal = card.lessonCost.total;
+      const total = player.lessonCounts.total;
       if (total < requiredTotal) {
         this.logPlayError(playerId, `Cannot play ${card.name}. Requires ${requiredTotal} lessons total (you have ${total}).`);
         return false;
       }
 
       // Lesson type checking (requires at least one lesson of each type in lessonCost)
-      const counts = {};
-      player.lessons.forEach(l => {
-        const type = l.provides?.type || l.lessonType;
-        if (type) {
-          counts[type] = (counts[type] || 0) + 1;
-        }
-      });
+      const counts = player.lessonCounts.counts;
 
-      const requiredType = card.lessonCost[0];
+      const requiredType = card.lessonCost.type;
       if (requiredType && (!counts[requiredType] || counts[requiredType] < 1)) {
         this.logPlayError(playerId, `Cannot play ${card.name}. Requires at least 1 ${requiredType} lesson.`);
         return false;
@@ -846,7 +873,9 @@ export class GameEngine {
     let actionCost = 1;
     if (card.type === 'Character') {
       const hasRon = player.characters.some(c => c.name === 'Ron Weasley');
-      actionCost = hasRon ? 1 : 2;
+      const isLeakyCauldronActive = this.players.player.locations.some(l => l.name === 'The Leaky Cauldron') ||
+                                    this.players.opponent.locations.some(l => l.name === 'The Leaky Cauldron');
+      actionCost = (hasRon || isLeakyCauldronActive) ? 1 : 2;
     }
     if (card.type === 'Adventure') {
       const hasFredGeorge = player.characters.some(c => c.name === 'Fred & George Weasley');
@@ -1015,18 +1044,149 @@ export class GameEngine {
             }
           }
         }
+        
+        if (card.name === 'Hedwig') {
+          const nonHealing = player.discardPile.filter(c => !c.subTypes?.includes('Healing'));
+          if (nonHealing.length > 0) {
+            if (playerId === 'player' || this.isMultiplayer) {
+              const choices = nonHealing.map(c => ({ id: c.instanceId, label: c.name, card: c }));
+              this.promptChoice(playerId, "Hedwig: Choose a non-Healing card from discard to put into hand (Optional)", choices, 0, 1, (selected) => {
+                const sel = selected[0];
+                if (sel) {
+                  const idx = player.discardPile.findIndex(c => c.instanceId === sel);
+                  if (idx !== -1) {
+                    const [retrieved] = player.discardPile.splice(idx, 1);
+                    player.hand.push(retrieved);
+                    this.log(`Hedwig: Put ${retrieved.name} from discard into hand.`);
+                    this.notifyStateChange();
+                  }
+                }
+              }, card);
+            } else {
+              const [retrieved] = player.discardPile.splice(player.discardPile.indexOf(nonHealing[0]), 1);
+              player.hand.push(retrieved);
+              this.log(`Hedwig: AI put ${retrieved.name} from discard into hand.`);
+              this.notifyStateChange();
+            }
+          }
+        }
+        
+        if (card.name === 'Barn Owl') {
+          const cmcLessons = player.lessons.filter(l => (l.provides?.type || l.lessonType) === 'Care of Magical Creatures');
+          const creaturesInDiscard = player.discardPile.filter(c => c.type === 'Creature');
+          if (cmcLessons.length > 0 && creaturesInDiscard.length > 0) {
+            if (playerId === 'player' || this.isMultiplayer) {
+              const lessonChoices = cmcLessons.map(l => ({ id: `lesson-${playerId}-${l.instanceId}`, label: l.name, card: l }));
+              this.promptChoice(playerId, "Barn Owl: Choose 1 Care of Magical Creatures Lesson to discard (Optional)", lessonChoices, 0, 1, (selectedLesson) => {
+                const selLesson = selectedLesson[0];
+                if (selLesson) {
+                  const instId = selLesson.split('-').slice(2).join('-');
+                  const idx = player.lessons.findIndex(l => l.instanceId === instId);
+                  if (idx !== -1) {
+                    const [l] = player.lessons.splice(idx, 1);
+                    player.discardPile.push(l);
+                    this.log(`Barn Owl: Discarded lesson ${l.name}.`);
+                    
+                    const creatureChoices = creaturesInDiscard.map(c => ({ id: c.instanceId, label: c.name, card: c }));
+                    this.promptChoice(playerId, "Barn Owl: Choose a Creature card from discard to put into hand", creatureChoices, 1, 1, (selectedCreature) => {
+                      const selCreature = selectedCreature[0];
+                      if (selCreature) {
+                        const cIdx = player.discardPile.findIndex(c => c.instanceId === selCreature);
+                        if (cIdx !== -1) {
+                          const [retrieved] = player.discardPile.splice(cIdx, 1);
+                          player.hand.push(retrieved);
+                          this.log(`Barn Owl: Put ${retrieved.name} from discard into hand.`);
+                          this.notifyStateChange();
+                        }
+                      }
+                    }, card);
+                  }
+                }
+              }, card);
+            } else {
+              const [l] = player.lessons.splice(player.lessons.indexOf(cmcLessons[0]), 1);
+              player.discardPile.push(l);
+              this.log(`Barn Owl: AI discarded lesson ${l.name}.`);
+              
+              const [retrieved] = player.discardPile.splice(player.discardPile.indexOf(creaturesInDiscard[0]), 1);
+              player.hand.push(retrieved);
+              this.log(`Barn Owl: AI put ${retrieved.name} from discard into hand.`);
+              this.notifyStateChange();
+            }
+          }
+        }
+        
+        if (card.name === 'Screech Owl') {
+          const lessons = player.discardPile.filter(c => c.type === 'Lesson');
+          if (lessons.length > 0) {
+            if (playerId === 'player' || this.isMultiplayer) {
+              const choices = lessons.map(c => ({ id: c.instanceId, label: c.name, card: c }));
+              this.promptChoice(playerId, "Screech Owl: Choose a Lesson card from discard to put into hand (Optional)", choices, 0, 1, (selected) => {
+                const sel = selected[0];
+                if (sel) {
+                  const idx = player.discardPile.findIndex(c => c.instanceId === sel);
+                  if (idx !== -1) {
+                    const [retrieved] = player.discardPile.splice(idx, 1);
+                    player.hand.push(retrieved);
+                    this.log(`Screech Owl: Put Lesson ${retrieved.name} from discard into hand.`);
+                    this.notifyStateChange();
+                  }
+                }
+              }, card);
+            } else {
+              const [retrieved] = player.discardPile.splice(player.discardPile.indexOf(lessons[0]), 1);
+              player.hand.push(retrieved);
+              this.log(`Screech Owl: AI put Lesson ${retrieved.name} from discard into hand.`);
+              this.notifyStateChange();
+            }
+          }
+        }
+        
+        if (card.name === 'Tawny Owl') {
+          const items = player.discardPile.filter(c => c.type === 'Item' && !c.subTypes?.includes('Healing'));
+          if (items.length > 0) {
+            if (playerId === 'player' || this.isMultiplayer) {
+              const choices = items.map(c => ({ id: c.instanceId, label: c.name, card: c }));
+              this.promptChoice(playerId, "Tawny Owl: Choose a non-Healing Item card from discard to put into hand (Optional)", choices, 0, 1, (selected) => {
+                const sel = selected[0];
+                if (sel) {
+                  const idx = player.discardPile.findIndex(c => c.instanceId === sel);
+                  if (idx !== -1) {
+                    const [retrieved] = player.discardPile.splice(idx, 1);
+                    player.hand.push(retrieved);
+                    this.log(`Tawny Owl: Put Item ${retrieved.name} from discard into hand.`);
+                    this.notifyStateChange();
+                  }
+                }
+              }, card);
+            } else {
+              const [retrieved] = player.discardPile.splice(player.discardPile.indexOf(items[0]), 1);
+              player.hand.push(retrieved);
+              this.log(`Tawny Owl: AI put Item ${retrieved.name} from discard into hand.`);
+              this.notifyStateChange();
+            }
+          }
+        }
         break;
       case 'Item':
-        if (card.subTypes && card.subTypes.includes('Wand')) {
-          const oldWandIndex = player.items.findIndex(i => i.subTypes && i.subTypes.includes('Wand'));
+        if (card.subTypes && card.subTypes.some(s => s.includes('Wand'))) {
+          const oldWandIndex = player.items.findIndex(i => i.subTypes && i.subTypes.some(s => s.includes('Wand')));
           if (oldWandIndex !== -1) {
             const [oldWand] = player.items.splice(oldWandIndex, 1);
             player.discardPile.push(oldWand);
             this.log(`Discarded old Wand from play: ${oldWand.name}`);
           }
         }
-        if (card.subTypes && card.subTypes.includes('Broom')) {
-          const oldBroomIndex = player.items.findIndex(i => i.subTypes && i.subTypes.includes('Broom'));
+        if (card.name === "Hagrid's Umbrella") {
+          const oldWandIndex = player.items.findIndex(i => i.subTypes && i.subTypes.some(s => s.includes('Wand')));
+          if (oldWandIndex !== -1) {
+            const [oldWand] = player.items.splice(oldWandIndex, 1);
+            player.discardPile.push(oldWand);
+            this.log(`Discarded old Wand from play due to Hagrid's Umbrella: ${oldWand.name}`);
+          }
+        }
+        if (card.subTypes && card.subTypes.some(s => s.includes('Broom'))) {
+          const oldBroomIndex = player.items.findIndex(i => i.subTypes && i.subTypes.some(s => s.includes('Broom')));
           if (oldBroomIndex !== -1) {
             const [oldBroom] = player.items.splice(oldBroomIndex, 1);
             player.discardPile.push(oldBroom);
@@ -1035,6 +1195,14 @@ export class GameEngine {
         }
         player.items.push(card);
         this.log(`${player.name} played Item: ${card.name}.`);
+        
+        // Draco Malfoy, Slytherin passive
+        const hasDracoSlytherin = player.characters.some(c => c.name === 'Draco Malfoy, Slytherin');
+        if (hasDracoSlytherin && !player.usedDracoMalfoySlytherinThisTurn) {
+          player.usedDracoMalfoySlytherinThisTurn = true;
+          this.actionsRemaining++;
+          this.log(`Draco Malfoy, Slytherin: Gained +1 Action for playing an Item card.`);
+        }
 
         if (card.name === 'Cleansweep Seven') {
           if (player.deck.length > 0) {
@@ -1061,6 +1229,62 @@ export class GameEngine {
             }
           }
         }
+
+        if (card.name === 'Self-Stirring Cauldron') {
+          this.actionsRemaining++;
+          this.log(`Self-Stirring Cauldron: Gained +1 Action.`);
+        }
+
+        if (card.name === 'Silver Unicorn Horn') {
+          const nonHealing = player.discardPile.filter(c => !c.subTypes?.includes('Healing'));
+          if (nonHealing.length > 0) {
+            const maxTake = Math.min(2, nonHealing.length);
+            if (playerId === 'player' || this.isMultiplayer) {
+              const choices = nonHealing.map(c => ({ id: c.instanceId, label: c.name, card: c }));
+              this.promptChoice(playerId, "Silver Unicorn Horn: Choose up to 2 non-Healing cards from discard to put on bottom of deck", choices, 0, maxTake, (selected) => {
+                selected.forEach(selId => {
+                  const idx = player.discardPile.findIndex(c => c.instanceId === selId);
+                  if (idx !== -1) {
+                    const [retrieved] = player.discardPile.splice(idx, 1);
+                    player.deck.unshift(retrieved);
+                    this.log(`Silver Unicorn Horn: Put ${retrieved.name} on bottom of deck.`);
+                  }
+                });
+                this.notifyStateChange();
+              }, card);
+            } else {
+              const toMove = nonHealing.slice(0, maxTake);
+              toMove.forEach(c => {
+                player.discardPile.splice(player.discardPile.indexOf(c), 1);
+                player.deck.unshift(c);
+                this.log(`Silver Unicorn Horn: AI put ${c.name} on bottom of deck.`);
+              });
+              this.notifyStateChange();
+            }
+          }
+        }
+
+        if (card.name === 'Beetle Eyes') {
+          const oppId = playerId === 'player' ? 'opponent' : 'player';
+          this.log(`Beetle Eyes: Dealing 4 damage to opponent.`);
+          this.dealDamage(oppId, 4, 'item', card);
+        }
+
+        if (card.name === 'Eel Eyes') {
+          const opponent = this.players[playerId === 'player' ? 'opponent' : 'player'];
+          if (playerId === 'player' || this.isMultiplayer) {
+            const choices = opponent.hand.map(c => ({ id: c.instanceId, label: c.name, card: c }));
+            this.promptChoice(playerId, `${opponent.name}'s Hand:`, choices, 1, 1, () => {}, card);
+          } else {
+            this.log(`Eel Eyes: AI looked at player's hand.`);
+          }
+        }
+
+        if (card.name === 'Moonseed Poison') {
+          const oppId = playerId === 'player' ? 'opponent' : 'player';
+          this.log(`Moonseed Poison: Dealing 3 damage to opponent.`);
+          this.dealDamage(oppId, 3, 'item', card);
+        }
         break;
       case 'Adventure': {
         const opponent = this.players[playerId === 'player' ? 'opponent' : 'player'];
@@ -1074,10 +1298,50 @@ export class GameEngine {
         this.log(`${player.name} played Adventure: ${card.name} on ${opponent.name}'s side.`);
         break;
       }
-      case 'Match':
+      case 'Location': {
+        const oldLocations = [];
+        ['player', 'opponent'].forEach(pId => {
+          const p = this.players[pId];
+          if (p.locations.length > 0) {
+            const locs = p.locations.splice(0);
+            p.discardPile.push(...locs);
+            oldLocations.push(...locs);
+          }
+        });
+        if (oldLocations.length > 0) {
+          this.log(`Discarded old active Location(s) from play: ${oldLocations.map(l => l.name).join(', ')}.`);
+        }
+        player.locations.push(card);
+        this.log(`${player.name} played Location: ${card.name}.`);
+        
+        // Gringotts immediate action count increase
+        if (card.name === 'Gringotts') {
+          this.actionsRemaining += 1;
+          this.log(`Gringotts: Active player gets +1 Action this turn.`);
+        }
+        break;
+      }
+      case 'Match': {
+        const oldMatches = [];
+        ['player', 'opponent'].forEach(pId => {
+          const p = this.players[pId];
+          if (p.matches.length > 0) {
+            const ms = p.matches.splice(0);
+            p.discardPile.push(...ms);
+            oldMatches.push(...ms);
+          }
+        });
+        if (oldMatches.length > 0) {
+          this.log(`Discarded old active Match(es) from play: ${oldMatches.map(m => m.name).join(', ')}.`);
+        }
+        // Reset match progress
+        this.players.player.matchDamageDealt = 0;
+        this.players.opponent.matchDamageDealt = 0;
+
         player.matches.push(card);
         this.log(`${player.name} played Match: ${card.name}.`);
         break;
+      }
       case 'Spell':
         player.discardPile.push(card);
         this.log(`${player.name} cast Spell: ${card.name}!`);
@@ -1102,12 +1366,14 @@ export class GameEngine {
 
   // Resolve spell effects
   resolveSpell(casterId, card) {
-    const player = this.players[casterId];
-    const opponent = this.players[casterId === 'player' ? 'opponent' : 'player'];
-    const opponentId = opponent.id;
-    const playerId = player.id;
-    
-    this.log(`${player.name} resolved spell effect of ${card.name}.`);
+    this.currentlyResolvingSpell = card;
+    try {
+      const player = this.players[casterId];
+      const opponent = this.players[casterId === 'player' ? 'opponent' : 'player'];
+      const opponentId = opponent.id;
+      const playerId = player.id;
+      
+      this.log(`${player.name} resolved spell effect of ${card.name}.`);
 
     switch (card.name) {
       case 'Elixir of Life': {
@@ -2259,15 +2525,17 @@ export class GameEngine {
       }
       
       case 'Steelclaw': {
-        const totalDmg = player.creatures.reduce((sum, c) => {
+        this.log(`Steelclaw: ${player.name}'s creatures attack together!`);
+        player.creatures.forEach(c => {
           if (opponent.wingedKeysTargetInstanceId === c.instanceId) {
             this.log(`Winged Keys: Prevented damage from ${c.name} in Steelclaw.`);
-            return sum;
+            return;
           }
-          return sum + (c.damagePerTurn || 0);
-        }, 0);
-        this.log(`Steelclaw: ${player.name}'s creatures attack together for ${totalDmg} damage!`);
-        this.dealDamage(opponentId, totalDmg, 'creature');
+          const dmg = this.getCreatureDamage(playerId, c);
+          if (dmg > 0) {
+            this.dealDamage(opponentId, dmg, 'creature', c);
+          }
+        });
         break;
       }
       
@@ -3223,6 +3491,833 @@ export class GameEngine {
         }
         break;
       }
+      case 'Beater Grabs the Snitch': {
+        const matchesInPlay = [];
+        if (player.matches.length > 0) {
+          matchesInPlay.push({ id: `match-player`, label: `${player.matches[0].name} (Your Match)`, card: player.matches[0], ownerId: playerId });
+        }
+        if (opponent.matches.length > 0) {
+          matchesInPlay.push({ id: `match-opponent`, label: `${opponent.matches[0].name} (Opponent's Match)`, card: opponent.matches[0], ownerId: opponentId });
+        }
+        if (matchesInPlay.length > 0) {
+          if (casterId === 'player' || this.isMultiplayer) {
+            this.promptChoice(casterId, "Beater Grabs the Snitch: Choose a Match in play to return to hand", matchesInPlay, 1, 1, (selected) => {
+              const sel = selected[0];
+              if (sel) {
+                const found = matchesInPlay.find(t => t.id === sel);
+                if (found) {
+                  const owner = this.players[found.ownerId];
+                  owner.matches = [];
+                  owner.hand.push(found.card);
+                  this.log(`Beater Grabs the Snitch: Returned ${found.card.name} to ${owner.name}'s hand.`);
+                  this.notifyStateChange();
+                }
+              }
+            });
+          } else {
+            const target = matchesInPlay[0];
+            const owner = this.players[target.ownerId];
+            owner.matches = [];
+            owner.hand.push(target.card);
+            this.log(`Beater Grabs the Snitch: AI returned ${target.card.name} to ${owner.name}'s hand.`);
+          }
+        }
+        break;
+      }
+
+      case 'Christmas Feast': {
+        const nonHealingItems = player.discardPile.filter(c => c.type === 'Item' && !c.subTypes?.includes('Healing'));
+        const maxTake = Math.min(4, nonHealingItems.length);
+        if (nonHealingItems.length > 0) {
+          if (casterId === 'player' || this.isMultiplayer) {
+            const choices = nonHealingItems.map(c => ({ id: c.instanceId, label: c.name, card: c }));
+            this.promptChoice(casterId, `Christmas Feast: Choose up to ${maxTake} non-Healing Item cards to return to hand`, choices, 0, maxTake, (selected) => {
+              selected.forEach(selId => {
+                const idx = player.discardPile.findIndex(c => c.instanceId === selId);
+                if (idx !== -1) {
+                  const [retrieved] = player.discardPile.splice(idx, 1);
+                  player.hand.push(retrieved);
+                  this.log(`Christmas Feast: Returned ${retrieved.name} to hand.`);
+                }
+              });
+              this.notifyStateChange();
+            });
+          } else {
+            const toMove = nonHealingItems.slice(0, maxTake);
+            toMove.forEach(c => {
+              player.discardPile.splice(player.discardPile.indexOf(c), 1);
+              player.hand.push(c);
+              this.log(`Christmas Feast: AI returned ${c.name} to hand.`);
+            });
+          }
+        }
+        break;
+      }
+
+      case "Good Night's Sleep": {
+        const eligible = player.characters.filter(c => player.usedOncePerGameAbilities && player.usedOncePerGameAbilities[c.name]);
+        if (eligible.length > 0) {
+          if (casterId === 'player' || this.isMultiplayer) {
+            const choices = eligible.map(c => ({ id: c.instanceId, label: `${c.name} (Reset once-per-game ability)`, card: c }));
+            this.promptChoice(casterId, "Good Night's Sleep: Choose a Character to reset their once-per-game ability", choices, 1, 1, (selected) => {
+              const sel = selected[0];
+              if (sel) {
+                const found = eligible.find(c => c.instanceId === sel);
+                if (found) {
+                  player.usedOncePerGameAbilities[found.name] = false;
+                  this.log(`Good Night's Sleep: Reset once-per-game ability of ${found.name}.`);
+                  this.notifyStateChange();
+                }
+              }
+            });
+          } else {
+            const target = eligible[0];
+            player.usedOncePerGameAbilities[target.name] = false;
+            this.log(`Good Night's Sleep: AI reset once-per-game ability of ${target.name}.`);
+          }
+        }
+        break;
+      }
+
+      case 'Gringotts Vault Key': {
+        if (player.deck.length > 0) {
+          if (casterId === 'player' || this.isMultiplayer) {
+            const choices = player.deck.map(c => ({ id: c.instanceId, label: `${c.name} (${c.type})`, card: c }));
+            this.promptChoice(casterId, "Gringotts Vault Key: Choose any card from your deck to take", choices, 1, 1, (selected) => {
+              const sel = selected[0];
+              if (sel) {
+                const idx = player.deck.findIndex(c => c.instanceId === sel);
+                if (idx !== -1) {
+                  const [c] = player.deck.splice(idx, 1);
+                  player.hand.push(c);
+                  this.log(`Gringotts Vault Key: Took ${c.name} from deck.`);
+                }
+              }
+              this.shuffle(player.deck);
+              this.notifyStateChange();
+            });
+          } else {
+            const [c] = player.deck.splice(0, 1);
+            player.hand.push(c);
+            this.log(`Gringotts Vault Key: AI took a card from deck.`);
+            this.shuffle(player.deck);
+          }
+        }
+        break;
+      }
+
+      case 'Table Trouble': {
+        const pItems = player.items.splice(0);
+        const oItems = opponent.items.splice(0);
+        player.discardPile.push(...pItems);
+        opponent.discardPile.push(...oItems);
+        this.log(`Table Trouble: Discarded all Items from play (${pItems.length + oItems.length} total).`);
+        break;
+      }
+
+      case 'Vanishing Referee': {
+        const eligible = [];
+        player.characters.forEach(c => {
+          if (c.instanceId !== 'player-starting-char' && !c.subTypes?.includes('Healing')) {
+            eligible.push({ id: `char-player-${c.instanceId}`, label: `${c.name} (Your Character)`, card: c, ownerId: playerId });
+          }
+        });
+        opponent.characters.forEach(c => {
+          if (c.instanceId !== 'opponent-starting-char' && !c.subTypes?.includes('Healing')) {
+            eligible.push({ id: `char-opponent-${c.instanceId}`, label: `${c.name} (Opponent's Character)`, card: c, ownerId: opponentId });
+          }
+        });
+        if (eligible.length > 0) {
+          if (casterId === 'player' || this.isMultiplayer) {
+            this.promptChoice(casterId, "Vanishing Referee: Choose a Character to shuffle into deck", eligible, 1, 1, (selected) => {
+              const sel = selected[0];
+              if (sel) {
+                const found = eligible.find(t => t.id === sel);
+                if (found) {
+                  const owner = this.players[found.ownerId];
+                  owner.characters = owner.characters.filter(c => c.instanceId !== found.card.instanceId);
+                  owner.deck.push(found.card);
+                  this.shuffle(owner.deck);
+                  this.log(`Vanishing Referee: Shuffled ${found.card.name} into ${owner.name}'s deck.`);
+                  this.notifyStateChange();
+                }
+              }
+            });
+          } else {
+            const target = eligible[0];
+            const owner = this.players[target.ownerId];
+            owner.characters = owner.characters.filter(c => c.instanceId !== target.card.instanceId);
+            owner.deck.push(target.card);
+            this.shuffle(owner.deck);
+            this.log(`Vanishing Referee: AI shuffled ${target.card.name} into ${owner.name}'s deck.`);
+          }
+        }
+        break;
+      }
+
+      case 'Alihotsy Draught': {
+        const choices = [{ id: 'damage', label: 'Deal 6 damage to opponent' }];
+        opponent.items.forEach(i => {
+          choices.push({ id: `item-${i.instanceId}`, label: `Discard ${i.name}`, card: i });
+        });
+        if (casterId === 'player' || this.isMultiplayer) {
+          this.promptChoice(casterId, "Alihotsy Draught: Choose effect", choices, 1, 1, (selected) => {
+            const sel = selected[0];
+            if (sel === 'damage') {
+              this.dealDamage(opponentId, 6, 'spell');
+            } else if (sel && sel.startsWith('item-')) {
+              const instId = sel.split('-').slice(1).join('-');
+              const idx = opponent.items.findIndex(i => i.instanceId === instId);
+              if (idx !== -1) {
+                const [itemCard] = opponent.items.splice(idx, 1);
+                opponent.discardPile.push(itemCard);
+                this.log(`Alihotsy Draught: Discarded ${itemCard.name} from play.`);
+              }
+            }
+          });
+        } else {
+          if (opponent.items.length > 0) {
+            const [itemCard] = opponent.items.splice(0, 1);
+            opponent.discardPile.push(itemCard);
+            this.log(`Alihotsy Draught: AI discarded ${itemCard.name} from play.`);
+          } else {
+            this.dealDamage(opponentId, 6, 'spell');
+          }
+        }
+        break;
+      }
+
+      case 'Biased Commentary': {
+        player.biasedCommentaryActive = true;
+        this.log(`Biased Commentary: Next Quidditch spell deals +5 damage.`);
+        break;
+      }
+
+      case 'Colloshoo': {
+        const itemsInHand = opponent.hand.filter(c => c.type === 'Item');
+        if (casterId === 'player' || this.isMultiplayer) {
+          const choices = opponent.hand.map(c => ({ id: c.instanceId, label: `${c.name} (${c.type})`, card: c, disabled: c.type !== 'Item' }));
+          if (itemsInHand.length > 0) {
+            this.promptChoice(casterId, `Colloshoo: Choose 1 Item card from ${opponent.name}'s hand to discard`, choices, 1, 1, (selected) => {
+              const sel = selected[0];
+              if (sel) {
+                const idx = opponent.hand.findIndex(c => c.instanceId === sel);
+                if (idx !== -1) {
+                  const [discarded] = opponent.hand.splice(idx, 1);
+                  opponent.discardPile.push(discarded);
+                  this.log(`Colloshoo: Discarded ${discarded.name} from opponent's hand.`);
+                  this.notifyStateChange();
+                }
+              }
+            });
+          } else {
+            choices.push({ id: 'done', label: 'Acknowledge (Opponent has no Items in hand)' });
+            this.promptChoice(casterId, `${opponent.name}'s Hand:`, choices, 1, 1, () => {});
+          }
+        } else {
+          if (itemsInHand.length > 0) {
+            const [discarded] = opponent.hand.splice(opponent.hand.indexOf(itemsInHand[0]), 1);
+            opponent.discardPile.push(discarded);
+            this.log(`Colloshoo: AI discarded ${discarded.name} from hand.`);
+          }
+        }
+        break;
+      }
+
+      case 'Frog-Spawn': {
+        player.preventAllCreatureDamageNextTurn = true;
+        this.log(`Frog-Spawn: All damage to ${player.name}'s creatures will be prevented during opponent's turn.`);
+        break;
+      }
+
+      case 'Injured': {
+        const quidCards = opponent.hand.filter(c => c.lessonCost && c.lessonCost.type === 'Quidditch');
+        if (casterId === 'player' || this.isMultiplayer) {
+          const choices = opponent.hand.map(c => ({ id: c.instanceId, label: `${c.name} (${c.type})`, card: c, disabled: true }));
+          choices.push({ id: 'done', label: `Acknowledge (${quidCards.length} Quidditch card(s) will be discarded)` });
+          this.promptChoice(casterId, `${opponent.name}'s Hand:`, choices, 1, 1, () => {
+            quidCards.forEach(c => {
+              opponent.hand = opponent.hand.filter(h => h.instanceId !== c.instanceId);
+              opponent.discardPile.push(c);
+              this.log(`Injured: Discarded ${c.name} from opponent's hand.`);
+            });
+            this.notifyStateChange();
+          });
+        } else {
+          quidCards.forEach(c => {
+            opponent.hand = opponent.hand.filter(h => h.instanceId !== c.instanceId);
+            opponent.discardPile.push(c);
+            this.log(`Injured: AI discarded ${c.name} from your hand.`);
+          });
+        }
+        break;
+      }
+
+      case 'Lapifors': {
+        if (opponent.creatures.length > 0) {
+          if (casterId === 'player' || this.isMultiplayer) {
+            const choices = opponent.creatures.map(c => ({ id: c.instanceId, label: c.name, card: c }));
+            this.promptChoice(casterId, "Lapifors: Choose opponent's Creature to discard", choices, 1, 1, (selected) => {
+              const sel = selected[0];
+              if (sel) {
+                const idx = opponent.creatures.findIndex(c => c.instanceId === sel);
+                if (idx !== -1) {
+                  const [c] = opponent.creatures.splice(idx, 1);
+                  opponent.discardPile.push(c);
+                  this.log(`Lapifors: Discarded opponent's creature ${c.name}.`);
+                }
+                const creaturesInDeck = player.deck.filter(c => c.type === 'Creature');
+                if (creaturesInDeck.length > 0) {
+                  const searchChoices = creaturesInDeck.map(c => ({ id: c.instanceId, label: c.name, card: c }));
+                  this.promptChoice(casterId, "Lapifors: Search deck for a Creature card to take", searchChoices, 0, 1, (deckSel) => {
+                    const dSel = deckSel[0];
+                    if (dSel) {
+                      const dIdx = player.deck.findIndex(c => c.instanceId === dSel);
+                      if (dIdx !== -1) {
+                        const [cInDeck] = player.deck.splice(dIdx, 1);
+                        player.hand.push(cInDeck);
+                        this.log(`Lapifors: Took Creature ${cInDeck.name} from deck.`);
+                      }
+                    }
+                    this.shuffle(player.deck);
+                    this.notifyStateChange();
+                  });
+                } else {
+                  this.shuffle(player.deck);
+                  this.notifyStateChange();
+                }
+              }
+            });
+          } else {
+            const [c] = opponent.creatures.splice(0, 1);
+            opponent.discardPile.push(c);
+            this.log(`Lapifors: AI discarded creature ${c.name}.`);
+            
+            const creaturesInDeck = player.deck.filter(c => c.type === 'Creature');
+            if (creaturesInDeck.length > 0) {
+              const [cInDeck] = player.deck.splice(player.deck.indexOf(creaturesInDeck[0]), 1);
+              player.hand.push(cInDeck);
+              this.log(`Lapifors: AI took Creature ${cInDeck.name} from deck.`);
+            }
+            this.shuffle(player.deck);
+          }
+        }
+        break;
+      }
+
+      case 'Practical Joke': {
+        const count = player.items.length + opponent.items.length;
+        this.log(`Practical Joke: Dealing ${count} damage to opponent (based on ${count} Items in play).`);
+        this.dealDamage(opponentId, count, 'spell');
+        break;
+      }
+
+      case 'Spiral Dive': {
+        if (player.hand.length > 0) {
+          if (casterId === 'player' || this.isMultiplayer) {
+            const choices = player.hand.map(c => ({ id: c.instanceId, label: c.name, card: c }));
+            this.promptChoice(casterId, "Spiral Dive: Choose any number of cards from hand to discard to deal that much damage", choices, 0, choices.length, (selected) => {
+              selected.forEach(selId => {
+                const idx = player.hand.findIndex(c => c.instanceId === selId);
+                if (idx !== -1) {
+                  const [c] = player.hand.splice(idx, 1);
+                  player.discardPile.push(c);
+                }
+              });
+              const dmg = selected.length;
+              this.log(`Spiral Dive: Discarded ${dmg} card(s) to deal ${dmg} damage.`);
+              if (dmg > 0) {
+                this.dealDamage(opponentId, dmg, 'spell');
+              }
+              this.notifyStateChange();
+            });
+          } else {
+            const count = Math.ceil(player.hand.length / 2);
+            for (let i = 0; i < count; i++) {
+              const [c] = player.hand.splice(0, 1);
+              player.discardPile.push(c);
+            }
+            this.log(`Spiral Dive: AI discarded ${count} card(s) to deal ${count} damage.`);
+            this.dealDamage(opponentId, count, 'spell');
+          }
+        }
+        break;
+      }
+
+      case 'Verdillious': {
+        const choices = [{ id: 'opponent', label: `${opponent.name} (5 Damage)` }];
+        player.creatures.forEach(c => choices.push({ id: `creature-${player.id}-${c.instanceId}`, label: `${c.name} (Your Creature - 5 Damage)`, card: c }));
+        opponent.creatures.forEach(c => choices.push({ id: `creature-${opponent.id}-${c.instanceId}`, label: `${c.name} (Opponent's Creature - 5 Damage)`, card: c }));
+        if (casterId === 'player' || this.isMultiplayer) {
+          this.promptChoice(casterId, "Verdillious: Choose target for 5 damage", choices, 1, 1, (selected) => {
+            const sel = selected[0];
+            if (sel === 'opponent') {
+              this.dealDamage(opponentId, 5, 'spell');
+            } else if (sel && sel.startsWith('creature-')) {
+              const parts = sel.split('-');
+              const owner = parts[1];
+              const instId = parts.slice(2).join('-');
+              this.damageCreature(owner, instId, 5);
+            }
+          });
+        } else {
+          this.dealDamage(opponentId, 5, 'spell');
+        }
+        break;
+      }
+
+      case 'Bludger in the Stands': {
+        this.log(`Bludger in the Stands: Dealing 4 damage to opponent.`);
+        this.dealDamage(opponentId, 4, 'spell');
+        if (opponent.items.length > 0) {
+          if (opponentId === 'player' || this.isMultiplayer) {
+            const choices = opponent.items.map(i => ({ id: i.instanceId, label: i.name, card: i }));
+            this.promptChoice(opponentId, "Bludger in the Stands: Choose 1 of your Items in play to discard", choices, 1, 1, (selected) => {
+              const sel = selected[0];
+              if (sel) {
+                const idx = opponent.items.findIndex(i => i.instanceId === sel);
+                if (idx !== -1) {
+                  const [c] = opponent.items.splice(idx, 1);
+                  opponent.discardPile.push(c);
+                  this.log(`Bludger in the Stands: Opponent discarded ${c.name}.`);
+                  this.notifyStateChange();
+                }
+              }
+            });
+          } else {
+            const [c] = opponent.items.splice(0, 1);
+            opponent.discardPile.push(c);
+            this.log(`Bludger in the Stands: AI discarded ${c.name}.`);
+          }
+        }
+        break;
+      }
+
+      case 'Blue Wig': {
+        this.dealDamage(opponentId, 4, 'spell');
+        this.drawCard(casterId);
+        break;
+      }
+
+      case 'Butterfly Weed Balm': {
+        const nonHealing = player.discardPile.filter(c => !c.subTypes?.includes('Healing'));
+        const maxTake = Math.min(9, nonHealing.length);
+        if (nonHealing.length > 0) {
+          if (casterId === 'player' || this.isMultiplayer) {
+            const choices = nonHealing.map(c => ({ id: c.instanceId, label: c.name, card: c }));
+            this.promptChoice(casterId, `Butterfly Weed Balm: Choose up to ${maxTake} non-Healing cards to shuffle into deck`, choices, 0, maxTake, (selected) => {
+              selected.forEach(selId => {
+                const idx = player.discardPile.findIndex(c => c.instanceId === selId);
+                if (idx !== -1) {
+                  const [c] = player.discardPile.splice(idx, 1);
+                  player.deck.push(c);
+                }
+              });
+              this.shuffle(player.deck);
+              this.log(`Butterfly Weed Balm: Shuffled ${selected.length} cards into deck.`);
+              this.notifyStateChange();
+            });
+          } else {
+            const toShuffle = nonHealing.slice(0, maxTake);
+            toShuffle.forEach(c => {
+              player.discardPile.splice(player.discardPile.indexOf(c), 1);
+              player.deck.push(c);
+            });
+            this.shuffle(player.deck);
+            this.log(`Butterfly Weed Balm: AI shuffled ${toShuffle.length} cards into deck.`);
+          }
+        }
+        break;
+      }
+
+      case 'Cancelled Practice': {
+        const qLessons = opponent.lessons.filter(l => (l.provides?.type || l.lessonType) === 'Quidditch');
+        if (qLessons.length > 0) {
+          if (casterId === 'player' || this.isMultiplayer) {
+            const choices = qLessons.map(l => ({ id: `lesson-${opponentId}-${l.instanceId}`, label: l.name, card: l }));
+            this.promptChoice(casterId, "Cancelled Practice: Choose opponent's Quidditch Lesson to discard", choices, 1, 1, (selected) => {
+              const sel = selected[0];
+              if (sel) {
+                const instId = sel.split('-').slice(2).join('-');
+                const idx = opponent.lessons.findIndex(l => l.instanceId === instId);
+                if (idx !== -1) {
+                  const [l] = opponent.lessons.splice(idx, 1);
+                  opponent.discardPile.push(l);
+                  this.log(`Cancelled Practice: Discarded opponent's ${l.name} from play.`);
+                  this.notifyStateChange();
+                }
+              }
+            });
+          } else {
+            const [l] = opponent.lessons.splice(opponent.lessons.indexOf(qLessons[0]), 1);
+            opponent.discardPile.push(l);
+            this.log(`Cancelled Practice: AI discarded opponent's ${l.name}.`);
+          }
+        }
+        break;
+      }
+
+      case 'Dogbane Potion': {
+        if (opponent.creatures.length > 0) {
+          if (casterId === 'player' || this.isMultiplayer) {
+            const choices = opponent.creatures.map(c => ({ id: c.instanceId, label: `${c.name} (3 damage)`, card: c }));
+            this.promptChoice(casterId, "Dogbane Potion: Choose opponent's creature to deal 3 damage to", choices, 1, 1, (selected) => {
+              const sel = selected[0];
+              if (sel) {
+                this.damageCreature(opponentId, sel, 3);
+                this.notifyStateChange();
+              }
+            });
+          } else {
+            const [c] = opponent.creatures;
+            this.damageCreature(opponentId, c.instanceId, 3);
+          }
+        }
+        break;
+      }
+
+      case 'Dog Biscuits': {
+        const creaturesWithDmg = player.creatures.filter(c => c.damage > 0);
+        if (creaturesWithDmg.length > 0) {
+          if (casterId === 'player' || this.isMultiplayer) {
+            const choices = creaturesWithDmg.map(c => ({ id: c.instanceId, label: `${c.name} (${c.damage} damage)`, card: c }));
+            this.promptChoice(casterId, "Dog Biscuits: Choose 1 of your Creatures to heal", choices, 1, 1, (selected) => {
+              const sel = selected[0];
+              if (sel) {
+                const found = player.creatures.find(c => c.instanceId === sel);
+                if (found) {
+                  found.damage = 0;
+                  this.log(`Dog Biscuits: Healed all damage on ${found.name}.`);
+                }
+              }
+              this.drawCard(casterId);
+              this.notifyStateChange();
+            });
+          } else {
+            const c = creaturesWithDmg[0];
+            c.damage = 0;
+            this.log(`Dog Biscuits: AI healed all damage on ${c.name}.`);
+            this.drawCard(casterId);
+          }
+        } else {
+          this.log(`Dog Biscuits: No damaged creatures in play.`);
+          this.drawCard(casterId);
+        }
+        break;
+      }
+
+      case 'Flipendo': {
+        const choices = [{ id: 'opponent', label: `${opponent.name} (2 Damage)` }];
+        player.creatures.forEach(c => choices.push({ id: `creature-${player.id}-${c.instanceId}`, label: `${c.name} (Your Creature - 2 Damage)`, card: c }));
+        opponent.creatures.forEach(c => choices.push({ id: `creature-${opponent.id}-${c.instanceId}`, label: `${c.name} (Opponent's Creature - 2 Damage)`, card: c }));
+        if (casterId === 'player' || this.isMultiplayer) {
+          this.promptChoice(casterId, "Flipendo: Choose target for 2 damage", choices, 1, 1, (selected) => {
+            const sel = selected[0];
+            if (sel === 'opponent') {
+              this.dealDamage(opponentId, 2, 'spell');
+            } else if (sel && sel.startsWith('creature-')) {
+              const parts = sel.split('-');
+              const owner = parts[1];
+              const instId = parts.slice(2).join('-');
+              this.damageCreature(owner, instId, 2);
+            }
+          });
+        } else {
+          this.dealDamage(opponentId, 2, 'spell');
+        }
+        break;
+      }
+
+      case 'Freeze!': {
+        if (opponent.creatures.length > 0) {
+          if (casterId === 'player' || this.isMultiplayer) {
+            const choices = opponent.creatures.map(c => ({ id: c.instanceId, label: `${c.name} (4 damage)`, card: c }));
+            this.promptChoice(casterId, "Freeze!: Choose opponent's creature to deal 4 damage to", choices, 1, 1, (selected) => {
+              const sel = selected[0];
+              if (sel) {
+                this.damageCreature(opponentId, sel, 4);
+                this.notifyStateChange();
+              }
+            });
+          } else {
+            const [c] = opponent.creatures;
+            this.damageCreature(opponentId, c.instanceId, 4);
+          }
+        }
+        break;
+      }
+
+      case 'Mid-air Collision': {
+        this.dealDamage(opponentId, 10, 'spell');
+        const eligible = [];
+        player.lessons.forEach(l => eligible.push({ id: `lessons-${l.instanceId}`, label: `${l.name} (Lesson)`, card: l, source: 'lessons' }));
+        player.creatures.forEach(c => eligible.push({ id: `creatures-${c.instanceId}`, label: `${c.name} (Creature)`, card: c, source: 'creatures' }));
+        player.items.forEach(i => eligible.push({ id: `items-${i.instanceId}`, label: `${i.name} (Item)`, card: i, source: 'items' }));
+        player.locations.forEach(l => eligible.push({ id: `locations-${l.instanceId}`, label: `${l.name} (Location)`, card: l, source: 'locations' }));
+        player.characters.forEach(c => {
+          if (c.instanceId !== 'player-starting-char') {
+            eligible.push({ id: `characters-${c.instanceId}`, label: `${c.name} (Character)`, card: c, source: 'characters' });
+          }
+        });
+        player.adventures.forEach(a => eligible.push({ id: `adventures-${a.instanceId}`, label: `${a.name} (Adventure)`, card: a, source: 'adventures' }));
+        player.matches.forEach(m => eligible.push({ id: `matches-${m.instanceId}`, label: `${m.name} (Match)`, card: m, source: 'matches' }));
+        
+        if (eligible.length > 0) {
+          if (casterId === 'player' || this.isMultiplayer) {
+            this.promptChoice(casterId, "Mid-air Collision: Choose 1 of your cards in play to discard", eligible, 1, 1, (selected) => {
+              const sel = selected[0];
+              if (sel) {
+                const parts = sel.split('-');
+                const type = parts[0];
+                const instId = parts.slice(1).join('-');
+                const idx = player[type].findIndex(c => c.instanceId === instId);
+                if (idx !== -1) {
+                  const [c] = player[type].splice(idx, 1);
+                  player.discardPile.push(c);
+                  this.log("Mid-air Collision: Discarded " + c.name + " from play.");
+                  this.notifyStateChange();
+                }
+              }
+            });
+          } else {
+            const target = eligible[0];
+            const idx = player[target.source].findIndex(c => c.instanceId === target.card.instanceId);
+            if (idx !== -1) {
+              const [c] = player[target.source].splice(idx, 1);
+              player.discardPile.push(c);
+              this.log("Mid-air Collision: AI discarded " + c.name + " from play.");
+            }
+          }
+        }
+        break;
+      }
+
+      case 'Picking on Neville': {
+        const eligible = [];
+        opponent.lessons.forEach(l => eligible.push({ id: `lessons-${l.instanceId}`, label: `${l.name} (Lesson)`, card: l, source: 'lessons' }));
+        opponent.creatures.forEach(c => eligible.push({ id: `creatures-${c.instanceId}`, label: `${c.name} (Creature)`, card: c, source: 'creatures' }));
+        opponent.items.forEach(i => eligible.push({ id: `items-${i.instanceId}`, label: `${i.name} (Item)`, card: i, source: 'items' }));
+        opponent.locations.forEach(l => eligible.push({ id: `locations-${l.instanceId}`, label: `${l.name} (Location)`, card: l, source: 'locations' }));
+        opponent.characters.forEach(c => {
+          if (c.instanceId !== 'opponent-starting-char' && c.instanceId !== 'player-starting-char') {
+            eligible.push({ id: `characters-${c.instanceId}`, label: `${c.name} (Character)`, card: c, source: 'characters' });
+          }
+        });
+        opponent.adventures.forEach(a => eligible.push({ id: `adventures-${a.instanceId}`, label: `${a.name} (Adventure)`, card: a, source: 'adventures' }));
+        opponent.matches.forEach(m => eligible.push({ id: `matches-${m.instanceId}`, label: `${m.name} (Match)`, card: m, source: 'matches' }));
+
+        if (eligible.length > 0) {
+          const handleTargetSelection = (selected) => {
+            const sel = selected[0];
+            if (!sel) return;
+            const parts = sel.split('-');
+            const type = parts[0];
+            const instId = parts.slice(1).join('-');
+            const targetCard = opponent[type].find(c => c.instanceId === instId);
+            if (!targetCard) return;
+
+            const preventEligible = eligible.filter(e => e.card.instanceId !== targetCard.instanceId);
+
+            const oppChoices = [
+              { id: 'allow', label: "Allow " + targetCard.name + " to be discarded" }
+            ];
+            if (preventEligible.length >= 2) {
+              oppChoices.push({ id: 'discard2', label: 'Discard 2 other cards from play to prevent' });
+            }
+
+            this.promptChoice(opponentId, "Picking on Neville! Prevent discard of " + targetCard.name + "?", oppChoices, 1, 1, (oppSel) => {
+              if (oppSel[0] === 'discard2') {
+                this.promptChoice(opponentId, "Picking on Neville: Choose 2 of your cards to discard to prevent", preventEligible, 2, 2, (toDisc) => {
+                  toDisc.forEach(discId => {
+                    const dParts = discId.split('-');
+                    const dType = dParts[0];
+                    const dInstId = dParts.slice(1).join('-');
+                    const dIdx = opponent[dType].findIndex(c => c.instanceId === dInstId);
+                    if (dIdx !== -1) {
+                      const [c] = opponent[dType].splice(dIdx, 1);
+                      opponent.discardPile.push(c);
+                      this.log("Picking on Neville: " + opponent.name + " discarded " + c.name + " to prevent.");
+                    }
+                  });
+                  this.notifyStateChange();
+                });
+              } else {
+                const idx = opponent[type].findIndex(c => c.instanceId === instId);
+                if (idx !== -1) {
+                  const [c] = opponent[type].splice(idx, 1);
+                  opponent.discardPile.push(c);
+                  this.log("Picking on Neville: Discarded " + c.name + " from " + opponent.name + "'s playmat.");
+                  this.notifyStateChange();
+                }
+              }
+            });
+          };
+
+          if (casterId === 'player' || this.isMultiplayer) {
+            this.promptChoice(casterId, "Picking on Neville: Choose opponent's card in play to discard", eligible, 1, 1, handleTargetSelection);
+          } else {
+            const selected = this.aiChoose(eligible, 1, 1);
+            handleTargetSelection(selected);
+          }
+        }
+        break;
+      }
+
+      case 'Pigley Dudley': {
+        const eligible = [];
+        opponent.creatures.forEach(c => eligible.push({ id: `creatures-${c.instanceId}`, label: `${c.name} (Creature)`, card: c, source: 'creatures' }));
+        opponent.characters.forEach(c => {
+          if (c.instanceId !== 'opponent-starting-char') {
+            eligible.push({ id: `characters-${c.instanceId}`, label: `${c.name} (Character)`, card: c, source: 'characters' });
+          }
+        });
+        if (eligible.length > 0) {
+          if (casterId === 'player' || this.isMultiplayer) {
+            this.promptChoice(casterId, "Pigley Dudley: Choose Creature/Character to put on top of deck", eligible, 1, 1, (selected) => {
+              const sel = selected[0];
+              if (sel) {
+                const parts = sel.split('-');
+                const type = parts[0];
+                const instId = parts.slice(1).join('-');
+                const idx = opponent[type].findIndex(c => c.instanceId === instId);
+                if (idx !== -1) {
+                  const [c] = opponent[type].splice(idx, 1);
+                  if (c.damage) c.damage = 0;
+                  opponent.deck.push(c);
+                  this.log(`Pigley Dudley: Put ${c.name} on top of opponent's deck.`);
+                  this.notifyStateChange();
+                }
+              }
+            });
+          } else {
+            const target = eligible[0];
+            const idx = opponent[target.source].findIndex(c => c.instanceId === target.card.instanceId);
+            if (idx !== -1) {
+              const [c] = opponent[target.source].splice(idx, 1);
+              if (c.damage) c.damage = 0;
+              opponent.deck.push(c);
+              this.log("Pigley Dudley: AI put your " + c.name + " on top of your deck.");
+            }
+          }
+        }
+        break;
+      }
+
+      case 'Quick Thinking': {
+        const choices = [
+          { id: 'damage', label: 'Deal 3 damage to opponent' },
+          { id: 'draw', label: 'Draw 3 cards' }
+        ];
+        if (casterId === 'player' || this.isMultiplayer) {
+          this.promptChoice(casterId, "Quick Thinking: Choose effect", choices, 1, 1, (selected) => {
+            const sel = selected[0];
+            if (sel === 'damage') {
+              this.dealDamage(opponentId, 3, 'spell');
+            } else {
+              this.drawCard(casterId);
+              this.drawCard(casterId);
+              this.drawCard(casterId);
+            }
+            this.notifyStateChange();
+          });
+        } else {
+          this.drawCard(casterId);
+          this.drawCard(casterId);
+          this.drawCard(casterId);
+        }
+        break;
+      }
+
+      case 'Sloth Grip': {
+        player.slothGripActive = true;
+        this.log(`Sloth Grip: Prevent all but the first 3 damage to ${player.name} during opponent's turn.`);
+        break;
+      }
+
+      case 'Spongify': {
+        const eligible = [];
+        player.items.forEach(i => {
+          if (!i.subTypes?.includes('Healing')) {
+            eligible.push({ id: `item-player-${i.instanceId}`, label: `${i.name} (Your Item)`, card: i, ownerId: playerId });
+          }
+        });
+        opponent.items.forEach(i => {
+          if (!i.subTypes?.includes('Healing')) {
+            eligible.push({ id: `item-opponent-${i.instanceId}`, label: `${i.name} (Opponent's Item)`, card: i, ownerId: opponentId });
+          }
+        });
+        if (eligible.length > 0) {
+          if (casterId === 'player' || this.isMultiplayer) {
+            this.promptChoice(casterId, "Spongify: Choose a non-Healing Item to return to hand", eligible, 1, 1, (selected) => {
+              const sel = selected[0];
+              if (sel) {
+                const found = eligible.find(t => t.id === sel);
+                if (found) {
+                  const owner = this.players[found.ownerId];
+                  owner.items = owner.items.filter(i => i.instanceId !== found.card.instanceId);
+                  owner.hand.push(found.card);
+                  this.log("Spongify: Returned " + found.card.name + " to " + owner.name + "'s hand.");
+                }
+              }
+              this.drawCard(casterId);
+              this.notifyStateChange();
+            });
+          } else {
+            const target = eligible[0];
+            const owner = this.players[target.ownerId];
+            owner.items = owner.items.filter(i => i.instanceId !== target.card.instanceId);
+            owner.hand.push(target.card);
+            this.log("Spongify: AI returned " + target.card.name + " to " + owner.name + "'s hand.");
+            this.drawCard(casterId);
+          }
+        } else {
+          this.log(`Spongify: No eligible Items in play to return.`);
+          this.drawCard(casterId);
+        }
+        break;
+      }
+
+      case 'Swelling Potion': {
+        this.dealDamage(opponentId, 5, 'spell');
+        opponent.cantPlayItemsNextTurn = true;
+        this.log(`Swelling Potion: Opponent cannot play Item cards during their next turn.`);
+        break;
+      }
+
+      case 'Teacup to Rat': {
+        if (opponent.items.length > 0) {
+          if (casterId === 'player' || this.isMultiplayer) {
+            const choices = opponent.items.map(i => ({ id: i.instanceId, label: i.name, card: i }));
+            this.promptChoice(casterId, "Teacup to Rat: Choose opponent's Item to discard", choices, 1, 1, (selected) => {
+              const sel = selected[0];
+              if (sel) {
+                const idx = opponent.items.findIndex(i => i.instanceId === sel);
+                if (idx !== -1) {
+                  const [c] = opponent.items.splice(idx, 1);
+                  opponent.discardPile.push(c);
+                  this.log("Teacup to Rat: Discarded opponent's " + c.name + ".");
+                }
+              }
+              this.drawCard(casterId);
+              this.notifyStateChange();
+            });
+          } else {
+            const [c] = opponent.items.splice(0, 1);
+            opponent.discardPile.push(c);
+            this.log("Teacup to Rat: AI discarded opponent's " + c.name + ".");
+            this.drawCard(casterId);
+          }
+        } else {
+          this.log(`Teacup to Rat: Opponent has no Items in play.`);
+          this.drawCard(casterId);
+        }
+        break;
+      }
+    }
+
+      this.notifyStateChange();
+    } finally {
+      this.currentlyResolvingSpell = null;
     }
   }
 
@@ -3250,13 +4345,24 @@ export class GameEngine {
   // Deal damage to a creature
   damageCreature(ownerId, creatureInstanceId, amount) {
     const targetPlayer = this.players[ownerId];
+    if (targetPlayer.preventAllCreatureDamageNextTurn && this.activePlayerId !== ownerId) {
+      this.log(`Frog-Spawn: All damage to ${targetPlayer.name}'s creatures is prevented.`);
+      return;
+    }
     const index = targetPlayer.creatures.findIndex(c => c.instanceId === creatureInstanceId);
     if (index === -1) return;
     const creature = targetPlayer.creatures[index];
+    const isMadamMalkinActive = this.players.player.locations.some(l => l.name === "Madam Malkin's Robes") ||
+                                 this.players.opponent.locations.some(l => l.name === "Madam Malkin's Robes");
+    if (isMadamMalkinActive && amount > 0) {
+      amount = Math.max(0, amount - 1);
+      this.log(`Madam Malkin's Robes: Creature damage reduced by 1 (deals ${amount} total).`);
+    }
+    const maxHealth = this.getCreatureHealth ? this.getCreatureHealth(creature) : creature.health;
     creature.damage = (creature.damage || 0) + amount;
-    this.log(`${creature.name} takes ${amount} damage! (${creature.damage}/${creature.health})`, 'damage');
+    this.log(`${creature.name} takes ${amount} damage! (${creature.damage}/${maxHealth})`, 'damage');
     
-    if (creature.damage >= creature.health) {
+    if (creature.damage >= maxHealth) {
       this.log(`${creature.name} was defeated!`, 'damage');
       this.discardCreature(ownerId, creatureInstanceId);
     }
@@ -3265,6 +4371,9 @@ export class GameEngine {
 
   // Set pending spell for targeting choice
   promptChoice(casterId, title, choices, minChoices, maxChoices, callback, card = null) {
+    if (!card && this.currentlyResolvingSpell) {
+      card = this.currentlyResolvingSpell;
+    }
     if (casterId === 'player' || (this.isMultiplayer && casterId === 'opponent')) {
       this.pendingSpell = {
         casterId,
@@ -3336,10 +4445,15 @@ export class GameEngine {
   // Resolve pending spell targets from UI
   resolvePendingSpell(selectedIds) {
     if (!this.pendingSpell) return;
-    const { callback } = this.pendingSpell;
-    this.pendingSpell = null;
-    callback(selectedIds);
-    this.notifyStateChange();
+    const { callback, card } = this.pendingSpell;
+    this.currentlyResolvingSpell = card;
+    try {
+      this.pendingSpell = null;
+      callback(selectedIds);
+      this.notifyStateChange();
+    } finally {
+      this.currentlyResolvingSpell = null;
+    }
   }
 
   cancelPendingSpell(playerId) {
@@ -3364,9 +4478,10 @@ export class GameEngine {
     
     const player = this.players[playerId];
     if (player.mustDrawFirstAction) return false;
+    if (player.adventures.some(a => a.name === 'Letters From No One')) return false;
     
     // Once per game checks
-    const oncePerGameAbilities = ['Dean Thomas', 'Hannah Abbott', 'Nearly Headless Nick', 'Professor Filius Flitwick', 'Professor Severus Snape', 'Marcus Flint', 'Madam Rolanda Hooch', 'Prof. Minerva McGonagall'];
+    const oncePerGameAbilities = ['Dean Thomas', 'Hannah Abbott', 'Nearly Headless Nick', 'Professor Filius Flitwick', 'Professor Severus Snape', 'Marcus Flint', 'Madam Rolanda Hooch', 'Prof. Minerva McGonagall', 'Griphook', 'Hermione, Top Student', 'Professor Quirinus Quirrell'];
     if (oncePerGameAbilities.includes(character.name) && player.usedOncePerGameAbilities[character.name]) {
       return false;
     }
@@ -3401,7 +4516,32 @@ export class GameEngine {
       return !player.usedOncePerTurnAbilities?.[character.name] && player.hand.length >= 2;
     }
 
-    const activeAbilities = ['Dean Thomas', 'Draco Malfoy', 'Hannah Abbott', 'Nearly Headless Nick', 'Professor Filius Flitwick', 'Professor Severus Snape', 'Marcus Flint', 'Madam Rolanda Hooch', 'Prof. Minerva McGonagall', 'Seamus Finnigan'];
+    if (character.name === 'Griphook') {
+      return this.actionsRemaining >= 1;
+    }
+
+    if (character.name === 'Hagrid, Keeper of Keys') {
+      return this.actionsRemaining >= 1 && player.deck.length > 0;
+    }
+
+    if (character.name === 'Hermione, Top Student') {
+      return this.actionsRemaining >= 1 && player.deck.length > 0;
+    }
+
+    if (character.name === 'Lee Jordan') {
+      return this.actionsRemaining >= 1 && player.deck.length > 0;
+    }
+
+    if (character.name === 'Madam Irma Pince') {
+      const booksInDiscard = player.discardPile.filter(c => c.subTypes && c.subTypes.includes('Book') && c.type !== 'Lesson');
+      return this.actionsRemaining >= 1 && booksInDiscard.length > 0;
+    }
+
+    if (character.name === 'Professor Quirinus Quirrell') {
+      return this.actionsRemaining >= 1;
+    }
+
+    const activeAbilities = ['Dean Thomas', 'Draco Malfoy', 'Hannah Abbott', 'Nearly Headless Nick', 'Professor Filius Flitwick', 'Professor Severus Snape', 'Marcus Flint', 'Madam Rolanda Hooch', 'Prof. Minerva McGonagall', 'Seamus Finnigan', 'Griphook', 'Hagrid, Keeper of Keys', 'Hermione, Top Student', 'Lee Jordan', 'Madam Irma Pince', 'Professor Quirinus Quirrell'];
     return activeAbilities.includes(character.name);
   }
 
@@ -3688,6 +4828,187 @@ export class GameEngine {
         }
         break;
       }
+      case 'Griphook': {
+        player.usedOncePerGameAbilities[charCard.name] = true;
+        this.actionsRemaining--;
+        this.log(`${player.name} activated Griphook.`);
+        const discCount = opponent.hand.length;
+        if (discCount > 0) {
+          opponent.discardPile.push(...opponent.hand);
+          opponent.hand = [];
+          this.log(`Griphook: ${opponent.name} discarded their hand of ${discCount} card(s).`);
+          this.drawCards(opponent.id, discCount, false);
+          this.log(`Griphook: ${opponent.name} drew ${discCount} card(s).`);
+        } else {
+          this.log(`Griphook: Opponent hand was empty.`);
+        }
+        break;
+      }
+      case 'Hagrid, Keeper of Keys': {
+        this.actionsRemaining--;
+        this.log(`${player.name} activated Hagrid, Keeper of Keys: Searching deck for a Location.`);
+        const locationsInDeck = player.deck.filter(c => c.type === 'Location');
+        if (locationsInDeck.length > 0) {
+          if (playerId === 'player' || this.isMultiplayer) {
+            const choices = locationsInDeck.map(c => ({ id: c.instanceId, label: c.name, card: c }));
+            this.promptChoice(playerId, "Hagrid, Keeper of Keys: Choose a Location card from deck to put into hand", choices, 0, 1, (selected) => {
+              const sel = selected[0];
+              if (sel) {
+                const idx = player.deck.findIndex(c => c.instanceId === sel);
+                if (idx !== -1) {
+                  const [loc] = player.deck.splice(idx, 1);
+                  player.hand.push(loc);
+                  this.log(`Hagrid, Keeper of Keys: Added Location ${loc.name} to hand.`);
+                }
+              }
+              this.shuffle(player.deck);
+              this.notifyStateChange();
+            }, charCard);
+          } else {
+            const [loc] = player.deck.splice(player.deck.indexOf(locationsInDeck[0]), 1);
+            player.hand.push(loc);
+            this.shuffle(player.deck);
+            this.log(`Hagrid, Keeper of Keys: AI added Location ${loc.name} to hand.`);
+            this.notifyStateChange();
+          }
+        } else {
+          this.log(`Hagrid, Keeper of Keys: No Location cards found in deck.`);
+          this.shuffle(player.deck);
+        }
+        break;
+      }
+      case 'Hermione, Top Student': {
+        player.usedOncePerGameAbilities[charCard.name] = true;
+        this.actionsRemaining--;
+        this.log(`${player.name} activated Hermione, Top Student: Searching deck for up to 2 Lessons.`);
+        const lessonsInDeck = player.deck.filter(c => c.type === 'Lesson');
+        const maxLessons = Math.min(2, lessonsInDeck.length);
+        if (maxLessons > 0) {
+          if (playerId === 'player' || this.isMultiplayer) {
+            const choices = lessonsInDeck.map(c => ({ id: c.instanceId, label: c.name, card: c }));
+            this.promptChoice(playerId, `Hermione, Top Student: Choose up to ${maxLessons} Lesson card(s) from deck`, choices, 0, maxLessons, (selected) => {
+              selected.forEach(selId => {
+                const idx = player.deck.findIndex(c => c.instanceId === selId);
+                if (idx !== -1) {
+                  const [lesson] = player.deck.splice(idx, 1);
+                  player.hand.push(lesson);
+                  this.log(`Hermione, Top Student: Added Lesson ${lesson.name} to hand.`);
+                }
+              });
+              this.shuffle(player.deck);
+              this.notifyStateChange();
+            }, charCard);
+          } else {
+            for (let i = 0; i < maxLessons; i++) {
+              const idx = player.deck.indexOf(lessonsInDeck[i]);
+              if (idx !== -1) {
+                const [lesson] = player.deck.splice(idx, 1);
+                player.hand.push(lesson);
+                this.log(`Hermione, Top Student: AI added Lesson ${lesson.name} to hand.`);
+              }
+            }
+            this.shuffle(player.deck);
+            this.notifyStateChange();
+          }
+        } else {
+          this.log(`Hermione, Top Student: No Lesson cards found in deck.`);
+          this.shuffle(player.deck);
+        }
+        break;
+      }
+      case 'Lee Jordan': {
+        this.actionsRemaining--;
+        this.log(`${player.name} activated Lee Jordan.`);
+        const revealCount = Math.min(3, player.deck.length);
+        const revealed = [];
+        for (let i = 0; i < revealCount; i++) {
+          revealed.push(player.deck.pop());
+        }
+        const quidditchNeeded = revealed.filter(c => c.lessonCost && c.lessonCost.type === 'Quidditch');
+        const nonQuidditch = revealed.filter(c => !c.lessonCost || c.lessonCost.type !== 'Quidditch');
+        
+        this.log(`Lee Jordan revealed: ${revealed.map(c => c.name).join(', ')}.`);
+        
+        quidditchNeeded.forEach(c => {
+          player.hand.push(c);
+          this.log(`Lee Jordan: Added ${c.name} (requires [Q] Power) to hand.`);
+        });
+        
+        if (nonQuidditch.length > 0) {
+          if (playerId === 'player' || this.isMultiplayer) {
+            const choices = nonQuidditch.map((c, idx) => ({ id: `${idx}`, label: c.name, card: c }));
+            this.promptChoice(playerId, "Lee Jordan: Choose order of cards to put on bottom of deck (First selected will be at the bottom)", choices, nonQuidditch.length, nonQuidditch.length, (selected) => {
+              selected.forEach(idxStr => {
+                const cardIdx = parseInt(idxStr, 10);
+                player.deck.unshift(nonQuidditch[cardIdx]);
+              });
+              this.log(`Lee Jordan: Placed ${nonQuidditch.length} card(s) on the bottom of the deck.`);
+              this.notifyStateChange();
+            }, charCard);
+          } else {
+            nonQuidditch.forEach(c => {
+              player.deck.unshift(c);
+            });
+            this.log(`Lee Jordan: AI placed ${nonQuidditch.length} card(s) on the bottom of the deck.`);
+            this.notifyStateChange();
+          }
+        } else {
+          this.notifyStateChange();
+        }
+        break;
+      }
+      case 'Madam Irma Pince': {
+        this.actionsRemaining--;
+        this.log(`${player.name} activated Madam Irma Pince.`);
+        const booksInDiscard = player.discardPile.filter(c => c.subTypes && c.subTypes.includes('Book') && c.type !== 'Lesson');
+        if (booksInDiscard.length > 0) {
+          if (playerId === 'player' || this.isMultiplayer) {
+            const choices = booksInDiscard.map(c => ({ id: c.instanceId, label: c.name, card: c }));
+            this.promptChoice(playerId, "Madam Irma Pince: Choose a Book card from discard to put into hand", choices, 0, 1, (selected) => {
+              const sel = selected[0];
+              if (sel) {
+                const idx = player.discardPile.findIndex(c => c.instanceId === sel);
+                if (idx !== -1) {
+                  const [book] = player.discardPile.splice(idx, 1);
+                  player.hand.push(book);
+                  this.log(`Madam Irma Pince: Added Book ${book.name} to hand.`);
+                }
+              }
+              this.notifyStateChange();
+            }, charCard);
+          } else {
+            const [book] = player.discardPile.splice(player.discardPile.indexOf(booksInDiscard[0]), 1);
+            player.hand.push(book);
+            this.log(`Madam Irma Pince: AI added Book ${book.name} to hand.`);
+            this.notifyStateChange();
+          }
+        }
+        break;
+      }
+      case 'Professor Quirinus Quirrell': {
+        player.usedOncePerGameAbilities[charCard.name] = true;
+        this.actionsRemaining--;
+        this.log(`${player.name} activated Professor Quirinus Quirrell.`);
+        
+        let returnedCount = 0;
+        ['player', 'opponent'].forEach(pId => {
+          const p = this.players[pId];
+          const creatures = p.creatures.splice(0);
+          const items = p.items.splice(0);
+          
+          creatures.forEach(c => {
+            c.damage = 0;
+            p.hand.push(c);
+          });
+          items.forEach(i => {
+            p.hand.push(i);
+          });
+          returnedCount += creatures.length + items.length;
+        });
+        
+        this.log(`Professor Quirinus Quirrell: Returned all Creatures and Items in play (${returnedCount} total) to owners' hands.`);
+        break;
+      }
     }
 
     this.notifyStateChange();
@@ -3699,6 +5020,7 @@ export class GameEngine {
     if (this.activePlayerId !== playerId) return false;
     const player = this.players[playerId];
     if (player.mustDrawFirstAction) return false;
+    if (player.adventures.some(a => a.name === 'Letters From No One')) return false;
     const opponent = this.players[playerId === 'player' ? 'opponent' : 'player'];
 
     switch (item.name) {
@@ -3717,6 +5039,28 @@ export class GameEngine {
         const charactersInDeck = player.deck.filter(c => c.type === 'Character' && !charactersInPlayNames.includes(c.name));
         return this.actionsRemaining >= 2 && charactersInDeck.length > 0;
       }
+      case "A Beginner's Guide to Transfiguration":
+      case "Fantastic Beasts & Where to Find Them":
+      case "Magical Drafts and Potions":
+      case "Quidditch Through the Ages":
+      case "The Standard Book of Spells (Grade 1)":
+      case "Bulgeye Potion":
+      case "Colour-Changing Ink":
+      case "Moonseed Poison":
+        return this.actionsRemaining >= 1;
+      case "Hagrid's Umbrella":
+        return this.actionsRemaining >= 1 && player.deck.some(c => c.type === 'Location');
+      case "Silver Unicorn Horn":
+        return this.actionsRemaining >= 1 && player.discardPile.some(c => !c.subTypes?.includes('Healing'));
+      case "Beetle Eyes":
+      case "Eel Eyes": {
+        const hasBeetle = player.items.some(i => i.name === 'Beetle Eyes');
+        const hasEel = player.items.some(i => i.name === 'Eel Eyes');
+        const bulgeyeInDeck = player.deck.some(c => c.name === 'Bulgeye Potion');
+        return this.actionsRemaining >= 1 && hasBeetle && hasEel && bulgeyeInDeck;
+      }
+      case "Bluebottle Broom":
+        return this.actionsRemaining >= 1 && player.discardPile.some(c => !c.subTypes?.includes('Healing'));
       default:
         return false;
     }
@@ -3900,6 +5244,211 @@ export class GameEngine {
         }
         break;
       }
+      case "A Beginner's Guide to Transfiguration":
+      case "Fantastic Beasts & Where to Find Them":
+      case "Magical Drafts and Potions":
+      case "Quidditch Through the Ages":
+      case "The Standard Book of Spells (Grade 1)": {
+        this.actionsRemaining--;
+        const itemIdx = player.items.findIndex(i => i.instanceId === itemInstanceId);
+        if (itemIdx !== -1) {
+          player.items.splice(itemIdx, 1);
+          player.discardPile.push(item);
+        }
+        this.drawCard(playerId);
+        this.drawCard(playerId);
+        this.drawCard(playerId);
+        this.log(`${player.name} discarded ${item.name} from play and drew 3 cards.`);
+        this.notifyStateChange();
+        break;
+      }
+      case "Bulgeye Potion": {
+        this.actionsRemaining--;
+        const itemIdx = player.items.findIndex(i => i.instanceId === itemInstanceId);
+        if (itemIdx !== -1) {
+          player.items.splice(itemIdx, 1);
+          player.discardPile.push(item);
+        }
+        this.log(`${player.name} discarded Bulgeye Potion from play to deal 13 damage to opponent.`);
+        this.dealDamage(playerId === 'player' ? 'opponent' : 'player', 13, 'item', item);
+        this.notifyStateChange();
+        break;
+      }
+      case "Colour-Changing Ink": {
+        this.actionsRemaining--;
+        const handSize = player.hand.length;
+        if (handSize > 0) {
+          if (playerId === 'player' || this.isMultiplayer) {
+            const choices = player.hand.map(c => ({ id: c.instanceId, label: c.name, card: c }));
+            this.promptChoice(playerId, "Colour-Changing Ink: Choose order of cards to put on bottom of deck (First selected will be at the bottom)", choices, handSize, handSize, (selected) => {
+              selected.forEach(selId => {
+                const idx = player.hand.findIndex(c => c.instanceId === selId);
+                if (idx !== -1) {
+                  const [c] = player.hand.splice(idx, 1);
+                  player.deck.unshift(c);
+                }
+              });
+              for (let i = 0; i < handSize; i++) {
+                this.drawCard(playerId);
+              }
+              this.log(`${player.name} used Colour-Changing Ink: placed hand on bottom of deck and drew ${handSize} cards.`);
+              this.notifyStateChange();
+            }, item);
+          } else {
+            const tempHand = [...player.hand];
+            player.hand = [];
+            tempHand.forEach(c => player.deck.unshift(c));
+            for (let i = 0; i < handSize; i++) {
+              this.drawCard(playerId);
+            }
+            this.log(`Colour-Changing Ink: AI placed hand on bottom of deck and drew ${handSize} cards.`);
+            this.notifyStateChange();
+          }
+        } else {
+          this.log(`${player.name} used Colour-Changing Ink but had 0 cards in hand.`);
+        }
+        break;
+      }
+      case "Hagrid's Umbrella": {
+        this.actionsRemaining--;
+        const itemIdx = player.items.findIndex(i => i.instanceId === itemInstanceId);
+        if (itemIdx !== -1) {
+          player.items.splice(itemIdx, 1);
+          player.discardPile.push(item);
+        }
+        const locationsInDeck = player.deck.filter(c => c.type === 'Location');
+        if (locationsInDeck.length > 0) {
+          if (playerId === 'player' || this.isMultiplayer) {
+            const choices = locationsInDeck.map(c => ({ id: c.instanceId, label: c.name, card: c }));
+            this.promptChoice(playerId, "Hagrid's Umbrella: Choose a Location card from your deck to take", choices, 1, 1, (selected) => {
+              const sel = selected[0];
+              if (sel) {
+                const idx = player.deck.findIndex(c => c.instanceId === sel);
+                if (idx !== -1) {
+                  const [loc] = player.deck.splice(idx, 1);
+                  player.hand.push(loc);
+                  this.log(`Hagrid's Umbrella: Took ${loc.name} from deck.`);
+                }
+              }
+              this.shuffle(player.deck);
+              this.notifyStateChange();
+            }, item);
+          } else {
+            const [loc] = player.deck.splice(player.deck.indexOf(locationsInDeck[0]), 1);
+            player.hand.push(loc);
+            this.log(`Hagrid's Umbrella: AI took ${loc.name} from deck.`);
+            this.shuffle(player.deck);
+            this.notifyStateChange();
+          }
+        }
+        break;
+      }
+      case "Silver Unicorn Horn": {
+        this.actionsRemaining--;
+        const itemIdx = player.items.findIndex(i => i.instanceId === itemInstanceId);
+        if (itemIdx !== -1) {
+          player.items.splice(itemIdx, 1);
+          player.discardPile.push(item);
+        }
+        const nonHealing = player.discardPile.filter(c => !c.subTypes?.includes('Healing'));
+        const maxTake = Math.min(6, nonHealing.length);
+        if (nonHealing.length > 0) {
+          if (playerId === 'player' || this.isMultiplayer) {
+            const choices = nonHealing.map(c => ({ id: c.instanceId, label: c.name, card: c }));
+            this.promptChoice(playerId, `Silver Unicorn Horn: Choose up to 6 non-Healing cards to shuffle into deck`, choices, 0, maxTake, (selected) => {
+              selected.forEach(selId => {
+                const idx = player.discardPile.findIndex(c => c.instanceId === selId);
+                if (idx !== -1) {
+                  const [c] = player.discardPile.splice(idx, 1);
+                  player.deck.push(c);
+                }
+              });
+              this.shuffle(player.deck);
+              this.log(`${player.name} shuffled ${selected.length} card(s) from discard into deck.`);
+              this.notifyStateChange();
+            }, item);
+          } else {
+            const toShuffle = nonHealing.slice(0, maxTake);
+            toShuffle.forEach(c => {
+              player.discardPile.splice(player.discardPile.indexOf(c), 1);
+              player.deck.push(c);
+            });
+            this.shuffle(player.deck);
+            this.log(`Silver Unicorn Horn: AI shuffled ${toShuffle.length} card(s) from discard into deck.`);
+            this.notifyStateChange();
+          }
+        }
+        break;
+      }
+      case "Beetle Eyes":
+      case "Eel Eyes": {
+        this.actionsRemaining--;
+        const bIdx = player.items.findIndex(i => i.name === 'Beetle Eyes');
+        let bItem = null;
+        if (bIdx !== -1) {
+          [bItem] = player.items.splice(bIdx, 1);
+          player.discardPile.push(bItem);
+        }
+        const eIdx = player.items.findIndex(i => i.name === 'Eel Eyes');
+        let eItem = null;
+        if (eIdx !== -1) {
+          [eItem] = player.items.splice(eIdx, 1);
+          player.discardPile.push(eItem);
+        }
+        this.log(`${player.name} discarded Beetle Eyes and Eel Eyes from play to search deck for Bulgeye Potion.`);
+        
+        const bulgeyeCard = player.deck.find(c => c.name === 'Bulgeye Potion');
+        if (bulgeyeCard) {
+          const idx = player.deck.indexOf(bulgeyeCard);
+          player.deck.splice(idx, 1);
+          
+          const inst = { ...bulgeyeCard, instanceId: bulgeyeCard.instanceId || `item-${Date.now()}` };
+          player.items.push(inst);
+          this.log(`Put Bulgeye Potion into play from deck.`);
+        }
+        this.shuffle(player.deck);
+        this.notifyStateChange();
+        break;
+      }
+      case "Bluebottle Broom": {
+        this.actionsRemaining--;
+        const nonHealing = player.discardPile.filter(c => !c.subTypes?.includes('Healing'));
+        if (nonHealing.length > 0) {
+          if (playerId === 'player' || this.isMultiplayer) {
+            const choices = nonHealing.map(c => ({ id: c.instanceId, label: c.name, card: c }));
+            this.promptChoice(playerId, "Bluebottle Broom: Choose a non-Healing card from discard to put on bottom of deck", choices, 1, 1, (selected) => {
+              const sel = selected[0];
+              if (sel) {
+                const idx = player.discardPile.findIndex(c => c.instanceId === sel);
+                if (idx !== -1) {
+                  const [c] = player.discardPile.splice(idx, 1);
+                  player.deck.unshift(c);
+                  this.log(`Bluebottle Broom: Put ${c.name} on bottom of deck.`);
+                }
+              }
+              this.notifyStateChange();
+            }, item);
+          } else {
+            const [c] = player.discardPile.splice(player.discardPile.indexOf(nonHealing[0]), 1);
+            player.deck.unshift(c);
+            this.log(`Bluebottle Broom: AI put ${c.name} on bottom of deck.`);
+            this.notifyStateChange();
+          }
+        }
+        break;
+      }
+      case "Moonseed Poison": {
+        this.actionsRemaining--;
+        const itemIdx = player.items.findIndex(i => i.instanceId === itemInstanceId);
+        if (itemIdx !== -1) {
+          player.items.splice(itemIdx, 1);
+          player.discardPile.push(item);
+        }
+        this.log(`${player.name} discarded Moonseed Poison from play to deal 6 damage to opponent.`);
+        this.dealDamage(playerId === 'player' ? 'opponent' : 'player', 6, 'item', item);
+        this.notifyStateChange();
+        break;
+      }
     }
   }
 
@@ -3944,6 +5493,10 @@ export class GameEngine {
         return player.hand.filter(c => c.type === 'Spell').length >= 5;
       case "Hagrid Needs Help":
         return this.actionsRemaining >= 1;
+      case "Letters From No One":
+        return player.hand.length >= 5;
+      case "Through the Arch":
+        return this.actionsRemaining >= 1;
       case "In the Stands":
         return player.hand.filter(c => c.type === 'Creature').length >= 4;
       case "Into the Forbidden Forest":
@@ -3971,8 +5524,8 @@ export class GameEngine {
 
     if (!this.canSolveAdventure(playerId, adventure)) return;
 
-    if (adventure.name === "Gringotts' Cart Ride" || adventure.name === "Diagon Alley" || adventure.name === "Peeves Causes Trouble" || adventure.name === "Into the Forbidden Forest") {
-      const targetSkips = adventure.name === "Diagon Alley" ? 7 : 5;
+    if (adventure.name === "Gringotts' Cart Ride" || adventure.name === "Diagon Alley" || adventure.name === "Peeves Causes Trouble" || adventure.name === "Into the Forbidden Forest" || adventure.name === "Through the Arch") {
+      const targetSkips = adventure.name === "Diagon Alley" ? 7 : (adventure.name === "Through the Arch" ? 4 : 5);
       this.actionsRemaining--;
       adventure.skipCount = (adventure.skipCount || 0) + 1;
       this.log(`${player.name} skipped an action to work on ${adventure.name} (Progress: ${adventure.skipCount}/${targetSkips}).`);
@@ -4105,6 +5658,36 @@ export class GameEngine {
         opponent.discardPile.push(adventure);
         this.log(`${adventure.name} is solved!`);
         this.applyAdventureReward(playerId, adventure);
+        break;
+      }
+
+      case "Letters From No One": {
+        const handChoices = player.hand.map(c => ({ id: c.instanceId, label: c.name, card: c }));
+        this.promptChoice(playerId, "Letters From No One: Choose 5 cards from hand to discard", handChoices, 5, 5, (selected) => {
+          if (selected.length === 5) {
+            selected.forEach(instId => {
+              const idx = player.hand.findIndex(c => c.instanceId === instId);
+              if (idx !== -1) {
+                const [c] = player.hand.splice(idx, 1);
+                player.discardPile.push(c);
+              }
+            });
+            this.log(`${player.name} discarded 5 cards from hand.`);
+
+            const idx = player.adventures.findIndex(a => a.instanceId === adventureInstanceId);
+            if (idx !== -1) {
+              player.adventures.splice(idx, 1);
+              opponent.discardPile.push(adventure);
+              this.log(`${adventure.name} is solved!`);
+              this.applyAdventureReward(playerId, adventure);
+            }
+          }
+        }, adventure);
+        break;
+      }
+
+      case "Through the Arch": {
+        // Handled in multi-turn skipped actions solver block
         break;
       }
 
@@ -4402,6 +5985,8 @@ export class GameEngine {
       "Hagrid Needs Help": "Draw 3 cards.",
       "In the Stands": "Draw 1 card.",
       "Into the Forbidden Forest": "Draw 1 card.",
+      "Letters From No One": "Draw 2 cards.",
+      "Through the Arch": "Put an Item from discard pile into your hand.",
       "Pep Talk": "Draw 2 cards.",
       "Race for the Snitch": "Opponent discards their hand.",
       "Snape's Bias": "Draw 1 card.",
@@ -4732,11 +6317,182 @@ export class GameEngine {
         }
         break;
       }
+      
+      case "Letters From No One": {
+        const choices = [
+          { id: 'yes', label: 'Draw 2 cards' },
+          { id: 'no', label: 'Do not draw' }
+        ];
+        this.promptChoice(playerId, "Letters From No One Reward: Do you want to draw 2 cards?", choices, 1, 1, (selected) => {
+          if (selected[0] === 'yes') {
+            this.drawCards(playerId, 2, false);
+            this.log(`Letters From No One Reward: ${player.name} chose to draw 2 cards.`);
+          } else {
+            this.log(`Letters From No One Reward: ${player.name} chose not to draw cards.`);
+          }
+          this.notifyStateChange();
+        }, adventure);
+        break;
+      }
+      
+      case "Through the Arch": {
+        const itemsInDiscard = player.discardPile.filter(c => c.type === 'Item');
+        if (itemsInDiscard.length > 0) {
+          const choices = itemsInDiscard.map(c => ({ id: c.instanceId, label: c.name, card: c }));
+          this.promptChoice(playerId, "Through the Arch Reward: Choose an Item card from discard pile to put into hand", choices, 0, 1, (selected) => {
+            const sel = selected[0];
+            if (sel) {
+              const idx = player.discardPile.findIndex(c => c.instanceId === sel);
+              if (idx !== -1) {
+                const [item] = player.discardPile.splice(idx, 1);
+                player.hand.push(item);
+                this.log(`Through the Arch Reward: Added ${item.name} from discard pile to hand.`);
+              }
+            }
+            this.notifyStateChange();
+          }, adventure);
+        } else {
+          this.log(`Through the Arch Reward: No Item cards in discard pile.`);
+          this.notifyStateChange();
+        }
+        break;
+      }
     }
+  }
+
+  canActivateLocationAbility(playerId, location) {
+    if (this.gameOver) return false;
+    if (this.activePlayerId !== playerId) return false;
+    const player = this.players[playerId];
+    if (player.mustDrawFirstAction) return false;
+    if (this.actionsRemaining < 1) return false;
+    if (player.adventures.some(a => a.name === 'Letters From No One')) return false;
+
+    switch (location.name) {
+      case 'Flourish and Blotts':
+        return player.lessons.length >= 2;
+      case 'Cauldron Shop':
+      case 'Quality Quidditch Supplies':
+        return player.deck.length > 0;
+      default:
+        return false;
+    }
+  }
+
+  activateLocationAbility(playerId, locationInstanceId) {
+    const player = this.players[playerId];
+    let location = this.players.player.locations.find(l => l.instanceId === locationInstanceId);
+    if (!location) {
+      location = this.players.opponent.locations.find(l => l.instanceId === locationInstanceId);
+    }
+    if (!location || !this.canActivateLocationAbility(playerId, location)) return;
+
+    this.actionsRemaining--;
+
+    switch (location.name) {
+      case 'Flourish and Blotts': {
+        const choices = player.lessons.map(c => ({ id: c.instanceId, label: c.name, card: c }));
+        this.promptChoice(playerId, "Flourish and Blotts: Choose 2 Lessons in play to discard", choices, 2, 2, (selected) => {
+          if (selected.length === 2) {
+            selected.forEach(instId => {
+              const idx = player.lessons.findIndex(l => l.instanceId === instId);
+              if (idx !== -1) {
+                const [l] = player.lessons.splice(idx, 1);
+                player.discardPile.push(l);
+              }
+            });
+            this.log(`${player.name} discarded 2 Lessons from play.`);
+            this.drawCards(playerId, 5, false);
+            this.log(`${player.name} drew 5 cards.`);
+            this.notifyStateChange();
+          }
+        }, location);
+        break;
+      }
+
+      case 'Cauldron Shop': {
+        const eligibleItems = player.deck.filter(c => c.type === 'Item' && c.lessonCost && c.lessonCost.type === 'Potions');
+        if (eligibleItems.length > 0) {
+          const choices = eligibleItems.map(c => ({ id: c.instanceId, label: c.name, card: c }));
+          this.promptChoice(playerId, "Cauldron Shop: Select an Item card that needs Potions [P] Power to put into hand", choices, 0, 1, (selected) => {
+            const sel = selected[0];
+            if (sel) {
+              const idx = player.deck.findIndex(c => c.instanceId === sel);
+              if (idx !== -1) {
+                const [item] = player.deck.splice(idx, 1);
+                player.hand.push(item);
+                this.log(`${player.name} found Item: ${item.name} and put it into hand.`);
+              }
+            }
+            this.shuffle(player.deck);
+            this.notifyStateChange();
+          }, location);
+        } else {
+          this.log(`${player.name} searched deck but found no eligible Items.`);
+          this.shuffle(player.deck);
+          this.notifyStateChange();
+        }
+        break;
+      }
+
+      case 'Quality Quidditch Supplies': {
+        const eligibleItems = player.deck.filter(c => c.type === 'Item' && c.lessonCost && c.lessonCost.type === 'Quidditch');
+        if (eligibleItems.length > 0) {
+          const choices = eligibleItems.map(c => ({ id: c.instanceId, label: c.name, card: c }));
+          this.promptChoice(playerId, "Quality Quidditch Supplies: Select an Item card that needs Quidditch [Q] Power to put into hand", choices, 0, 1, (selected) => {
+            const sel = selected[0];
+            if (sel) {
+              const idx = player.deck.findIndex(c => c.instanceId === sel);
+              if (idx !== -1) {
+                const [item] = player.deck.splice(idx, 1);
+                player.hand.push(item);
+                this.log(`${player.name} found Item: ${item.name} and put it into hand.`);
+              }
+            }
+            this.shuffle(player.deck);
+            this.notifyStateChange();
+          }, location);
+        } else {
+          this.log(`${player.name} searched deck but found no eligible Items.`);
+          this.shuffle(player.deck);
+          this.notifyStateChange();
+        }
+        break;
+      }
+    }
+  }
+
+  getCreatureHealth(creature) {
+    let health = creature.health;
+    const isEeylopsActive = this.players.player.locations.some(l => l.name === 'Eeylops Owl Emporium') ||
+                            this.players.opponent.locations.some(l => l.name === 'Eeylops Owl Emporium');
+    if (isEeylopsActive && creature.subTypes && creature.subTypes.includes('Owl')) {
+      health += 1;
+    }
+    return health;
+  }
+
+  getCreatureDamage(playerId, creature) {
+    let dmg = creature.damagePerTurn || 0;
+    if (dmg <= 0) return 0;
+    const player = this.players[playerId];
+    const hasHagrid = player.characters.some(c => c.name === 'Rubeus Hagrid');
+    if (hasHagrid && dmg >= 3) {
+      dmg += 2;
+    }
+    const isEeylopsActive = this.players.player.locations.some(l => l.name === 'Eeylops Owl Emporium') ||
+                            this.players.opponent.locations.some(l => l.name === 'Eeylops Owl Emporium');
+    if (isEeylopsActive && creature.subTypes && creature.subTypes.includes('Owl')) {
+      dmg += 1;
+    }
+    return dmg;
   }
 
   // Deal damage to a player (forces discarding top of deck)
   dealDamage(targetPlayerId, amount, damageSource = 'spell', card = null) {
+    if (!card && damageSource === 'spell' && this.currentlyResolvingSpell) {
+      card = this.currentlyResolvingSpell;
+    }
     const target = this.players[targetPlayerId];
     const hasComet = target.items.some(i => i.name === 'Comet Two Sixty');
     const isOpponentTurn = this.activePlayerId !== targetPlayerId;
@@ -4764,6 +6520,23 @@ export class GameEngine {
 
   proceedWithDealDamage(targetPlayerId, amount, damageSource = 'spell', card = null) {
     const target = this.players[targetPlayerId];
+    
+    // Madam Malkin's Robes reduction: Whenever a card does damage, it does 1 less damage
+    const isMadamMalkinActive = this.players.player.locations.some(l => l.name === "Madam Malkin's Robes") ||
+                                 this.players.opponent.locations.some(l => l.name === "Madam Malkin's Robes");
+    if (isMadamMalkinActive && amount > 0) {
+      amount = Math.max(0, amount - 1);
+      this.log(`Madam Malkin's Robes: Player damage reduced by 1 (deals ${amount} total).`);
+    }
+
+    // Dragon-Hide Gloves reduction: Whenever a Creature does damage to you, prevent 1 of that damage.
+    if (damageSource === 'creature' && amount > 0) {
+      const hasGloves = target.items.some(i => i.name === 'Dragon-Hide Gloves');
+      if (hasGloves) {
+        amount = Math.max(0, amount - 1);
+        this.log(`Dragon-Hide Gloves: Creature damage to ${target.name} reduced by 1 (deals ${amount} total).`);
+      }
+    }
 
     // Nimbus Two Thousand spell/item damage boost (+2 for Quidditch spells/items)
     if (amount > 0 && damageSource === 'spell') {
@@ -4778,6 +6551,17 @@ export class GameEngine {
         if (isQuidditchDamage) {
           amount += 2;
           this.log(`Nimbus Two Thousand: Spell/Item damage increased by +2 (deals ${amount} total).`);
+        }
+      }
+      if (dealer.biasedCommentaryActive) {
+        let isQuidditchDamage = false;
+        if (card) {
+          isQuidditchDamage = (card.lessonCost && card.lessonCost.type === 'Quidditch') || (card.text && (card.text.includes('[Q]') || card.text.includes('Quidditch')));
+        }
+        if (isQuidditchDamage) {
+          amount += 5;
+          dealer.biasedCommentaryActive = false;
+          this.log(`Biased Commentary: Spell damage increased by +5 (deals ${amount} total).`);
         }
       }
     }
@@ -4806,6 +6590,16 @@ export class GameEngine {
       if (target.preventCreatureDamageNextTurn) {
         this.log(`Creature damage to ${target.name} is prevented (${target.preventCreatureDamageSource || 'Wingardium Leviosa!'})!`);
         return;
+      }
+    }
+
+    // Porcupine Robe: Track creatures that dealt damage to target player
+    if (damageSource === 'creature' && amount > 0 && card) {
+      if (!target.creaturesThatDealtDamageToMeThisTurn) {
+        target.creaturesThatDealtDamageToMeThisTurn = [];
+      }
+      if (!target.creaturesThatDealtDamageToMeThisTurn.some(c => c.instanceId === card.instanceId)) {
+        target.creaturesThatDealtDamageToMeThisTurn.push(card);
       }
     }
 
@@ -4952,10 +6746,30 @@ export class GameEngine {
     return allowedDamage;
   }
 
+  applySlothGripDamageCap(targetPlayerId, amount) {
+    const target = this.players[targetPlayerId];
+    if (!target.slothGripActive || amount <= 0 || this.activePlayerId === targetPlayerId) {
+      return amount;
+    }
+
+    const remainingDamage = Math.max(0, 3 - (target.damageTakenThisTurn || 0));
+    const allowedDamage = Math.min(amount, remainingDamage);
+    const prevented = amount - allowedDamage;
+
+    if (prevented > 0) {
+      this.log(
+        `Sloth Grip: Prevented ${prevented} damage (already took ${target.damageTakenThisTurn || 0} of max 3 this turn).`
+      );
+    }
+
+    return allowedDamage;
+  }
+
   applyDeckDamage(targetPlayerId, amount) {
     const target = this.players[targetPlayerId];
 
     amount = this.applyNevilleDamageCap(targetPlayerId, amount);
+    amount = this.applySlothGripDamageCap(targetPlayerId, amount);
 
     if (amount <= 0) {
       this.notifyStateChange();
@@ -5075,6 +6889,16 @@ export class GameEngine {
         }, matchCard);
         break;
       }
+      case 'Gryffindor Match': {
+        this.log(`Gryffindor Match Prize: ${winner.name} will get 2 more Actions during their next turn.`);
+        winner.extraActionsNextTurn = (winner.extraActionsNextTurn || 0) + 2;
+        break;
+      }
+      case 'Three-Month-Long Match': {
+        this.log(`Three-Month-Long Match Prize: ${winner.name} does 15 damage to ${loser.name}.`);
+        this.dealDamage(loserId, 15, 'spell');
+        break;
+      }
       case 'Hufflepuff Match': {
         const choices = [
           { id: 'yes', label: 'Draw 5 cards' },
@@ -5171,6 +6995,21 @@ export class GameEngine {
     const activePlayer = this.players[this.activePlayerId];
     const inactivePlayer = this.players[this.activePlayerId === 'player' ? 'opponent' : 'player'];
 
+    // Porcupine Robe: End of opponent's turn trigger
+    const hasPorcupineRobe = inactivePlayer.items.some(i => i.name === 'Porcupine Robe');
+    if (hasPorcupineRobe && inactivePlayer.creaturesThatDealtDamageToMeThisTurn?.length > 0) {
+      inactivePlayer.creaturesThatDealtDamageToMeThisTurn.forEach(creature => {
+        const inPlay = activePlayer.creatures.find(c => c.instanceId === creature.instanceId);
+        if (inPlay) {
+          this.log(`Porcupine Robe: Dealing 1 retaliation damage to ${inPlay.name}.`);
+          this.damageCreature(activePlayer.id, inPlay.instanceId, 1);
+        }
+      });
+    }
+    // Clear tracking lists
+    activePlayer.creaturesThatDealtDamageToMeThisTurn = [];
+    inactivePlayer.creaturesThatDealtDamageToMeThisTurn = [];
+
     // Devil's Snare and Cobra Lily end-of-turn damage removal
     activePlayer.creatures.forEach(c => {
       if (c.name === "Devil's Snare" || c.name === "Cobra Lily") {
@@ -5184,6 +7023,8 @@ export class GameEngine {
     activePlayer.discardDrawsNextTurn = false;
     activePlayer.cantPlaySpellsNextTurn = false;
     activePlayer.cantPlayLessonsNextTurn = false;
+    activePlayer.cantPlayItemsNextTurn = false;
+    activePlayer.biasedCommentaryActive = false;
     
     // Inactive player's protection flags expire
     inactivePlayer.preventAllDamageNextTurn = false;
@@ -5191,6 +7032,8 @@ export class GameEngine {
     inactivePlayer.preventCreatureAdventureDamageNextTurn = false;
     inactivePlayer.preventCreatureDamageNextTurn = false;
     inactivePlayer.preventCreatureDamageSource = null;
+    inactivePlayer.preventAllCreatureDamageNextTurn = false;
+    inactivePlayer.slothGripActive = false;
 
     this.log(`Ending turn for ${activePlayer.name}.`, 'turn');
 
@@ -5204,6 +7047,7 @@ export class GameEngine {
     activePlayer.usedOncePerTurnAbilities = {};
     activePlayer.usedHarrySeekerThisTurn = false;
     activePlayer.usedCometTwoSixtyThisTurn = false;
+    activePlayer.usedDracoMalfoySlytherinThisTurn = false;
     inactivePlayer.usedCometTwoSixtyThisTurn = false;
     inactivePlayer.wingedKeysTargetInstanceId = null;
     // Support Banner end of turn check
@@ -5257,8 +7101,48 @@ export class GameEngine {
     const nextPlayer = this.players[this.activePlayerId];
     const prevPlayer = activePlayer; // activePlayer is the player who just ended their turn
 
+    // The Famous Harry Potter start of turn passive trigger
+    if (nextPlayer.characters.some(c => c.name === 'The Famous Harry Potter') && nextPlayer.hand.length <= 4) {
+      if (this.activePlayerId === 'player' || this.isMultiplayer) {
+        const choices = [
+          { id: 'yes', label: 'Draw 1 card' },
+          { id: 'no', label: 'Do not draw' }
+        ];
+        this.promptChoice(this.activePlayerId, "The Famous Harry Potter: Draw 1 card before your turn?", choices, 1, 1, (selected) => {
+          if (selected[0] === 'yes') {
+            this.drawCard(this.activePlayerId, false);
+            this.log(`The Famous Harry Potter: ${nextPlayer.name} drew 1 card.`);
+          }
+          this.initializeNewTurn(nextPlayer, prevPlayer);
+        });
+        return;
+      } else {
+        // AI choice: draw if deck has cards
+        if (nextPlayer.deck.length >= 5) {
+          this.drawCard(this.activePlayerId, false);
+          this.log(`The Famous Harry Potter: AI drew 1 card.`);
+        }
+        this.initializeNewTurn(nextPlayer, prevPlayer);
+        return;
+      }
+    }
+
+    this.initializeNewTurn(nextPlayer, prevPlayer);
+  }
+
+  initializeNewTurn(nextPlayer, prevPlayer) {
     const unicornCount = nextPlayer.creatures.filter(c => c.name === 'Unicorn').length;
-    let actionCount = 2 + unicornCount;
+    const isGringottsActive = this.players.player.locations.some(l => l.name === 'Gringotts') ||
+                              this.players.opponent.locations.some(l => l.name === 'Gringotts');
+    let actionCount = 2 + unicornCount + (isGringottsActive ? 1 : 0);
+    if (isGringottsActive) {
+      this.log(`${nextPlayer.name} gets +1 Action from Gringotts.`);
+    }
+    if (nextPlayer.extraActionsNextTurn) {
+      actionCount += nextPlayer.extraActionsNextTurn;
+      this.log(`${nextPlayer.name} gets ${nextPlayer.extraActionsNextTurn} extra Action(s) from Gryffindor Match prize.`);
+      nextPlayer.extraActionsNextTurn = 0;
+    }
     const hasHagridNeedsHelp = nextPlayer.adventures.some(a => a.name === 'Hagrid Needs Help');
     if (hasHagridNeedsHelp) {
       actionCount = Math.max(1, actionCount - 1);
@@ -5293,47 +7177,42 @@ export class GameEngine {
     // Resolve active player's (nextPlayer's) creatures' start-of-turn damage
     if (nextPlayer.creatures.length > 0) {
       nextPlayer.creatures.forEach(creature => {
-        let dmg = creature.damagePerTurn || 0;
+        let dmg = this.getCreatureDamage(nextPlayer.id, creature);
         // Check Winged Keys prevention (Winged Keys is in play on prevPlayer)
         if (prevPlayer.wingedKeysTargetInstanceId === creature.instanceId) {
           this.log(`Winged Keys: Prevented all damage from ${creature.name}.`);
           dmg = 0;
         }
         if (dmg > 0) {
-          const hasHagrid = nextPlayer.characters.some(c => c.name === 'Rubeus Hagrid');
-          if (hasHagrid && dmg >= 3) {
-            dmg += 2;
-            this.log(`Rubeus Hagrid: ${creature.name}'s damage is boosted by +2 (deals ${dmg} total).`);
-          }
-          this.log(`${creature.name} attacks!`);
-          this.dealDamage(prevPlayer.id, dmg, 'creature');
+          this.log(`${creature.name} deals ${dmg} damage to ${prevPlayer.name} at start of turn.`, 'damage');
+          this.dealDamage(prevPlayer.id, dmg, 'creature', creature);
         }
       });
     }
 
     // 2.5 Resolve start-of-turn Adventure effects for nextPlayer
-    const oppHasDragonsEscape = activePlayer.adventures.some(a => a.name === "Dragon's Escape");
+    const oppHasDragonsEscape = prevPlayer.adventures.some(a => a.name === "Dragon's Escape");
     if (oppHasDragonsEscape) {
-      this.log(`Dragon's Escape: Dealing 1 before-turn damage to ${activePlayer.name}.`);
-      this.dealDamage(activePlayer.id, 1, 'adventure');
+      this.log(`Dragon's Escape: Dealing 1 before-turn damage to ${prevPlayer.name}.`);
+      this.dealDamage(prevPlayer.id, 1, 'adventure');
     }
 
-    const oppHasTroll = activePlayer.adventures.some(a => a.name === "Troll in the Bathroom");
+    const oppHasTroll = prevPlayer.adventures.some(a => a.name === "Troll in the Bathroom");
     if (oppHasTroll) {
-      this.log(`Troll in the Bathroom: Dealing 2 before-turn damage to ${activePlayer.name}.`);
-      this.dealDamage(activePlayer.id, 2, 'adventure');
+      this.log(`Troll in the Bathroom: Dealing 2 before-turn damage to ${prevPlayer.name}.`);
+      this.dealDamage(prevPlayer.id, 2, 'adventure');
     }
 
-    const oppHasUnusualPets = activePlayer.adventures.some(a => a.name === "Unusual Pets");
+    const oppHasUnusualPets = prevPlayer.adventures.some(a => a.name === "Unusual Pets");
     if (oppHasUnusualPets) {
-      this.log(`Unusual Pets: Dealing 4 before-turn damage to ${activePlayer.name}.`);
-      this.dealDamage(activePlayer.id, 4, 'adventure');
+      this.log(`Unusual Pets: Dealing 4 before-turn damage to ${prevPlayer.name}.`);
+      this.dealDamage(prevPlayer.id, 4, 'adventure');
     }
 
-    const oppHasNeville = activePlayer.adventures.some(a => a.name === "Sticking Up for Neville");
+    const oppHasNeville = prevPlayer.adventures.some(a => a.name === "Sticking Up for Neville");
     if (oppHasNeville) {
-      this.log(`Sticking Up for Neville: Dealing 4 before-turn damage to ${activePlayer.name}.`);
-      this.dealDamage(activePlayer.id, 4, 'adventure');
+      this.log(`Sticking Up for Neville: Dealing 4 before-turn damage to ${prevPlayer.name}.`);
+      this.dealDamage(prevPlayer.id, 4, 'adventure');
     }
 
     const nextHasGringotts = nextPlayer.adventures.some(a => a.name === "Gringotts' Cart Ride");
@@ -5403,20 +7282,16 @@ export class GameEngine {
   debugDealCreatureDamage(playerId = 'player') {
     const player = this.players[playerId];
     const targetId = playerId === 'player' ? 'opponent' : 'player';
-    let totalDmg = 0;
+    let dealtAny = false;
     player.creatures.forEach(creature => {
-      let dmg = creature.damagePerTurn || 0;
+      let dmg = this.getCreatureDamage(playerId, creature);
       if (dmg > 0) {
-        const hasHagrid = player.characters.some(c => c.name === 'Rubeus Hagrid');
-        if (hasHagrid && dmg >= 3) {
-          dmg += 2;
-        }
-        totalDmg += dmg;
+        this.log(`Debug Menu: ${creature.name} deals ${dmg} damage to ${this.players[targetId].name}.`, 'damage');
+        this.dealDamage(targetId, dmg, 'creature', creature);
+        dealtAny = true;
       }
     });
-    if (totalDmg > 0) {
-      this.log(`Debug Menu: Instantly dealing ${totalDmg} creature damage from ${player.name} to ${this.players[targetId].name}.`, 'damage');
-      this.dealDamage(targetId, totalDmg, 'creature');
+    if (dealtAny) {
       this.notifyStateChange();
     } else {
       this.log(`Debug Menu: No creatures in play to deal damage for ${player.name}.`, 'error');
@@ -5452,6 +7327,7 @@ export class GameEngine {
       findAndRemove(player.creatures) ||
       findAndRemove(player.characters) ||
       findAndRemove(player.items) ||
+      findAndRemove(player.locations) ||
       findAndRemove(player.matches) ||
       findAndRemove(player.adventures);
     }
@@ -5484,6 +7360,8 @@ export class GameEngine {
         targetPlayer.characters.push(card);
       } else if (card.type === 'Adventure') {
         targetPlayer.adventures.push(card);
+      } else if (card.type === 'Location') {
+        targetPlayer.locations.push(card);
       } else if (card.type === 'Match') {
         targetPlayer.matches.push(card);
       } else {
@@ -5608,5 +7486,20 @@ export class GameEngine {
 
     this.log('Debug Mode: Cleared all Lessons in play for both players.', 'action');
     this.notifyStateChange();
+  }
+
+  debugReturnHandToDeck(playerId = 'player') {
+    if (!this.isDebugMode) return;
+    const player = this.players[playerId];
+    if (!player) return;
+    
+    const count = player.hand.length;
+    if (count > 0) {
+      player.deck.push(...player.hand);
+      player.hand = [];
+      this.shuffle(player.deck);
+      this.log(`Debug Mode: Returned all ${count} cards from ${player.name}'s hand to deck and shuffled.`, 'action');
+      this.notifyStateChange();
+    }
   }
 }

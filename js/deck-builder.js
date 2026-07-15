@@ -102,6 +102,7 @@ export class DeckBuilder {
       inputImportFile: document.getElementById('import-deck-file')
     };
 
+    this.sortStaticDropdowns();
     this.initDecks();
     this.bindEvents();
     this.populateCharactersDropdown();
@@ -212,12 +213,45 @@ export class DeckBuilder {
       }
     });
     
+    // Sort unique characters alphabetically by name
+    uniqueCharacters.sort((a, b) => a.name.localeCompare(b.name));
+
     uniqueCharacters.forEach(char => {
       const opt = document.createElement('option');
       opt.value = char.id;
       opt.innerText = char.name;
       this.el.selectChar.appendChild(opt);
     });
+  }
+
+  sortStaticDropdowns() {
+    const sortSelect = (selectEl, keepFirst = true) => {
+      if (!selectEl) return;
+      const options = Array.from(selectEl.options);
+      if (options.length <= 1) return;
+
+      let firstOpt = null;
+      let toSort = options;
+      if (keepFirst) {
+        firstOpt = options[0];
+        toSort = options.slice(1);
+      }
+
+      toSort.sort((a, b) => a.text.localeCompare(b.text));
+
+      const currentValue = selectEl.value;
+      selectEl.innerHTML = '';
+      if (firstOpt) {
+        selectEl.appendChild(firstOpt);
+      }
+      toSort.forEach(opt => selectEl.appendChild(opt));
+      selectEl.value = currentValue;
+    };
+
+    sortSelect(this.el.inputLessonFilter, true);
+    sortSelect(this.el.inputSeriesFilter, true);
+    sortSelect(this.el.deckCardTypeFilterSelect, true);
+    sortSelect(this.el.deckLessonTypeFilterSelect, true);
   }
 
   bindEvents() {
@@ -518,7 +552,14 @@ export class DeckBuilder {
     const currentId = this.currentDeck ? this.currentDeck.id : '';
     this.el.selectDeck.innerHTML = '';
     
-    this.decks.forEach(deck => {
+    // Sort decks alphabetically by name
+    const sortedDecks = [...this.decks].sort((a, b) => {
+      const nameA = (a.name + (a.isPreset ? " (Preset)" : "")).toLowerCase();
+      const nameB = (b.name + (b.isPreset ? " (Preset)" : "")).toLowerCase();
+      return nameA.localeCompare(nameB);
+    });
+
+    sortedDecks.forEach(deck => {
       const opt = document.createElement('option');
       opt.value = deck.id;
       opt.innerText = deck.name + (deck.isPreset ? " (Preset)" : "");
@@ -1051,11 +1092,10 @@ export class DeckBuilder {
     img.src = card.image || '';
     img.alt = card.name || 'Card Preview';
 
-    let isHorizontal = card.type !== 'Spell';
-    let rotation = isHorizontal ? 90 : 0;
+    let rotation = 0;
 
-    img.style.transform = rotation ? `rotate(${rotation}deg)` : 'none';
-    img.style.margin = rotation ? '40px 0' : '0';
+    img.style.transform = 'none';
+    img.style.margin = '0';
 
     if (actions) {
       actions.innerHTML = ''; // No in-game actions in Deck Builder
