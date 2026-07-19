@@ -1078,17 +1078,28 @@ export class UIManager {
             const oppProgress = this.engine.players.opponent.matchDamageDealt || 0;
             let targetDamage = 12; // default
             const toWinMatch = activeMatch.text.match(/Do (\d+) damage/i);
-            if (toWinMatch) targetDamage = parseInt(toWinMatch[1], 10);
+            if (toWinMatch) {
+              targetDamage = parseInt(toWinMatch[1], 10);
+            } else if (activeMatch.name === 'Muddy Practice') {
+              targetDamage = 5;
+            }
             
+            let playerVal = `(${playerProgress}/${targetDamage} DMG)`;
+            let oppVal = `(${oppProgress}/${targetDamage} DMG)`;
+            if (activeMatch.name === 'Muddy Practice') {
+              playerVal = `(${playerProgress}/${targetDamage} Discarded)`;
+              oppVal = `(${oppProgress}/${targetDamage} Discarded)`;
+            }
+
             label.innerHTML = `
               <div class="match-scoreboard-title">Match</div>
               <div class="match-scoreboard-row">
                 <span class="match-scoreboard-label">You:</span>
-                <span class="match-scoreboard-value">(${playerProgress}/${targetDamage} DMG)</span>
+                <span class="match-scoreboard-value">${playerVal}</span>
               </div>
               <div class="match-scoreboard-row">
                 <span class="match-scoreboard-label">Opp:</span>
-                <span class="match-scoreboard-value">(${oppProgress}/${targetDamage} DMG)</span>
+                <span class="match-scoreboard-value">${oppVal}</span>
               </div>
             `;
           } else {
@@ -1465,6 +1476,19 @@ export class UIManager {
           });
           mainActionsRow.appendChild(btnSolve);
         }
+      }
+
+      // Match active work trigger (Muddy Practice)
+      if (cardZone === 'field' && this.engine.actionsRemaining > 0 && card.type === 'Match' && card.name === 'Muddy Practice' && activeId === ownerId) {
+        const btnWorkMatch = document.createElement('button');
+        btnWorkMatch.className = 'btn';
+        btnWorkMatch.innerText = 'Discard to Work on Match';
+        btnWorkMatch.style.width = '200px';
+        btnWorkMatch.addEventListener('click', () => {
+          this.engine.workOnMatch(activeId, card.instanceId);
+          this.closePreviewModal();
+        });
+        mainActionsRow.appendChild(btnWorkMatch);
       }
 
       // Location active ability trigger

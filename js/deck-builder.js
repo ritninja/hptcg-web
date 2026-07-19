@@ -37,12 +37,16 @@ export function validateDeck(deck, cardsDb) {
     errors.push(`Deck must have exactly 60 cards (currently has ${totalCards} cards).`);
   }
 
-  // Check copy limits (max 4 copies of any card except Lessons)
+  // Check copy limits (max 4 copies of any card except Lessons, max 1 copy of Philosopher's Stone)
   Object.keys(cardCounts).forEach(name => {
     const count = cardCounts[name];
     const firstCard = cardsDb.find(c => c.name === name);
     if (firstCard && firstCard.type !== 'Lesson') {
-      if (count > 4) {
+      if (name === "Philosopher's Stone") {
+        if (count > 1) {
+          errors.push(`Too many copies of "${name}": max 1 copy (currently has ${count} copies).`);
+        }
+      } else if (count > 4) {
         errors.push(`Too many copies of "${name}": max 4 copies (currently has ${count} copies).`);
       }
     }

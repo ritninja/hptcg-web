@@ -1,0 +1,1506 @@
+{
+    "setName": "Adventures at Hogwarts",
+    "releaseDate": "06-2002",
+    "totalCards": "75",
+    "cards": [
+        {
+            "Legality": "legal",
+            "draftValue": 4,
+            "number": "1",
+            "name": "Albus Dumbledore",
+            "artist": "Kim Graham",
+            "type": [
+                "Character"
+            ],
+            "subTypes": [
+                "Wizard",
+                "Unique"
+            ],
+            "rarity": "Rare",
+            "flavorText": "(Order of Merlin, First Class, Grand Sorc., Chf. Warlock, Supreme Mugwump, International Confed. of Wizards)' — Hogwarts letterhead",
+            "effect": [
+                "If you have at least 4 Lessons in play, your Spell cards with a printed Power cost of 6 or more need 2 less Power to play. (You still need at least 1 Power that matches.)"
+            ]
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 5,
+            "number": "2",
+            "name": "Argus Filch",
+            "artist": "Kim Graham",
+            "type": [
+                "Character"
+            ],
+            "subTypes": [
+                "Unique"
+            ],
+            "rarity": "Rare",
+            "flavorText": "Filch knew the secret passageways of the school better than anyone... and could pop up as suddenly as any of the ghosts.'",
+            "effect": [
+                "You may use an Action to discard an Adventure from play (yours or your opponent's). (You don't get the reward.)"
+            ]
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 4,
+            "number": "3",
+            "name": "Crabbe & Goyle",
+            "artist": "Kim Graham",
+            "type": [
+                "Character"
+            ],
+            "subTypes": [
+                "Wizard",
+                "Slytherin",
+                "Unique"
+            ],
+            "rarity": "Rare",
+            "flavorText": "Both of them were thickest and looked extremely mean.'",
+            "effect": [
+                "You may use an Action and discard 2 cards from your hand to do 3 damage to your opponent."
+            ]
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 1,
+            "number": "4",
+            "name": "Detention!",
+            "artist": "Scott M. Fischer",
+            "type": [
+                "Adventure"
+            ],
+            "rarity": "Rare",
+            "effect": [
+                "Your opponent can't use Actions to play Adventure cards.",
+                "to solve: Your opponent chooses 2 Adventure cards in his or her hand and discards them.",
+                "reward: Your opponent may draw a card."
+            ],
+            "toSolve": "Your opponent chooses 2 Adventure cards in his or her hand and discards them.",
+            "reward": "Your opponent may draw a card."
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 4,
+            "number": "5",
+            "name": "Dragon's Blood",
+            "artist": "Tim Hildebrandt",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Potions"
+            ],
+            "cost": "7",
+            "rarity": "Rare",
+            "flavorText": "... Professor Dumbledore is particularly famous for... the discovery of the twelve uses of dragon's blood...' — Chocolate Frog card",
+            "effect": [
+                "To play this card, discard 2 of your [P] Lessons from play. Do 11 damage to your opponent or to a Creature of your choice."
+            ]
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 1,
+            "number": "6",
+            "name": "Dumbledore's Watch",
+            "artist": "Jeff Laubenstein",
+            "type": [
+                "Item"
+            ],
+            "subTypes": [
+                "Unique"
+            ],
+            "lesson": [
+                "Transfiguration"
+            ],
+            "cost": "9",
+            "rarity": "Rare",
+            "effect": [
+                "If this card is in play before your turn, discard all cards (other than each player's starting Character) from play (including this card)."
+            ]
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 5,
+            "number": "7",
+            "name": "End-of-Year Feast",
+            "artist": "James Bernardin",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Charms"
+            ],
+            "cost": "4",
+            "rarity": "Rare",
+            "flavorText": "... the huge Slytherin serpent vanished and a towering Gryffindor lion took its place.'",
+            "effect": [
+                "Put up to 4 Adventure cards from your discard pile into your hand."
+            ]
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 3.5,
+            "number": "8",
+            "name": "Fang",
+            "artist": "Monte Michael Moore",
+            "type": [
+                "Creature"
+            ],
+            "subTypes": [
+                "Dog",
+                "Unique"
+            ],
+            "lesson": [
+                "Care of Magical Creatures"
+            ],
+            "cost": "8",
+            "rarity": "Rare",
+            "flavorText": "Like Hagrid, Fang was clearly not as fierce as he looked.'",
+            "dmgEachTurn": "4",
+            "health": "7",
+            "effect": [
+                "To play this card, discard 1 of your [F] Lessons from play. When you play this card, do 4 damage to your opponent."
+            ]
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 2,
+            "number": "9",
+            "name": "Finding the Platform",
+            "artist": "Jeff Laubenstein",
+            "type": [
+                "Adventure"
+            ],
+            "rarity": "Rare",
+            "effect": [
+                "Your opponent can't use Actions to play Location cards.",
+                "to solve: Your opponent lets you search your deck. You may take up to 2 Location cards from your deck, show them to your opponent and put them into your hand. Then shuffle your deck.",
+                "reward: Your opponent may put a Lesson card from his or her hand into play."
+            ],
+            "toSolve": "Your opponent lets you search your deck. You may take up to 2 Location cards from your deck, show them to your opponent and put them into your hand. Then shuffle your deck.",
+            "reward": "Your opponent may put a Lesson card from his or her hand into play."
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 4,
+            "number": "10",
+            "name": "Galleon",
+            "artist": "Romas",
+            "type": [
+                "Item"
+            ],
+            "subTypes": [
+                "Money"
+            ],
+            "lesson": [
+                "Charms"
+            ],
+            "cost": "10",
+            "rarity": "Rare",
+            "effect": [
+                "You can play only 1 Money card each turn. Before your turn, if this card is in play, discard it and your get 3 more Actions this turn."
+            ]
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 4,
+            "number": "11",
+            "name": "Great Hall",
+            "artist": "James Bernardin",
+            "type": [
+                "Location"
+            ],
+            "subTypes": [
+                "Unique"
+            ],
+            "lesson": [
+                "Charms"
+            ],
+            "cost": "2",
+            "rarity": "Rare",
+            "flavorText": "It was lit by thousands and thousands of candles which were floating in midair over four long tables, ...'",
+            "effect": [
+                "When you play this card, discard any other Location from play (yours or your opponent's). Before each player's turn, he or she draws a card."
+            ]
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 3.5,
+            "number": "12",
+            "name": "Hagrid's House",
+            "artist": "Jim Nelson",
+            "type": [
+                "Location"
+            ],
+            "subTypes": [
+                "Unique"
+            ],
+            "lesson": [
+                "Care of Magical Creatures"
+            ],
+            "cost": "3",
+            "rarity": "Rare",
+            "flavorText": "Hagrid lived in a small wooden house on the edge of the Forbidden Forest.'",
+            "effect": [
+                "When you play this card, discard any other Location from play (yours or your opponent's). Whenever a [F] Lesson (yours or your opponent's) is discarded from play, put it into its owner's hand."
+            ]
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 2,
+            "number": "13",
+            "name": "Harry Triumphant",
+            "artist": "Kim Graham",
+            "type": [
+                "Character"
+            ],
+            "subTypes": [
+                "Wizard",
+                "Gryffindor",
+                "Seeker",
+                "Unique"
+            ],
+            "rarity": "Rare",
+            "flavorText": "... to Mr Harry Potter ...' ... '... for pure nerve and outstanding courage, I award Gryffindor house sixty points.' — Albus Dumbledore",
+            "effect": [
+                "At the end of each of your turns, if you played an Adventure card that turn, draw up to 4 cards."
+            ]
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 3,
+            "number": "14",
+            "name": "Hospital Dormitory",
+            "artist": "Kevin Dobler",
+            "type": [
+                "Location"
+            ],
+            "lesson": [
+                "Potions"
+            ],
+            "cost": "7",
+            "rarity": "Rare",
+            "flavorText": "He realised he must be in the hospital wing.'",
+            "effect": [
+                "When you play this card, discard any other Location from play (yours or your opponent's). Each turn, each player may prevent 4 damage done to him or her. (The damage may be prevented from one or more cards.)"
+            ]
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 2.5,
+            "number": "15",
+            "name": "Hut on the Rock",
+            "artist": "Ron Spencer",
+            "type": [
+                "Adventure"
+            ],
+            "rarity": "Rare",
+            "effect": [
+                "Play this card only if you have at least 5 Lessons in play.",
+                "Before each of your opponent's turns, if he or she has any cards in play (other than his or her starting Character), he or she chooses 1 of them and discards it.",
+                "to solve: Your opponent discards his or her hand.",
+                "reward: You take 5 damage."
+            ],
+            "toSolve": "Your opponent discards his or her hand.",
+            "reward": "You take 5 damage."
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 5,
+            "number": "16",
+            "name": "Madam Pomfrey",
+            "artist": "Kim Graham",
+            "type": [
+                "Character"
+            ],
+            "subTypes": [
+                "Healing",
+                "Witch",
+                "Unique"
+            ],
+            "rarity": "Rare",
+            "flavorText": "Madam Pomfrey, the matron, was a nice woman, but very strict.'",
+            "effect": [
+                "Once per game, you may shuffle up to 12 non-Healing cards from your discard pile into your deck."
+            ]
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 2.5,
+            "number": "17",
+            "name": "Meeting Fluffy",
+            "artist": "Kevin Dobler",
+            "type": [
+                "Adventure"
+            ],
+            "rarity": "Rare",
+            "effect": [
+                "Play this card only if you have at least 9 Lessons in play.",
+                "Before each of your turns, your opponent takes 12 damage.",
+                "to solve: Your opponent lets you choose 3 of his or her cards in play (other than his or her starting Character) and discard them.",
+                "reward: Your opponent gets 1 more Action the turn he or she solves this Adventure."
+            ],
+            "toSolve": "Your opponent lets you choose 3 of his or her cards in play (other than his or her starting Character) and discard them.",
+            "reward": "Your opponent gets 1 more Action the turn he or she solves this Adventure."
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 3,
+            "number": "18",
+            "name": "Midnight Duel",
+            "artist": "Ken Steacy",
+            "type": [
+                "Adventure"
+            ],
+            "rarity": "Rare",
+            "effect": [
+                "Play this card only if you have at least 5 Lessons in play.",
+                "To use an Action to play a Creature or a Spell card from his or her hand, your opponent must discard another card from his or her hand.",
+                "to solve: Your opponent chooses 4 of his or her cards in play (other than his or her starting Character) and discards them.",
+                "reward: Your opponent may draw 4 cards."
+            ],
+            "toSolve": "Your opponent chooses 4 of his or her cards in play (other than his or her starting Character) and discards them.",
+            "reward": "Your opponent may draw 4 cards."
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 2.5,
+            "number": "19",
+            "name": "Mirror of Erised",
+            "artist": "Scott M. Fischer",
+            "type": [
+                "Item"
+            ],
+            "subTypes": [
+                "Unique"
+            ],
+            "lesson": [
+                "Transfiguration"
+            ],
+            "cost": "10",
+            "rarity": "Rare",
+            "effect": [
+                "You may use an Action to discard this card from play. If you do, count the number of cards in your hand and discard them. Then search your deck. You may take up to that number of cards from your deck and put them into your hand. Then shuffle your deck."
+            ]
+        },
+        {
+            "Legality": "banned",
+            "draftValue": 5,
+            "number": "20",
+            "name": "Peeves",
+            "artist": "Kim Graham",
+            "type": [
+                "Character"
+            ],
+            "subTypes": [
+                "Ghost",
+                "Unique"
+            ],
+            "rarity": "Rare",
+            "flavorText": "... Peeves the poltergeist was worth two locked doors and a trick staircase if you met him when you were late for class.'",
+            "effect": [
+                "Once per game, you may discard your hand and then draw 7 cards to make your opponent discard his or her hand and then draw 7 cards."
+            ]
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 2.5,
+            "number": "21",
+            "name": "Philosopher's Stone",
+            "artist": "Monte Michael Moore",
+            "type": [
+                "Item"
+            ],
+            "subTypes": [
+                "Healing",
+                "Unique"
+            ],
+            "lesson": [
+                "Transfiguration"
+            ],
+            "cost": "15",
+            "rarity": "Rare",
+            "effect": [
+                "You may use 2 Actions to discard this card from play to put all Lesson cards from your discard pile into play. Then shuffle all non-Healing cards from your discard pile into your deck. When you build your deck, you can only put 1 Philosopher's Stone in it."
+            ]
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 3,
+            "number": "22",
+            "name": "Potions Dungeon",
+            "artist": "Tim Hildebrandt",
+            "type": [
+                "Location"
+            ],
+            "subTypes": [
+                "Unique"
+            ],
+            "lesson": [
+                "Potions"
+            ],
+            "cost": "3",
+            "rarity": "Rare",
+            "flavorText": "It... would have been quite creepy enough without the pickled animals floating in glass jars all around the walls.'",
+            "effect": [
+                "When you play this card, discard any other Location from play (yours or your opponent's). Whenever a [P] Lesson (yours or your opponent's) is discarded from play, put it into its owner's hand."
+            ]
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 3,
+            "number": "23",
+            "name": "Quidditch Cup",
+            "artist": "Darrell Riche",
+            "type": [
+                "Item"
+            ],
+            "subTypes": [
+                "Unique"
+            ],
+            "lesson": [
+                "Quidditch"
+            ],
+            "cost": "9",
+            "rarity": "Rare",
+            "effect": [
+                "Once during each of your turns, when you use an Action to play a card that requires [Q] Power, you get 1 more Action that turn."
+            ]
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 4,
+            "number": "24",
+            "name": "Quidditch Pitch",
+            "artist": "Darrell Riche",
+            "type": [
+                "Location"
+            ],
+            "lesson": [
+                "Quidditch"
+            ],
+            "cost": "2",
+            "rarity": "Rare",
+            "flavorText": "At either end of the pitch were three golden poles with hoops at the end.'",
+            "effect": [
+                "When you play this card, discard any other Location from play (yours or your opponent's). Spell cards that need [Q] Power (yours and your opponent's) need 2 less Power to play (you still need at least 1 Power that matches)."
+            ]
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 3,
+            "number": "25",
+            "name": "Riding the Centaur",
+            "artist": "Ken Steacy",
+            "type": [
+                "Adventure"
+            ],
+            "rarity": "Rare",
+            "effect": [
+                "Prevent all damage done to you by your opponent's Creatures.",
+                "to solve: Your opponent chooses 4 of his or her cards in play (other than his or her starting Character) and returns them to his or her hand.",
+                "reward: Your opponent may draw a card."
+            ],
+            "toSolve": "Your opponent chooses 4 of his or her cards in play (other than his or her starting Character) and returns them to his or her hand.",
+            "reward": "Your opponent may draw a card."
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 4,
+            "number": "26",
+            "name": "Ron the Brave",
+            "artist": "Kim Graham",
+            "type": [
+                "Character"
+            ],
+            "subTypes": [
+                "Wizard",
+                "Gryffindor",
+                "Unique"
+            ],
+            "rarity": "Rare",
+            "flavorText": "... you don't think we'd let you go alone?' - Ron Weasley",
+            "effect": [
+                "At the end of each of your turns, if you played an Adventure card that turn, your may search your deck. You may take a Character card from your deck, show it to your opponent and put it into your hand. Then shuffle your deck."
+            ]
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 2,
+            "number": "27",
+            "name": "Stoat Sandwiches",
+            "artist": "Ken Steacy",
+            "type": [
+                "Adventure"
+            ],
+            "rarity": "Rare",
+            "effect": [
+                "Your opponent can't use Actions to play Healing cards.",
+                "to solve: Your opponent chooses 5 of his or her cards in play (other than his or her starting Character) and discards them.",
+                "reward: Your opponent may shuffle up to 5 non-Healing cards from his or her discard pile into his or her deck."
+            ],
+            "toSolve": "Your opponent chooses 5 of his or her cards in play (other than his or her starting Character) and discards them.",
+            "reward": "Your opponent may shuffle up to 5 non-Healing cards from his or her discard pile into his or her deck."
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 4,
+            "number": "28",
+            "name": "The Fat Lady",
+            "artist": "Kim Graham",
+            "type": [
+                "Character"
+            ],
+            "subTypes": [
+                "Gryffindor",
+                "Unique"
+            ],
+            "rarity": "Rare",
+            "flavorText": "At the very end of the corridor hung a portrait of a very fat woman in a pink silk dress. 'Password?', she said.'",
+            "effect": [
+                "You may use an Action to search your deck. You may take a Gryffindor card from your deck, show it to your opponent and put it into your hand. Then shuffle your deck."
+            ]
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 2,
+            "number": "29",
+            "name": "Voldemort Revealed",
+            "artist": "Scott M. Fischer",
+            "type": [
+                "Adventure"
+            ],
+            "rarity": "Rare",
+            "effect": [
+                "Your opponent can't use Actions to play Spell cards.",
+                "to solve: Your opponent takes 7 damage.",
+                "reward: Your opponent may put up to 2 non-Healing cards from his or her discard pile and put them on the bottom of his or her deck (in any order)."
+            ],
+            "toSolve": "Your opponent takes 7 damage.",
+            "reward": "Your opponent may put up to 2 non-Healing cards from his or her discard pile and put them on the bottom of his or her deck (in any order)."
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 5,
+            "number": "30",
+            "name": "Welsh Green Dragon",
+            "artist": "Lars Grant-West",
+            "type": [
+                "Creature"
+            ],
+            "subTypes": [
+                "Dragon"
+            ],
+            "lesson": [
+                "Care of Magical Creatures"
+            ],
+            "cost": "7",
+            "rarity": "Rare",
+            "flavorText": "... you can't tame dragons, it's dangerous.' - Ron Weasley",
+            "dmgEachTurn": "6",
+            "health": "4",
+            "effect": [
+                "To play this card, discard 2 of your [F] Lessons from play. When you play this card, do 6 damage to your opponent."
+            ]
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 2,
+            "number": "31",
+            "name": "5 Points from Gryffindor",
+            "artist": "Scott M. Fischer",
+            "type": [
+                "Adventure"
+            ],
+            "rarity": "Uncommon",
+            "effect": [
+                "Play this card only if you have at least 5 Lessons in play.",
+                "Your opponent gets 1 fewer Action on each of his or her turns (even the turn this Adventure is solved). (If this would mean your opponent would have fewer than 1 Action, he or she still gets 1 Action.)",
+                "to solve: Your opponent chooses 5 cards from his or her hand and discards them.",
+                "reward: You take 5 damage."
+            ],
+            "toSolve": "Your opponent chooses 5 cards from his or her hand and discards them.",
+            "reward": "You take 5 damage."
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 1,
+            "number": "32",
+            "name": "Alohomora",
+            "artist": "Bob Petillo",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Charms"
+            ],
+            "cost": "4",
+            "rarity": "Uncommon",
+            "flavorText": "She grabbed Harry's wand, tapped the lock and whispered, 'Alohomora!''",
+            "effect": [
+                "Search your deck. You may take a Location or Adventure card from your deck, show it to your opponent and put it into your hand. Then shuffle your deck."
+            ]
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 3,
+            "number": "33",
+            "name": "Baneberry Potion",
+            "artist": "Thomas Gianni",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Potions"
+            ],
+            "cost": "3",
+            "rarity": "Uncommon",
+            "effect": [
+                "To play this card, discard 2 of your [P] Lessons from play. Do 8 damage to your opponent or to a Creature of your choice."
+            ]
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 1.5,
+            "number": "34",
+            "name": "Bludger Bop",
+            "artist": "Kevin McCann, Michael Collins",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Quidditch"
+            ],
+            "cost": "6",
+            "rarity": "Uncommon",
+            "flavorText": "... OUCH - that must have hurt, hit in the back of the head by a Bludger - ...' - Lee Jordan, commentator",
+            "effect": [
+                "Your opponent chooses 1 of his or her cards in play (other than his or her starting Character) and discards it. Then, if he or she has any cards in his or her hand, he or she chooses 1 of them and discards it."
+            ]
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 3,
+            "number": "35",
+            "name": "Candy Cart",
+            "artist": "Michael Koelsch",
+            "type": [
+                "Adventure"
+            ],
+            "rarity": "Uncommon",
+            "effect": [
+                "Play this card only if you have at least 3 Lessons in play.",
+                "Before each of your opponent's turns, he or she draws 3 cards and then chooses 3 cards in his or her hand and discards them.",
+                "to solve: Your opponent takes 10 damage.",
+                "reward: Your opponent may draw a card."
+            ],
+            "toSolve": "Your opponent takes 10 damage.",
+            "reward": "Your opponent may draw a card."
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 2.5,
+            "number": "36",
+            "name": "Collapsible Cauldron",
+            "artist": "George Davis",
+            "type": [
+                "Item"
+            ],
+            "subTypes": [
+                "Cauldron"
+            ],
+            "lesson": [
+                "Potions"
+            ],
+            "cost": "6",
+            "rarity": "Uncommon",
+            "effect": [
+                "To play this card, discard 1 of your [P] Lessons from play. If this card is discarded from play, put it into your hand."
+            ],
+            "provides": [
+                {
+                    "lesson": "Potions",
+                    "amount": 3
+                }
+            ]
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 1,
+            "number": "37",
+            "name": "Flying Motorbike",
+            "artist": "Scott M. Fischer",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Transfiguration"
+            ],
+            "cost": "3",
+            "rarity": "Uncommon",
+            "flavorText": "... with a roar it rose into the air and off into the night.'",
+            "effect": [
+                "Choose an Adventure or Location in play and discard it. (If you discard an Adventure, you don't get the reward.)"
+            ]
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 1,
+            "number": "38",
+            "name": "Flying Practice",
+            "artist": "Darrell Riche",
+            "type": [
+                "Adventure"
+            ],
+            "rarity": "Uncommon",
+            "effect": [
+                "Spell cards that need [Q] Power use up 2 of your opponent's Actions instead of 1.",
+                "to solve: Your opponent discards 4 cards that need [Q] Power from his or her hand.",
+                "reward: You take 2 damage."
+            ],
+            "toSolve": "Your opponent discards 4 cards that need [Q] Power from his or her hand.",
+            "reward": "You take 2 damage."
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 5,
+            "number": "39",
+            "name": "Forbidden Corridor",
+            "artist": "Doug Chaffee",
+            "type": [
+                "Location"
+            ],
+            "subTypes": [
+                "Unique"
+            ],
+            "lesson": [
+                "Transfiguration"
+            ],
+            "cost": "6",
+            "rarity": "Uncommon",
+            "flavorText": "And now they know why it was forbidden.'",
+            "effect": [
+                "When you play this card, discard any other Location from play (yours or your opponent's). Before each player's turn, he or she chooses 1 of his or her cards in play (other than his or her starting Character) and discards it. At the end of each player's turn, if he or she has no Lessons in play, discard this card."
+            ]
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 1.5,
+            "number": "40",
+            "name": "Giant Squid",
+            "artist": "Jeff Laubenstein",
+            "type": [
+                "Creature"
+            ],
+            "subTypes": [
+                "Squid"
+            ],
+            "lesson": [
+                "Care of Magical Creatures"
+            ],
+            "cost": "10",
+            "rarity": "Uncommon",
+            "dmgEachTurn": "5",
+            "health": "10"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 2,
+            "number": "41",
+            "name": "Looking for Trevor",
+            "artist": "David Day",
+            "type": [
+                "Adventure"
+            ],
+            "rarity": "Uncommon",
+            "effect": [
+                "Your opponent can't use Actions to play Creature cards.",
+                "to solve: Your opponent chooses 2 of his or her Lessons in play and discards them.",
+                "reward: Your opponent may search his or her deck. He or she may take a Creature card, show it to you, and put it into his or her hand. Then your opponent shuffles his or her deck."
+            ],
+            "toSolve": "Your opponent chooses 2 of his or her Lessons in play and discards them.",
+            "reward": "Your opponent may search his or her deck. He or she may take a Creature card, show it to you, and put it into his or her hand. Then your opponent shuffles his or her deck."
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 5,
+            "number": "42",
+            "name": "Marble Gargoyle",
+            "artist": "Tony Szczudlo",
+            "type": [
+                "Creature"
+            ],
+            "subTypes": [
+                "Gargoyle"
+            ],
+            "lesson": [
+                "Care of Magical Creatures"
+            ],
+            "cost": "5",
+            "rarity": "Uncommon",
+            "flavorText": "Gulpin' gargoyles ...' - Rubeus Hagrid",
+            "dmgEachTurn": "2",
+            "health": "3",
+            "effect": [
+                "When Marble Gargoyle does damage to your opponent, if he or she doesn't have any Creatures in play, it does 3 more damage to him or her."
+            ]
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 1,
+            "number": "43",
+            "name": "Muddy Practice",
+            "artist": "Ken Steacy",
+            "type": [
+                "Match"
+            ],
+            "lesson": [
+                "Quidditch"
+            ],
+            "cost": "1",
+            "rarity": "Uncommon",
+            "effect": [
+                "Either player may use an Action to discard a card from his or her hand.",
+                "to win: Discard 5 cards from your hand in this way.",
+                "prize: The winner does 10 damage to his or her opponent."
+            ],
+            "toWin": "Discard 5 cards from your hand in this way.",
+            "prize": "The winner does 10 damage to his or her opponent."
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 5,
+            "number": "44",
+            "name": "Purple Firecrackers",
+            "artist": "Greg Hildebrandt",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Charms"
+            ],
+            "cost": "6",
+            "rarity": "Uncommon",
+            "flavorText": "It took several purple firecrackers exploding from the end of Professor Dumbledore's wand to bring silence.'",
+            "effect": [
+                "Your opponent chooses 3 cards in his or her hand and discards them. (If he or she has fewer than 3 cards in his or her hand, he or she discards them all.)"
+            ]
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 2,
+            "number": "45",
+            "name": "Running from Filch",
+            "artist": "Monte Michael Moore",
+            "type": [
+                "Adventure"
+            ],
+            "rarity": "Uncommon",
+            "effect": [
+                "Play this card only if you have at least 6 Lessons in play.",
+                "Your opponent can't use Actions to play Lesson cards.",
+                "to solve: Your opponent discards his or her hand.",
+                "reward: Your opponent may draw 3 cards."
+            ],
+            "toSolve": "Your opponent discards his or her hand.",
+            "reward": "Your opponent may draw 3 cards."
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 4,
+            "number": "46",
+            "name": "Sickle",
+            "artist": "Thomas Gianni",
+            "type": [
+                "Item"
+            ],
+            "subTypes": [
+                "Money"
+            ],
+            "lesson": [
+                "Charms"
+            ],
+            "cost": "7",
+            "rarity": "Uncommon",
+            "effect": [
+                "You can play only 1 Money card each turn. Before your turn, if this card is in play, discard it and you get 2 more Actions this turn."
+            ]
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 1.5,
+            "number": "47",
+            "name": "Star Grass Salve",
+            "artist": "Bob Petillo",
+            "type": [
+                "Spell"
+            ],
+            "subTypes": [
+                "Healing"
+            ],
+            "lesson": [
+                "Potions"
+            ],
+            "cost": "8",
+            "rarity": "Uncommon",
+            "effect": [
+                "To play this card, discard 1 of your [P] Lessons from play. Shuffle up to 12 non-Healing cards from your discard pile into your deck."
+            ]
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 2.5,
+            "number": "48",
+            "name": "Through the Trapdoor",
+            "artist": "Ken Steacy",
+            "type": [
+                "Adventure"
+            ],
+            "rarity": "Uncommon",
+            "effect": [
+                "Your opponent discards the card drawn at the start of each of his or her turns.",
+                "to solve: The card drawn and discarded at the start of your opponent's turn is a Lesson card.",
+                "reward: You take 1 damage."
+            ],
+            "toSolve": "The card drawn and discarded at the start of your opponent's turn is a Lesson card.",
+            "reward": "You take 1 damage."
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 2.5,
+            "number": "49",
+            "name": "Winter Holiday",
+            "artist": "Doug Chaffee",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Transfiguration"
+            ],
+            "cost": "9",
+            "rarity": "Uncommon",
+            "flavorText": "... Hogwarts woke to find itself covered in several feet of snow.'",
+            "effect": [
+                "Your opponent chooses 3 of his or her Lessons in play and discards them. Then you choose 3 of your Lessons in play and discard them. (If either of you has fewer than 3 Lessons in play, that player discards them all.)"
+            ]
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 1.5,
+            "number": "50",
+            "name": "Wooden Flute",
+            "artist": "Tony Szczudlo",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Care of Magical Creatures"
+            ],
+            "cost": "8",
+            "rarity": "Uncommon",
+            "flavorText": "... it sounded a bit like an owl.'",
+            "effect": [
+                "Choose up to 3 Creatures in play and return them to their owner's hands."
+            ]
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 2,
+            "number": "51",
+            "name": "Anti-Cheating Spell",
+            "artist": "Greg Hildebrandt",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Charms"
+            ],
+            "cost": "3",
+            "rarity": "Common",
+            "flavorText": "They had been given special, new quills for the exams, which had been bewitched with an Anti-Cheating spell.'",
+            "effect": [
+                "Look at your opponent's hand. If there are any Lessons there, choose 1 of them and discard it."
+            ]
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 5,
+            "number": "52",
+            "name": "Bewitched Snowballs",
+            "artist": "Alex Horley",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Charms"
+            ],
+            "cost": "5",
+            "rarity": "Common",
+            "flavorText": "... the Weasley twins were punished for bewitching several snowballs so that they followed Quirrell around, bouncing off the back of his turban.'",
+            "effect": [
+                "Do 3 damage to your opponent or to a Creature of your choice. Then draw a card."
+            ]
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 5,
+            "number": "53",
+            "name": "Black Bat",
+            "artist": "George Davis",
+            "type": [
+                "Creature"
+            ],
+            "subTypes": [
+                "Bat"
+            ],
+            "lesson": [
+                "Care of Magical Creatures"
+            ],
+            "cost": "4",
+            "rarity": "Common",
+            "dmgEachTurn": "2",
+            "health": "1",
+            "effect": [
+                "When you play this card, do 2 damage to your opponent."
+            ]
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 2,
+            "number": "54",
+            "name": "Bucking Broomstick",
+            "artist": "Darrell Riche",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Quidditch"
+            ],
+            "cost": "7",
+            "rarity": "Common",
+            "flavorText": "It was as though the broom was trying to buck him off.'",
+            "effect": [
+                "Do 3 damage to your opponent. Then, if your opponent has any cards in his or her hand, he or she chooses 2 of them and discards them (1 if he or she only has 1)."
+            ]
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 3,
+            "number": "55",
+            "name": "Cauldron Cakes",
+            "artist": "Monte Michael Moore",
+            "type": [
+                "Spell"
+            ],
+            "subTypes": [
+                "Healing Candy"
+            ],
+            "lesson": [
+                "Potions"
+            ],
+            "cost": "1",
+            "rarity": "Common",
+            "flavorText": "He had never had any money for sweets with the Dursleys ...'",
+            "effect": [
+                "Choose up to 2 non-Healing cards from your discard pile and put them on the bottom of your deck (in any order). When draw a card. (Cauldron Cakes isn't really a Cauldron.)"
+            ]
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 1,
+            "number": "56",
+            "name": "Charms Accident",
+            "artist": "Keith Garletts",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Charms"
+            ],
+            "cost": "2",
+            "rarity": "Common",
+            "flavorText": "Seamus got so impatient that he prodded it with his wand and set fire to it - ...'",
+            "effect": [
+                "Do 2 damage to your opponent. You may also choose a non-Healing Item in play and return it to its owner's hand."
+            ]
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 2,
+            "number": "57",
+            "name": "Chimaera",
+            "artist": "Jim Nelson",
+            "type": [
+                "Creature"
+            ],
+            "subTypes": [
+                "Chimaera"
+            ],
+            "lesson": [
+                "Care of Magical Creatures"
+            ],
+            "cost": "7",
+            "rarity": "Common",
+            "dmgEachTurn": "4",
+            "health": "2"
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 2.5,
+            "number": "58",
+            "name": "Dog Bite",
+            "artist": "Scott M. Fischer",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Care of Magical Creatures"
+            ],
+            "cost": "4",
+            "rarity": "Common",
+            "flavorText": "'Blasted thing,' Snape was saying. 'How are you supposed to keep your eyes on all three heads at once?''",
+            "effect": [
+                "Choose a Creature in play. That Creature does damage to your opponent equal to that Creature's printed Damage each turn."
+            ]
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 3.5,
+            "number": "59",
+            "name": "Every-Flavor Beans",
+            "artist": "Cindy Salans Rosenheim",
+            "type": [
+                "Spell"
+            ],
+            "subTypes": [
+                "Candy"
+            ],
+            "lesson": [
+                "Transfiguration"
+            ],
+            "cost": "1",
+            "rarity": "Common",
+            "flavorText": "When they say every flavour, they mean every flavour - ...' - Ron Weasley",
+            "effect": [
+                "Reveal the top 2 cards of your deck. Put into play any Lesson cards you revealed. Put into your discard pile any non-Lesson cards you revealed. Then draw a card."
+            ]
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 1.5,
+            "number": "60",
+            "name": "Fire Protection Potion",
+            "artist": "Scott M. Fischer",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Potions"
+            ],
+            "cost": "3",
+            "rarity": "Common",
+            "flavorText": "He ... saw the black flames licking his body but couldn't feel them - ...'",
+            "effect": [
+                "Do 3 damage to your opponent. During your opponent's next turn, prevent all damage done to you by Spell cards."
+            ]
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 2,
+            "number": "61",
+            "name": "Fungiface Potion",
+            "artist": "Alex Horley",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Potions"
+            ],
+            "cost": "4",
+            "rarity": "Common",
+            "effect": [
+                "To play this card, discard 1 of your [P] Lessons from play. Do 6 damage to your opponent or to a Creature of your choice."
+            ]
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 3.5,
+            "number": "62",
+            "name": "Knut",
+            "artist": "Tony Szczudlo",
+            "type": [
+                "Item"
+            ],
+            "subTypes": [
+                "Money"
+            ],
+            "lesson": [
+                "Charms"
+            ],
+            "cost": "1",
+            "rarity": "Common",
+            "effect": [
+                "You can play only 1 Money card each turn. Before your turn, if this card is in play, discard it and you get 1 more Action this turn."
+            ]
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 2,
+            "number": "63",
+            "name": "Liquorice Wand",
+            "artist": "Bob Petillo",
+            "type": [
+                "Spell"
+            ],
+            "subTypes": [
+                "Candy"
+            ],
+            "lesson": [
+                "Charms"
+            ],
+            "cost": "1",
+            "rarity": "Common",
+            "effect": [
+                "Do 2 damage to your opponent. Then draw a card. (Liquorice Wand isn't really a Wand.)"
+            ]
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 4.5,
+            "number": "64",
+            "name": "Loop-the-Loops",
+            "artist": "Ken Steacy",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Quidditch"
+            ],
+            "cost": "8",
+            "rarity": "Common",
+            "flavorText": "When Angelina had scored, Harry had done a couple loop-the-loops to let out his feelings.'",
+            "effect": [
+                "Do 4 damage to your opponent. Then draw 4 cards."
+            ]
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 1.5,
+            "number": "65",
+            "name": "Manegrow Potion",
+            "artist": "Kevin Dobler",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Potions"
+            ],
+            "cost": "6",
+            "rarity": "Common",
+            "effect": [
+                "Count the number of P Lessons you have in play. Do that much damage to your opponent. Then choose 1 of your P Lessons in play and discard it."
+            ]
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 2,
+            "number": "66",
+            "name": "Muffling Draught",
+            "artist": "James Bernardin",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Potions"
+            ],
+            "cost": "3",
+            "rarity": "Common",
+            "effect": [
+                "During your opponent's next turn, he or she can't use Actions to play Spell cards."
+            ]
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 2,
+            "number": "67",
+            "name": "Owl Post",
+            "artist": "James Bernardin",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Care of Magical Creatures"
+            ],
+            "cost": "6",
+            "rarity": "Common",
+            "flavorText": "... about a hundred owls had suddenly streamed into the Great Hall ...'",
+            "effect": [
+                "Draw 3 cards."
+            ]
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 3,
+            "number": "68",
+            "name": "Photo Album",
+            "artist": "Romas",
+            "type": [
+                "Item"
+            ],
+            "lesson": [
+                "Charms"
+            ],
+            "cost": "5",
+            "rarity": "Common",
+            "flavorText": "Smiling and waving at him from every page were his mother and father.'",
+            "effect": [
+                "Before each of your turns, draw a card."
+            ]
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 4.5,
+            "number": "69",
+            "name": "Sandstone Gargoyle",
+            "artist": "Tony Szczudlo",
+            "type": [
+                "Creature"
+            ],
+            "subTypes": [
+                "Gargoyle"
+            ],
+            "lesson": [
+                "Care of Magical Creatures"
+            ],
+            "cost": "3",
+            "rarity": "Common",
+            "flavorText": "It was sitting as still as a statue...'",
+            "dmgEachTurn": "1",
+            "health": "2",
+            "effect": [
+                "When Sandstone Gargoyle does damage to your opponent, if he or she doesn't have any Creatures in play, it does 2 more damage to him or her."
+            ]
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 1,
+            "number": "70",
+            "name": "School Broom",
+            "artist": "Thomas Gianni",
+            "type": [
+                "Item"
+            ],
+            "subTypes": [
+                "Broom"
+            ],
+            "lesson": [
+                "Quidditch"
+            ],
+            "cost": "4",
+            "rarity": "Common",
+            "effect": [
+                "When you play this card, draw a card. If you play this card, and you already have a Broom in play, discard the old one."
+            ],
+            "provides": [
+                {
+                    "lesson": "Quidditch",
+                    "amount": 1
+                }
+            ]
+        },
+        {
+            "Legality": "banned",
+            "draftValue": 5,
+            "number": "71",
+            "name": "Scribblifors",
+            "artist": "Mark Romanoski",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Transfiguration"
+            ],
+            "cost": "7",
+            "rarity": "Common",
+            "effect": [
+                "Choose 2 of your opponent's cards in play (other than his or her starting Character). Your opponent discards one of them and returns the other to his or her hand."
+            ]
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 1.5,
+            "number": "72",
+            "name": "Sleeping Potion",
+            "artist": "Kevin Dobler",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Potions"
+            ],
+            "cost": "4",
+            "rarity": "Common",
+            "effect": [
+                "Do 4 damage to your opponent. During your opponent's next turn, he or she can't use Actions to play Adventure cards."
+            ]
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 3.5,
+            "number": "73",
+            "name": "Switching Spell",
+            "artist": "Ken Steacy",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Transfiguration"
+            ],
+            "cost": "4",
+            "rarity": "Common",
+            "flavorText": "... you'll lose all the points I got from Professor McGonagall for knowing about Switching Spells.' - Hermione Granger",
+            "effect": [
+                "Choose an Item in play (yours or your opponent's) and discard it. Then search your deck. You may take an Item card from your deck, show it to your opponent and put it into your hand. Then shuffle your deck."
+            ]
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 1.5,
+            "number": "74",
+            "name": "Troll Bogies",
+            "artist": "Greg Hildebrandt",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Care of Magical Creatures"
+            ],
+            "cost": "3",
+            "rarity": "Common",
+            "flavorText": "He bent down and pulled his wand out of the troll's nose. It was covered in what looked like lumpy grey glue. 'Urgh - troll bogies.''",
+            "effect": [
+                "Choose a non-Healing Item in play and return it to its owner's hand."
+            ]
+        },
+        {
+            "Legality": "legal",
+            "draftValue": 2,
+            "number": "75",
+            "name": "Vanishing Step",
+            "artist": "Alex Horley",
+            "type": [
+                "Spell"
+            ],
+            "lesson": [
+                "Transfiguration"
+            ],
+            "cost": "1",
+            "rarity": "Common",
+            "flavorText": "There were ... some with a vanishing step halfway up that you had to remember to jump.'",
+            "effect": [
+                "During your opponent's next turn, he or she gets 1 fewer Action. (If this would mean your opponent has fewer than 1 Action, he or she still gets 1 Action.)"
+            ]
+        }
+    ],
+    "releaseDate": "06-2002"
+}

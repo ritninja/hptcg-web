@@ -12,22 +12,25 @@ import { MultiplayerManager } from './multiplayer.js';
 async function bootstrap() {
   try {
     // 1. Fetch JSON databases
-    const [baseSetRes, quidditchCupRes, diagonAlleyRes, rulesResponse] = await Promise.all([
+    const [baseSetRes, quidditchCupRes, diagonAlleyRes, adventuresAtHogwartsRes, rulesResponse] = await Promise.all([
       fetch('./data/base_set/cards.json'),
       fetch('./data/quidditch_cup/cards.json'),
       fetch('./data/diagon_alley/cards.json'),
+      fetch('./data/adventures_at_hogwarts/cards.json'),
       fetch('./data/rules.json')
     ]);
     const baseSetDb = await baseSetRes.json();
     const quidditchCupDb = await quidditchCupRes.json();
     const diagonAlleyDb = await diagonAlleyRes.json();
+    const adventuresAtHogwartsDb = await adventuresAtHogwartsRes.json();
     const rulesConfig = await rulesResponse.json();
 
     // 2. Normalize raw card data from Downloads format to Engine structure
     const cardsDb = [
       ...normalizeCards(baseSetDb.cards, 'bs'),
       ...normalizeCards(quidditchCupDb.cards, 'qc'),
-      ...normalizeCards(diagonAlleyDb.cards, 'da')
+      ...normalizeCards(diagonAlleyDb.cards, 'da'),
+      ...normalizeCards(adventuresAtHogwartsDb.cards, 'ah')
     ];
 
     // Redirect all card images to use the cards_v2 directory with a cache-buster query parameter
@@ -653,6 +656,13 @@ async function bootstrap() {
       });
     }
 
+    const btnDebugDiscardHand = document.getElementById('btn-debug-discard-hand');
+    if (btnDebugDiscardHand) {
+      btnDebugDiscardHand.addEventListener('click', () => {
+        engine.debugDiscardHand();
+      });
+    }
+
     const btnDebugEnableLessons = document.getElementById('btn-debug-enable-lessons');
     if (btnDebugEnableLessons) {
       btnDebugEnableLessons.addEventListener('click', () => {
@@ -677,12 +687,19 @@ async function bootstrap() {
  * Normalizes card data from the downloaded Base Set JSON format to the format required by the engine.
  */
 function normalizeCards(rawCards, setPrefix = '') {
-  const series = setPrefix === 'qc' ? 'Quidditch Cup' : (setPrefix === 'da' ? 'Diagon Alley' : 'Base Set');
+  const series = setPrefix === 'qc' ? 'Quidditch Cup' : (setPrefix === 'da' ? 'Diagon Alley' : (setPrefix === 'ah' ? 'Adventures at Hogwarts' : 'Base Set'));
   return rawCards.map(card => {
     const primaryType = card.type ? card.type[0] : 'Lesson';
     let image = card.image || '';
     if (!image && setPrefix === 'da') {
       image = `assets/images/cards/diagon_alley/${card.number}_${card.name.replace(/'/g, '_')}.png`;
+    } else if (!image && setPrefix === 'ah') {
+      let nameForImage = card.name;
+      if (nameForImage === 'Crabbe & Goyle') nameForImage = 'Crabbe and Goyle';
+      else if (nameForImage === 'Hut on the Rock') nameForImage = 'Hut on a Rock';
+      else if (nameForImage === 'Every-Flavor Beans') nameForImage = 'Every-Flavour Beans';
+      else if (nameForImage === 'Manegrow Potion') nameForImage = 'Manegro Potion';
+      image = `assets/images/cards/adventures_at_hogwarts/${card.number}_${nameForImage.replace(/'/g, '_')}.png`;
     }
     const normalized = {
       id: setPrefix ? `${setPrefix}_${card.number}` : card.number,
@@ -772,9 +789,9 @@ function normalizeCards(rawCards, setPrefix = '') {
       normalized.damagePerTurn = card.dmgEachTurn ? parseInt(card.dmgEachTurn, 10) : 0;
       normalized.health = card.health ? parseInt(card.health, 10) : 1;
 
-      if (normalized.name === 'Hebridean Black Dragon' || normalized.name === 'River Troll') {
+      if (normalized.name === 'Hebridean Black Dragon' || normalized.name === 'River Troll' || normalized.name === 'Fang') {
         normalized.playRequirements = { discardLessons: { count: 1, type: 'Care of Magical Creatures' } };
-      } else if (normalized.name === 'Wild Boar') {
+      } else if (normalized.name === 'Wild Boar' || normalized.name === 'Welsh Green Dragon') {
         normalized.playRequirements = { discardLessons: { count: 2, type: 'Care of Magical Creatures' } };
       }
     }
@@ -782,6 +799,8 @@ function normalizeCards(rawCards, setPrefix = '') {
     if (primaryType === 'Item') {
       if (normalized.name === 'Self-Stirring Cauldron') {
         normalized.playRequirements = { discardLessons: { count: 2, type: 'Potions' } };
+      } else if (normalized.name === 'Collapsible Cauldron') {
+        normalized.playRequirements = { discardLessons: { count: 1, type: 'Potions' } };
       }
     }
 

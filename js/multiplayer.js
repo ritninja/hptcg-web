@@ -150,6 +150,12 @@ export class MultiplayerManager {
       this.broadcastState(engine);
     };
 
+    const originalWorkOnMatch = engine.workOnMatch.bind(engine);
+    engine.workOnMatch = (playerId, matchInstanceId) => {
+      originalWorkOnMatch(playerId, matchInstanceId);
+      this.broadcastState(engine);
+    };
+
     const originalActivateCharacterAbility = engine.activateCharacterAbility.bind(engine);
     engine.activateCharacterAbility = (playerId, characterInstanceId) => {
       originalActivateCharacterAbility(playerId, characterInstanceId);
@@ -207,6 +213,12 @@ export class MultiplayerManager {
     const originalDebugReturnHandToDeck = engine.debugReturnHandToDeck.bind(engine);
     engine.debugReturnHandToDeck = (playerId = 'player') => {
       originalDebugReturnHandToDeck(playerId);
+      this.broadcastState(engine);
+    };
+
+    const originalDebugDiscardHand = engine.debugDiscardHand.bind(engine);
+    engine.debugDiscardHand = (playerId = 'player') => {
+      originalDebugDiscardHand(playerId);
       this.broadcastState(engine);
     };
 
@@ -389,6 +401,12 @@ export class MultiplayerManager {
       return true;
     };
 
+    engine.workOnMatch = (playerId, matchInstanceId) => {
+      if (engine.activePlayerId !== 'player') return false;
+      this.postAction({ type: 'workOnMatch', playerId: 'player', matchInstanceId });
+      return true;
+    };
+
     engine.activateCharacterAbility = (playerId, characterInstanceId) => {
       if (engine.activePlayerId !== 'player') return false;
       this.postAction({ type: 'activateCharacterAbility', playerId: 'player', characterInstanceId });
@@ -433,6 +451,11 @@ export class MultiplayerManager {
     engine.debugReturnHandToDeck = (playerId = 'player') => {
       const mappedPlayerId = playerId === 'player' ? 'opponent' : 'player';
       this.postAction({ type: 'debugReturnHandToDeck', playerId: mappedPlayerId });
+    };
+
+    engine.debugDiscardHand = (playerId = 'player') => {
+      const mappedPlayerId = playerId === 'player' ? 'opponent' : 'player';
+      this.postAction({ type: 'debugDiscardHand', playerId: mappedPlayerId });
     };
 
     engine.debugEnableLessons = () => {
@@ -531,6 +554,8 @@ export class MultiplayerManager {
       engine.resolvePendingSpell(action.selectedIds);
     } else if (action.type === 'solveAdventure') {
       engine.solveAdventure('opponent', action.instanceId);
+    } else if (action.type === 'workOnMatch') {
+      engine.workOnMatch('opponent', action.matchInstanceId);
     } else if (action.type === 'activateCharacterAbility') {
       engine.activateCharacterAbility('opponent', action.characterInstanceId);
     } else if (action.type === 'activateItemAbility') {
@@ -549,6 +574,8 @@ export class MultiplayerManager {
       engine.debugShuffleDeck(action.playerId);
     } else if (action.type === 'debugReturnHandToDeck') {
       engine.debugReturnHandToDeck(action.playerId);
+    } else if (action.type === 'debugDiscardHand') {
+      engine.debugDiscardHand(action.playerId);
     } else if (action.type === 'debugEnableLessons') {
       engine.debugEnableLessons();
     } else if (action.type === 'debugDisableLessons') {
@@ -647,7 +674,7 @@ export class MultiplayerManager {
 }
 
 // Serialization/Deserialization utilities
-function serializeEngine(engine) {
+export function serializeEngine(engine) {
   return {
     activePlayerId: engine.activePlayerId,
     actionsRemaining: engine.actionsRemaining,
@@ -688,6 +715,7 @@ function serializePlayer(player) {
     lessons: player.lessons,
     items: player.items,
     adventures: player.adventures,
+    locations: player.locations,
     matches: player.matches,
     matchDamageDealt: player.matchDamageDealt,
     preventAllDamageNextTurn: player.preventAllDamageNextTurn,
@@ -711,7 +739,23 @@ function serializePlayer(player) {
     tookPeevesDamageThisInstance: player.tookPeevesDamageThisInstance,
     usedCometTwoSixtyThisTurn: player.usedCometTwoSixtyThisTurn,
     playedQuidditchSpellThisTurn: player.playedQuidditchSpellThisTurn,
-    mustDrawFirstAction: player.mustDrawFirstAction
+    mustDrawFirstAction: player.mustDrawFirstAction,
+    hospitalDormitoryPreventedThisTurn: player.hospitalDormitoryPreventedThisTurn,
+    usedQuidditchCupThisTurn: player.usedQuidditchCupThisTurn,
+    cantPlaySpellsNextTurn: player.cantPlaySpellsNextTurn,
+    cantPlayAdventuresNextTurn: player.cantPlayAdventuresNextTurn,
+    playedMoneyCardThisTurn: player.playedMoneyCardThisTurn,
+    cantPlayItemsNextTurn: player.cantPlayItemsNextTurn,
+    biasedCommentaryActive: player.biasedCommentaryActive,
+    slothGripActive: player.slothGripActive,
+    preventAllCreatureDamageNextTurn: player.preventAllCreatureDamageNextTurn,
+    playedAdventureThisTurn: player.playedAdventureThisTurn,
+    usedDracoMalfoySlytherinThisTurn: player.usedDracoMalfoySlytherinThisTurn,
+    preventSpellDamageNextTurn: player.preventSpellDamageNextTurn,
+    bravadoActiveThisTurn: player.bravadoActiveThisTurn,
+    cantPlayLessonsNextTurn: player.cantPlayLessonsNextTurn,
+    fewerActionsNextTurn: player.fewerActionsNextTurn,
+    extraActionsNextTurn: player.extraActionsNextTurn
   };
 }
 
@@ -811,7 +855,7 @@ export function loadEngineState(engine, plainState, isGuest = false) {
     }
     
     let title = plainState.pendingSpell.title || '';
-    if (isGuest && title) {
+    if (isGuest && title && casterId === 'opponent') {
       let result = title;
       
       result = result.replace(/\bHogwarts Rival's\b/g, '__TEMP_HR_POSSESSIVE__');
@@ -847,34 +891,36 @@ export function loadEngineState(engine, plainState, isGuest = false) {
         let label = c.label || '';
         let result = label;
         
-        result = result.replace(/\bHogwarts Rival's\b/g, '__TEMP_HR_POSSESSIVE__');
-        result = result.replace(/\bHogwarts Rival\b/g, '__TEMP_HR__');
-        
-        result = result.replace(/\byour\b/g, '__TEMP_YOUR__');
-        result = result.replace(/\bYour\b/g, '__TEMP_YOUR_CAP__');
-        result = result.replace(/\bYou's\b/g, '__TEMP_YOU_POSSESSIVE__');
-        result = result.replace(/\byou\b/g, '__TEMP_YOU_LOWER__');
-        result = result.replace(/\bYou\b/g, '__TEMP_YOU_CAP__');
-        
-        result = result.replace(/__TEMP_HR_POSSESSIVE__/g, 'your');
-        result = result.replace(/__TEMP_HR__/g, 'you');
-        
-        result = result.replace(/__TEMP_YOUR__/g, "Hogwarts Rival's");
-        result = result.replace(/__TEMP_YOUR_CAP__/g, "Hogwarts Rival's");
-        result = result.replace(/__TEMP_YOU_POSSESSIVE__/g, "Hogwarts Rival's");
-        
-        result = result.replace(/__TEMP_YOU_LOWER__/g, "Hogwarts Rival");
-        result = result.replace(/__TEMP_YOU_CAP__/g, "Hogwarts Rival");
-        
-        if (result.startsWith('you ')) {
-          result = 'You ' + result.slice(4);
-        } else if (result.startsWith('your ')) {
-          result = 'Your ' + result.slice(5);
-        }
-        
-        // Map "You" targeting choices specifically to "Your opponent"
-        if (c.id === 'opponent' && result.startsWith('Hogwarts Rival')) {
-          result = result.replace('Hogwarts Rival', 'Your opponent');
+        if (casterId === 'opponent') {
+          result = result.replace(/\bHogwarts Rival's\b/g, '__TEMP_HR_POSSESSIVE__');
+          result = result.replace(/\bHogwarts Rival\b/g, '__TEMP_HR__');
+          
+          result = result.replace(/\byour\b/g, '__TEMP_YOUR__');
+          result = result.replace(/\bYour\b/g, '__TEMP_YOUR_CAP__');
+          result = result.replace(/\bYou's\b/g, '__TEMP_YOU_POSSESSIVE__');
+          result = result.replace(/\byou\b/g, '__TEMP_YOU_LOWER__');
+          result = result.replace(/\bYou\b/g, '__TEMP_YOU_CAP__');
+          
+          result = result.replace(/__TEMP_HR_POSSESSIVE__/g, 'your');
+          result = result.replace(/__TEMP_HR__/g, 'you');
+          
+          result = result.replace(/__TEMP_YOUR__/g, "Hogwarts Rival's");
+          result = result.replace(/__TEMP_YOUR_CAP__/g, "Hogwarts Rival's");
+          result = result.replace(/__TEMP_YOU_POSSESSIVE__/g, "Hogwarts Rival's");
+          
+          result = result.replace(/__TEMP_YOU_LOWER__/g, "Hogwarts Rival");
+          result = result.replace(/__TEMP_YOU_CAP__/g, "Hogwarts Rival");
+          
+          if (result.startsWith('you ')) {
+            result = 'You ' + result.slice(4);
+          } else if (result.startsWith('your ')) {
+            result = 'Your ' + result.slice(5);
+          }
+          
+          // Map "You" targeting choices specifically to "Your opponent"
+          if (c.id === 'opponent' && result.startsWith('Hogwarts Rival')) {
+            result = result.replace('Hogwarts Rival', 'Your opponent');
+          }
         }
         
         let mappedId = c.id;
@@ -923,6 +969,7 @@ function loadPlayerState(player, plain) {
   player.lessons = plain.lessons || [];
   player.items = plain.items || [];
   player.adventures = plain.adventures || [];
+  player.locations = plain.locations || [];
   player.matches = plain.matches || [];
   player.matchDamageDealt = plain.matchDamageDealt || 0;
   player.preventAllDamageNextTurn = plain.preventAllDamageNextTurn || false;
@@ -947,4 +994,20 @@ function loadPlayerState(player, plain) {
   player.usedCometTwoSixtyThisTurn = plain.usedCometTwoSixtyThisTurn || false;
   player.playedQuidditchSpellThisTurn = plain.playedQuidditchSpellThisTurn || false;
   player.mustDrawFirstAction = plain.mustDrawFirstAction || false;
+  player.hospitalDormitoryPreventedThisTurn = plain.hospitalDormitoryPreventedThisTurn || 0;
+  player.usedQuidditchCupThisTurn = plain.usedQuidditchCupThisTurn || false;
+  player.cantPlaySpellsNextTurn = plain.cantPlaySpellsNextTurn || false;
+  player.cantPlayAdventuresNextTurn = plain.cantPlayAdventuresNextTurn || false;
+  player.playedMoneyCardThisTurn = plain.playedMoneyCardThisTurn || false;
+  player.cantPlayItemsNextTurn = plain.cantPlayItemsNextTurn || false;
+  player.biasedCommentaryActive = plain.biasedCommentaryActive || false;
+  player.slothGripActive = plain.slothGripActive || false;
+  player.preventAllCreatureDamageNextTurn = plain.preventAllCreatureDamageNextTurn || false;
+  player.playedAdventureThisTurn = plain.playedAdventureThisTurn || false;
+  player.usedDracoMalfoySlytherinThisTurn = plain.usedDracoMalfoySlytherinThisTurn || false;
+  player.preventSpellDamageNextTurn = plain.preventSpellDamageNextTurn || false;
+  player.bravadoActiveThisTurn = plain.bravadoActiveThisTurn || false;
+  player.cantPlayLessonsNextTurn = plain.cantPlayLessonsNextTurn || false;
+  player.fewerActionsNextTurn = plain.fewerActionsNextTurn || 0;
+  player.extraActionsNextTurn = plain.extraActionsNextTurn || 0;
 }
